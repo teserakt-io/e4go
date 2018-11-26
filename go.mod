@@ -1,4 +1,4 @@
-module teserakt.io/e4/common
+module teserakt/e4/common
 
 require (
 	github.com/miscreant/miscreant v0.3.0
