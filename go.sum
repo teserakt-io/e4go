@@ -1,6 +1,0 @@
-github.com/miscreant/miscreant v0.3.0 h1:bCn4zQMvNeeFBE3PWrG9ePFLPZyttBPhJ/WDqyqWrLQ=
-github.com/miscreant/miscreant v0.3.0/go.mod h1:ZKWeIKfbJej2zjb1OUXJaaP1DnCb4yoTtcR90O7BOD4=
-golang.org/x/crypto v0.0.0-20181127143415-eb0de9b17e85 h1:et7+NAX3lLIk5qUCTA9QelBjGE/NkhzYw/mhnr0s7nI=
-golang.org/x/crypto v0.0.0-20181127143415-eb0de9b17e85/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
-golang.org/x/sys v0.0.0-20181128092732-4ed8d59d0b35 h1:YAFjXN64LMvktoUZH9zgY4lGc/msGN7HQfoSuKCgaDU=
-golang.org/x/sys v0.0.0-20181128092732-4ed8d59d0b35/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
