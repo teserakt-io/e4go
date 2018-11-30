@@ -1,0 +1,44 @@
+syntax = "proto3";
+package e4common;
+
+service C2 {
+    rpc C2Command (C2Request) returns (C2Response) {}
+}
+
+message C2Request {
+
+    enum Command {
+        NEW_CLIENT = 0;
+        REMOVE_CLIENT = 1;
+        NEW_TOPIC_CLIENT = 2;
+        REMOVE_TOPIC_CLIENT = 3;
+        RESET_CLIENT = 4;
+        NEW_TOPIC = 5;
+        REMOVE_TOPIC = 6;
+        NEW_CLIENT_KEY = 7;
+        SEND_MESSAGE = 8;
+        GET_CLIENTS = 9;
+        GET_TOPICS = 10;
+        GET_CLIENT_TOPIC_COUNT = 11;
+        GET_CLIENT_TOPICS = 12;
+        GET_TOPIC_CLIENT_COUNT = 13;
+        GET_TOPIC_CLIENTS = 14;
+    }
+
+    Command command = 1;
+    bytes id = 2;
+    bytes key = 3;
+    string topic = 4;
+    string msg = 5;
+    uint64 offset = 6;
+    uint64 count = 7;
+}
+
+message C2Response {
+
+    bool success = 1;
+    string err = 2;
+    repeated string ids = 3;
+    repeated string topics = 4;
+    uint64 count = 5;
+}
