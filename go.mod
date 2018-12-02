@@ -1,4 +1,4 @@
-module gitlab.com/teserakt/common
+module gitlab.com/teserakt/e4common
 
 require (
 	cloud.google.com/go v0.33.1 // indirect
