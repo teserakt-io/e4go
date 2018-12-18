@@ -1,0 +1,22 @@
+#!/bin/sh
+
+echo
+count=0
+
+echo "Checking for merge conflicts"
+for f in `git diff HEAD --name-only --diff-filter=M`; do
+    if [[ -f $f ]] && [[ $f != .githooks/* ]]; then
+        if [[ $(grep -c "<<<<<<" $f) -gt 0 ]] || [[ $(grep -c ">>>>>>" $f) -gt 0 ]]; then
+            echo "$(tput setaf 1)! $f$(tput sgr0)"
+            ((count += 1))
+        fi
+    fi
+done
+
+if [ $count != 0 ]; then
+    echo "$(tput setaf 1)$count$(tput sgr0) files conflict, please resolve conflicts."
+    exit 1;
+else
+    echo "$(tput setaf 2)No conflicts, continuing with commit.$(tput sgr0)"
+    echo
+fi
