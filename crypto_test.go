@@ -3,10 +3,21 @@ package e4common
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	"testing"
 )
 
+/* getRDelta produces a random 16-bit integer to allow us to
+   vary key sizes, plaintext sizes etc. */
+func getRDelta() uint16 {
+	randadjust := make([]byte, 2)
+	rand.Read(randadjust)
+	return binary.LittleEndian.Uint16(randadjust)
+}
+
+/* TestHash tests KATs for both the hash function of choice and
+ * the password hashing function / KDF of choice */
 func TestHash(t *testing.T) {
 
 	h := hex.EncodeToString(HashIDAlias("abc"))
@@ -20,79 +31,7 @@ func TestHash(t *testing.T) {
 
 }
 
-func TestRandom(t *testing.T) {
-	zeroes := make([]byte, KeyLen)
-	k1 := RandomKey()
-	k2 := RandomKey()
-	if string(k1) == string(k2) {
-		t.Fatalf("RandomKey isn't random")
-	}
-	if len(k1) != KeyLen || len(k2) != KeyLen {
-		t.Fatalf("random key of incorrect length")
-	}
-	if string(k1) == string(zeroes) || string(k2) == string(zeroes) {
-		t.Fatalf("randomness not random")
-	}
-}
-
-func TestEncDec(t *testing.T) {
-
-	ptLen := 1234
-
-	key := make([]byte, KeyLen)
-	ad := make([]byte, TimestampLen)
-	pt := make([]byte, ptLen)
-
-	rand.Read(key)
-	rand.Read(ad)
-	rand.Read(pt)
-
-	ct, err := Encrypt(key, ad, pt)
-
-	if err != nil {
-		t.Fatalf("encryption failed: %s", err)
-	}
-	if len(ct) != len(pt)+TagLen {
-		t.Fatalf("invalid ciphertext size: %d vs %d", len(ct), len(pt)+TagLen)
-	}
-
-	ptt, err := Decrypt(key, ad, ct)
-	if err != nil {
-		t.Fatalf("decryption failed: %s", err)
-	}
-	if len(pt) != len(ptt) {
-		t.Fatalf("decrypted message has different length than original: %d vs %d", len(ptt), len(pt))
-	}
-
-	if !bytes.Equal(pt, ptt) {
-		t.Fatalf("decrypted message different from the original")
-	}
-}
-
-func TestProtectUnprotect(t *testing.T) {
-
-	msgLen := 123
-
-	key := make([]byte, KeyLen)
-	msg := make([]byte, msgLen)
-
-	rand.Read(key)
-	rand.Read(msg)
-
-	protected, err := Protect(msg, key)
-	if err != nil {
-		t.Fatalf("protect failed: %s", err)
-	}
-
-	unprotected, err := Unprotect(protected, key)
-	if err != nil {
-		t.Fatalf("unprotect failed: %s", err)
-	}
-	if !bytes.Equal(unprotected, msg) {
-		t.Fatalf("unprotected message different from the original")
-	}
-}
-
+/* Test encrypt tests KATs for the encryption code */
 func TestEncrypt(t *testing.T) {
 
 	ptLen := 64
@@ -118,5 +57,167 @@ func TestEncrypt(t *testing.T) {
 	}
 	if string(ct) != string(ctt) {
 		t.Fatal("ciphertext doesn't match")
+	}
+}
+
+/* TestRandom tests no trivial collisions exist, the correct
+   length of data is generated and that random does not generate
+   a zero key.
+
+   TODO: proper random testing?
+*/
+func TestRandom(t *testing.T) {
+
+	for i := 0; i < 2048; i++ {
+		zeroes := make([]byte, KeyLen)
+		k1 := RandomKey()
+		k2 := RandomKey()
+		if string(k1) == string(k2) {
+			t.Fatalf("RandomKey isn't random")
+		}
+		if len(k1) != KeyLen || len(k2) != KeyLen {
+			t.Fatalf("random key of incorrect length")
+		}
+		if string(k1) == string(zeroes) || string(k2) == string(zeroes) {
+			t.Fatalf("randomness not random")
+		}
+	}
+}
+
+/* TestEncDec tests that we can return the same plaintext as
+   we encrypted. In addition, it tests that modifications to
+   associated data, ciphertext or key produce a failure result. */
+func TestEncDec(t *testing.T) {
+
+	for i := 0; i < 2048; i++ {
+
+		rdelta := getRDelta()
+
+		ptLen := 1234 + rdelta
+
+		key := make([]byte, KeyLen)
+		ad := make([]byte, TimestampLen)
+		pt := make([]byte, ptLen)
+
+		rand.Read(key)
+		rand.Read(ad)
+		rand.Read(pt)
+
+		ct, err := Encrypt(key, ad, pt)
+
+		if err != nil {
+			t.Fatalf("encryption failed: %s", err)
+		}
+		if len(ct) != len(pt)+TagLen {
+			t.Fatalf("invalid ciphertext size: %d vs %d", len(ct), len(pt)+TagLen)
+		}
+
+		// happy case:
+		ptt, err := Decrypt(key, ad, ct)
+		if err != nil {
+			t.Fatalf("decryption failed: %s", err)
+		}
+		if len(pt) != len(ptt) {
+			t.Fatalf("decrypted message has different length than original: %d vs %d", len(ptt), len(pt))
+		}
+
+		if !bytes.Equal(pt, ptt) {
+			t.Fatalf("decrypted message different from the original")
+		}
+
+		// invalid ad:
+
+		adinvalid := make([]byte, TimestampLen)
+		copy(adinvalid, ad)
+		for i := range adinvalid {
+			adinvalid[i] ^= 0x01
+		}
+
+		_, err = Decrypt(key, adinvalid, ct)
+		if err == nil {
+			t.Fatalf("invalid ad: decryption did not fail as expected.")
+		}
+
+		// invalid ciphertext
+		ctlen := len(ct)
+		ctinvalid := make([]byte, ctlen)
+		copy(ctinvalid, ct)
+		for i := range ctinvalid {
+			ctinvalid[i] ^= 0x01
+		}
+		_, err = Decrypt(key, ad, ctinvalid)
+		if err == nil {
+			t.Fatalf("invalid ct: decryption did not fail as expected.")
+		}
+
+		// invalid key should obviously not work either
+		zerokey := make([]byte, KeyLen)
+		for i := range zerokey {
+			zerokey[i] = 0x00
+		}
+
+		if bytes.Equal(zerokey, key) {
+			t.Fatalf("key isn't random (all zeros), probably a failure")
+		}
+
+		_, err = Decrypt(zerokey, ad, ct)
+		if err == nil {
+			t.Fatalf("invalid key: decryption did not fail as expected.")
+		}
+	}
+}
+
+/* TestProtectUnprotect is an equivalent function to TestEncDec,
+   except it works as the E4 API level. Tests that we can retrieve valid
+   plaintext and also tests the E4 API is resistant to modification. */
+func TestProtectUnprotect(t *testing.T) {
+
+	for i := 0; i < 2048; i++ {
+		rdelta := getRDelta()
+		msgLen := 123 + rdelta
+
+		key := make([]byte, KeyLen)
+		msg := make([]byte, msgLen)
+
+		rand.Read(key)
+		rand.Read(msg)
+
+		protected, err := Protect(msg, key)
+		if err != nil {
+			t.Fatalf("protect failed: %s", err)
+		}
+
+		// happy case.
+		unprotected, err := Unprotect(protected, key)
+		if err != nil {
+			t.Fatalf("unprotect failed: %s", err)
+		}
+		if !bytes.Equal(unprotected, msg) {
+			t.Fatalf("unprotected message different from the original")
+		}
+
+		// wrong ciphertext:
+
+		invalidprotected := make([]byte, msgLen)
+		copy(invalidprotected, protected)
+		for i := range invalidprotected {
+			invalidprotected[i] ^= 0x02
+		}
+
+		_, err = Unprotect(invalidprotected, key)
+		if err == nil {
+			t.Fatalf("Ciphertext changed: decryption did not fail as expected")
+		}
+
+		invalidkey := make([]byte, KeyLen)
+		copy(invalidkey, key)
+		for i := range invalidkey {
+			invalidkey[i] ^= 0x03
+		}
+
+		_, err = Unprotect(protected, invalidkey)
+		if err == nil {
+			t.Fatalf("Ciphertext changed: decryption did not fail as expected")
+		}
 	}
 }
