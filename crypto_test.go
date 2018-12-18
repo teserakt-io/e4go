@@ -31,6 +31,20 @@ func TestHash(t *testing.T) {
 
 }
 
+func TestRandomID(t *testing.T) {
+	for i := 0; i < 2048; i++ {
+		zeroid := make([]byte, IDLen)
+		randomidx := RandomID()
+		randomidy := RandomID()
+		if bytes.Equal(randomidx, zeroid) {
+			t.Fatalf("ID is all zeros, not random")
+		}
+		if bytes.Equal(randomidx, randomidy) {
+			t.Fatalf("Two random IDs collide; not random")
+		}
+	}
+}
+
 /* Test encrypt tests KATs for the encryption code */
 func TestEncrypt(t *testing.T) {
 
@@ -86,7 +100,7 @@ func TestRandom(t *testing.T) {
 
 /* TestEncDec tests that we can return the same plaintext as
    we encrypted. In addition, it tests that modifications to
-   associated data, ciphertext or key produce a failure result. */
+  associated data, ciphertext or key produce a failure result. */
 func TestEncDec(t *testing.T) {
 
 	for i := 0; i < 2048; i++ {
@@ -164,6 +178,13 @@ func TestEncDec(t *testing.T) {
 		if err == nil {
 			t.Fatalf("invalid key: decryption did not fail as expected.")
 		}
+
+		// truncated/too short ciphertext
+		truncct := ct[:2]
+		_, err = Decrypt(key, ad, truncct)
+		if err == nil {
+			t.Fatalf("invalid key: decryption did not fail as expected.")
+		}
 	}
 }
 
@@ -209,6 +230,7 @@ func TestProtectUnprotect(t *testing.T) {
 			t.Fatalf("Ciphertext changed: decryption did not fail as expected")
 		}
 
+		// invalid key
 		invalidkey := make([]byte, KeyLen)
 		copy(invalidkey, key)
 		for i := range invalidkey {
@@ -219,5 +241,33 @@ func TestProtectUnprotect(t *testing.T) {
 		if err == nil {
 			t.Fatalf("Ciphertext changed: decryption did not fail as expected")
 		}
+
+		// future timestamp.
+		timestamporig := protected[:TimestampLen]
+		ts := binary.LittleEndian.Uint64(timestamporig)
+		tsf := ts + 1000000
+		tsp := ts - (MaxSecondsDelay + 1)
+		tsfuture := make([]byte, 8)
+		tspast := make([]byte, 8)
+		binary.LittleEndian.PutUint64(tsfuture, tsf)
+		binary.LittleEndian.PutUint64(tspast, tsp)
+
+		futureinvalidprotect := make([]byte, msgLen)
+		pastinvalidprotect := make([]byte, msgLen)
+		copy(futureinvalidprotect, tsfuture)
+		copy(pastinvalidprotect, tspast)
+		copy(futureinvalidprotect[TimestampLen:], protected[TimestampLen:])
+		copy(pastinvalidprotect[TimestampLen:], protected[TimestampLen:])
+
+		_, err = Unprotect(futureinvalidprotect, invalidkey)
+		if err == nil {
+			t.Fatalf("timestamp in future: decryption did not fail as expected")
+		}
+
+		_, err = Unprotect(pastinvalidprotect, invalidkey)
+		if err == nil {
+			t.Fatalf("timestamp too old: decryption did not fail as expected")
+		}
+
 	}
 }
