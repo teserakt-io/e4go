@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/miscreant/miscreant/go"
+	"github.com/miscreant/miscreant-go"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/sha3"
 )
