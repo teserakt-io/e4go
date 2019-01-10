@@ -208,6 +208,8 @@ func TestProtectUnprotect(t *testing.T) {
 			t.Fatalf("protect failed: %s", err)
 		}
 
+		protectedlen := msgLen + TagLen + TimestampLen
+
 		// happy case.
 		unprotected, err := Unprotect(protected, key)
 		if err != nil {
@@ -242,7 +244,7 @@ func TestProtectUnprotect(t *testing.T) {
 			t.Fatalf("Ciphertext changed: decryption did not fail as expected")
 		}
 
-		// future timestamp.
+		// future timestamp and past timestamp
 		timestamporig := protected[:TimestampLen]
 		ts := binary.LittleEndian.Uint64(timestamporig)
 		tsf := ts + 1000000
@@ -252,8 +254,8 @@ func TestProtectUnprotect(t *testing.T) {
 		binary.LittleEndian.PutUint64(tsfuture, tsf)
 		binary.LittleEndian.PutUint64(tspast, tsp)
 
-		futureinvalidprotect := make([]byte, msgLen)
-		pastinvalidprotect := make([]byte, msgLen)
+		futureinvalidprotect := make([]byte, protectedlen)
+		pastinvalidprotect := make([]byte, protectedlen)
 		copy(futureinvalidprotect, tsfuture)
 		copy(pastinvalidprotect, tspast)
 		copy(futureinvalidprotect[TimestampLen:], protected[TimestampLen:])
