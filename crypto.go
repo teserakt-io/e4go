@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/miscreant/miscreant-go"
+	miscreant "github.com/miscreant/miscreant/go"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/sha3"
 )
@@ -37,7 +37,14 @@ func hashStuff(data []byte) []byte {
 // Encrypt creates an authenticated ciphertext.
 func Encrypt(key []byte, ad []byte, pt []byte) ([]byte, error) {
 
-	c, err := miscreant.NewAESCMACSIV(key)
+	if !IsValidKey(key) {
+		return errors.new("Invalid key")
+	}
+
+	// Use same key for CMAC and CTR, negligible security bound difference
+	doublekey := append(key, key...)
+
+	c, err := miscreant.NewAESCMACSIV(doublekey)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -49,7 +56,14 @@ func Encrypt(key []byte, ad []byte, pt []byte) ([]byte, error) {
 // Decrypt decrypts and verifies an authenticated ciphertext.
 func Decrypt(key []byte, ad []byte, ct []byte) ([]byte, error) {
 
-	c, err := miscreant.NewAESCMACSIV(key)
+	if !IsValidKey(key) {
+		return errors.new("Invalid key")
+	}
+
+	// Use same key for CMAC and CTR, negligible security bound difference
+	doublekey := append(key, key...)
+
+	c, err := miscreant.NewAESCMACSIV(doublekey)
 	if err != nil {
 		return []byte{}, err
 	}

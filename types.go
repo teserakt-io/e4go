@@ -6,8 +6,8 @@ import (
 
 // ...
 const (
-	IDLen           = 32
-	KeyLen          = 64
+	IDLen           = 16
+	KeyLen          = 32
 	TagLen          = 16
 	HashLen         = 32
 	TimestampLen    = 8
@@ -101,5 +101,8 @@ func TopicForID(id []byte) string {
 
 // PrettyID returns an ID as its first 8 hex chars
 func PrettyID(id []byte) string {
+	if !IsValidID(id) {
+		panic("Invalid ID")
+	}
 	return hex.EncodeToString(id)[:8] + ".."
 }
