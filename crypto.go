@@ -38,7 +38,7 @@ func hashStuff(data []byte) []byte {
 func Encrypt(key []byte, ad []byte, pt []byte) ([]byte, error) {
 
 	if !IsValidKey(key) {
-		return errors.new("Invalid key")
+		return nil, errors.New("invalid key")
 	}
 
 	// Use same key for CMAC and CTR, negligible security bound difference
@@ -46,7 +46,7 @@ func Encrypt(key []byte, ad []byte, pt []byte) ([]byte, error) {
 
 	c, err := miscreant.NewAESCMACSIV(doublekey)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 	ads := make([][]byte, 1)
 	ads[0] = ad
@@ -57,7 +57,7 @@ func Encrypt(key []byte, ad []byte, pt []byte) ([]byte, error) {
 func Decrypt(key []byte, ad []byte, ct []byte) ([]byte, error) {
 
 	if !IsValidKey(key) {
-		return errors.new("Invalid key")
+		return nil, errors.New("invalid key")
 	}
 
 	// Use same key for CMAC and CTR, negligible security bound difference
@@ -65,10 +65,10 @@ func Decrypt(key []byte, ad []byte, ct []byte) ([]byte, error) {
 
 	c, err := miscreant.NewAESCMACSIV(doublekey)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 	if len(ct) < c.Overhead() {
-		return []byte{}, errors.New("too short ciphertext")
+		return nil, errors.New("too short ciphertext")
 	}
 	ads := make([][]byte, 1)
 	ads[0] = ad

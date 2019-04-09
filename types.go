@@ -102,7 +102,7 @@ func TopicForID(id []byte) string {
 // PrettyID returns an ID as its first 8 hex chars
 func PrettyID(id []byte) string {
 	if !IsValidID(id) {
-		panic("Invalid ID")
+		panic("invalid ID")
 	}
 	return hex.EncodeToString(id)[:8] + ".."
 }
