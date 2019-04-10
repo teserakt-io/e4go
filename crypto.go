@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/miscreant/miscreant-go"
+	miscreant "github.com/miscreant/miscreant/go"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/sha3"
 )
@@ -20,7 +20,7 @@ func HashTopic(topic string) []byte {
 // HashIDAlias creates an ID from an ID alias string.
 func HashIDAlias(idalias string) []byte {
 
-	return hashStuff([]byte(idalias))
+	return hashStuff([]byte(idalias))[:IDLen]
 }
 
 // HashPwd hashes a password with Argon2
@@ -37,9 +37,16 @@ func hashStuff(data []byte) []byte {
 // Encrypt creates an authenticated ciphertext.
 func Encrypt(key []byte, ad []byte, pt []byte) ([]byte, error) {
 
-	c, err := miscreant.NewAESCMACSIV(key)
+	if !IsValidKey(key) {
+		return nil, errors.New("invalid key")
+	}
+
+	// Use same key for CMAC and CTR, negligible security bound difference
+	doublekey := append(key, key...)
+
+	c, err := miscreant.NewAESCMACSIV(doublekey)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 	ads := make([][]byte, 1)
 	ads[0] = ad
@@ -49,12 +56,19 @@ func Encrypt(key []byte, ad []byte, pt []byte) ([]byte, error) {
 // Decrypt decrypts and verifies an authenticated ciphertext.
 func Decrypt(key []byte, ad []byte, ct []byte) ([]byte, error) {
 
-	c, err := miscreant.NewAESCMACSIV(key)
+	if !IsValidKey(key) {
+		return nil, errors.New("invalid key")
+	}
+
+	// Use same key for CMAC and CTR, negligible security bound difference
+	doublekey := append(key, key...)
+
+	c, err := miscreant.NewAESCMACSIV(doublekey)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 	if len(ct) < c.Overhead() {
-		return []byte{}, errors.New("too short ciphertext")
+		return nil, errors.New("too short ciphertext")
 	}
 	ads := make([][]byte, 1)
 	ads[0] = ad
