@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"testing"
 )
 
@@ -71,7 +70,6 @@ func TestEncrypt(t *testing.T) {
 		t.Fatalf("encryption failed: %s", err)
 	}
 	if string(ct) != string(ctt) {
-		fmt.Println(ct)
 		t.Fatal("ciphertext doesn't match")
 	}
 }
