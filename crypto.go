@@ -20,7 +20,7 @@ func HashTopic(topic string) []byte {
 // HashIDAlias creates an ID from an ID alias string.
 func HashIDAlias(idalias string) []byte {
 
-	return hashStuff([]byte(idalias))
+	return hashStuff([]byte(idalias))[:IDLen]
 }
 
 // HashPwd hashes a password with Argon2
