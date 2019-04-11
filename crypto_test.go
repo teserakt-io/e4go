@@ -21,7 +21,7 @@ func getRDelta() uint16 {
 func TestHash(t *testing.T) {
 
 	h := hex.EncodeToString(HashIDAlias("abc"))
-	if h != "3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532" {
+	if h != "3a985da74fe225b2045c172d6bd390bd" {
 		t.Fatalf("hash of ID alias incorrect")
 	}
 	h = hex.EncodeToString(HashPwd("abc"))
