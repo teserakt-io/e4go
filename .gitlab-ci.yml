@@ -1,0 +1,29 @@
+image: golang:1.12
+
+stages:
+  - test
+  - build
+
+before_script:
+  # https://docs.gitlab.com/ee/ci/ssh_keys/
+  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+  - eval $(ssh-agent -s)
+  - echo "$SSH_CI_KEY" | tr -d '\r' | ssh-add - > /dev/null
+  - mkdir -p ~/.ssh && chmod 600 ~/.ssh
+  - echo "gitlab.com,35.231.145.151 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFSMqzJeV9rUzU4kWitGjeR4PWSa29SPqJ1fVkhtj3Hw9xjLVXVYrU9QlYWrOLXBpQ6KWjbjTDTdDkoohFzgbEY=" >> ~/.ssh/known_hosts
+
+  # Force use of ssh urls instead of https for gitlab.com. Has to be done before any go get...
+  - git config --global url."git@gitlab.com:".insteadOf "https://gitlab.com/"
+
+  - go get golang.org/x/tools/cmd/goimports
+  - go install golang.org/x/tools/cmd/goimports
+
+test:
+  stage: test
+  script:
+    - ./scripts/unittest.sh
+
+build:
+  stage: build
+  script:
+    - ./scripts/build.sh
