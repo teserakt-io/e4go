@@ -21,8 +21,7 @@ before_script:
 build:
   stage: build
   script:
-    - ./scripts/build.sh
-
+    - go build
 test:
   stage: test
   script:
