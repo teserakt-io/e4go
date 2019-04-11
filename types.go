@@ -14,6 +14,9 @@ const (
 	MaxTopicLen     = 512
 	MaxSecondsDelay = 60 * 10
 	idTopicPrefix   = "e4/"
+
+	IDLenHex  = IDLen * 2
+	KeyLenHex = KeyLen * 2
 )
 
 // Command is a command sent by C2 to a client.
