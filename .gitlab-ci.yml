@@ -1,8 +1,8 @@
 image: golang:1.12
 
 stages:
-  - test
   - build
+  - test
 
 before_script:
   # https://docs.gitlab.com/ee/ci/ssh_keys/
@@ -18,12 +18,13 @@ before_script:
   - go get golang.org/x/tools/cmd/goimports
   - go install golang.org/x/tools/cmd/goimports
 
+build:
+  stage: build
+  script:
+    - ./scripts/build.sh
+
 test:
   stage: test
   script:
     - ./scripts/unittest.sh
 
-build:
-  stage: build
-  script:
-    - ./scripts/build.sh
