@@ -26,7 +26,7 @@ func HashIDAlias(idalias string) []byte {
 // HashPwd hashes a password with Argon2
 func HashPwd(pwd string) []byte {
 
-	return argon2.Key([]byte(pwd), nil, 1, 64*1024, 4, 64)
+	return argon2.Key([]byte(pwd), nil, 1, 64*1024, 4, 32)
 }
 
 func hashStuff(data []byte) []byte {
