@@ -37,8 +37,8 @@ func hashStuff(data []byte) []byte {
 // Encrypt creates an authenticated ciphertext.
 func Encrypt(key []byte, ad []byte, pt []byte) ([]byte, error) {
 
-	if !IsValidKey(key) {
-		return nil, errors.New("invalid key")
+	if err := IsValidKey(key); err != nil {
+		return nil, err
 	}
 
 	// Use same key for CMAC and CTR, negligible security bound difference
@@ -56,8 +56,8 @@ func Encrypt(key []byte, ad []byte, pt []byte) ([]byte, error) {
 // Decrypt decrypts and verifies an authenticated ciphertext.
 func Decrypt(key []byte, ad []byte, ct []byte) ([]byte, error) {
 
-	if !IsValidKey(key) {
-		return nil, errors.New("invalid key")
+	if err := IsValidKey(key); err != nil {
+		return nil, err
 	}
 
 	// Use same key for CMAC and CTR, negligible security bound difference

@@ -2,6 +2,7 @@ package e4common
 
 import (
 	"encoding/hex"
+	fmt "fmt"
 )
 
 // ...
@@ -62,39 +63,43 @@ func (c *Command) ToString() string {
 }
 
 // IsValidID checks that an id is of the expected length.
-func IsValidID(id []byte) bool {
+func IsValidID(id []byte) error {
 
 	if len(id) != IDLen {
-		return false
+		return fmt.Errorf("Invalid ID length, expected %d, got %d", IDLen, len(id))
 	}
-	return true
+
+	return nil
 }
 
 // IsValidKey checks that a key is of the expected length.
-func IsValidKey(key []byte) bool {
+func IsValidKey(key []byte) error {
 
 	if len(key) != KeyLen {
-		return false
+		return fmt.Errorf("Invalid Key length, expected %d, got %d", KeyLen, len(key))
 	}
-	return true
+
+	return nil
 }
 
 // IsValidTopic checks if a topic is not too large.
-func IsValidTopic(topic string) bool {
+func IsValidTopic(topic string) error {
 
 	if len(topic) > MaxTopicLen {
-		return false
+		return fmt.Errorf("Topic too long, expected %d chars maximum, got %d", MaxTopicLen, len(topic))
 	}
-	return true
+
+	return nil
 }
 
 // IsValidTopicHash checks that a topic hash is of the expected length.
-func IsValidTopicHash(topichash []byte) bool {
+func IsValidTopicHash(topichash []byte) error {
 
 	if len(topichash) != HashLen {
-		return false
+		return fmt.Errorf("Invalid Topic Hash length, expected %d, got %d", HashLen, len(topichash))
 	}
-	return true
+
+	return nil
 }
 
 // TopicForID generate the MQTT topic that a client should subscribe to in order to receive commands.
@@ -104,8 +109,8 @@ func TopicForID(id []byte) string {
 
 // PrettyID returns an ID as its first 8 hex chars
 func PrettyID(id []byte) string {
-	if !IsValidID(id) {
-		panic("invalid ID")
+	if err := IsValidID(id); err != nil {
+		panic(err) // TODO don't panic !  It's a bit brutal to kill the whole program when failed to prettify an ID imo
 	}
 	return hex.EncodeToString(id)[:8] + ".."
 }
