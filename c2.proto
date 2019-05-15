@@ -27,11 +27,12 @@ message C2Request {
 
     Command command = 1;
     bytes id = 2;
-    bytes key = 3;
-    string topic = 4;
-    string msg = 5;
-    uint64 offset = 6;
-    uint64 count = 7;
+    string name = 3;
+    bytes key = 4;
+    string topic = 5;
+    string msg = 6;
+    uint64 offset = 7;
+    uint64 count = 8;
 }
 
 message C2Response {
