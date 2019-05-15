@@ -2,6 +2,7 @@
 
 echo
 count=0
+replacedirective=0
 
 echo "Checking for merge conflicts"
 for f in `git diff HEAD --name-only --diff-filter=M`; do
@@ -18,5 +19,28 @@ if [ $count != 0 ]; then
     exit 1;
 else
     echo "$(tput setaf 2)No conflicts, continuing with commit.$(tput sgr0)"
-    echo
 fi
+
+echo "Checking for replace directives in go.mod"
+if [[ -f "go.mod" ]]; then
+    if [[ $(grep -c "replace" go.mod) -gt 0 ]]; then
+        replacedirective=1
+    fi
+fi
+
+if [ $replacedirective != 0 ]; then
+    echo "$(tput setaf 1)Replace directives found in go.mod. Please do not commit local development redirects.$(tput sgr0)"
+    exit 1;
+else
+    echo "$(tput setaf 2)No replace directives in go.mod, OK to commit.$(tput sgr0)"
+fi
+
+echo "Checking for root=true in .editorconfig"
+
+if [[ $(grep -c "root" .editorconfig) -gt 0 ]]; then
+    echo "$(tput setaf 1)Please do not set root=true in .editorconfig, this prevents global editorconfigs from providing user prefs.$(tput sgr0)"
+    exit 1;
+else
+    echo "$(tput setaf 2)No root=true in editorconfig. OK to commit.$(tput sgr0)"
+fi
+
