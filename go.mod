@@ -1,7 +1,7 @@
 module gitlab.com/teserakt/e4common
 
 require (
-	github.com/golang/protobuf v1.2.0
+	github.com/golang/protobuf v1.3.1
 	github.com/miscreant/miscreant v0.3.0
 	github.com/miscreant/miscreant-go v0.0.0-20181010193435-325cbd69228b
 	golang.org/x/crypto v0.0.0-20181127143415-eb0de9b17e85

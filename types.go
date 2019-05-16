@@ -3,6 +3,7 @@ package e4common
 import (
 	"encoding/hex"
 	fmt "fmt"
+	utf8 "unicode/utf8"
 )
 
 // ...
@@ -60,6 +61,16 @@ func (c *Command) ToString() string {
 		return "SetTopicKey"
 	}
 	return ""
+}
+
+// IsValidName is used to validate names match given constraints
+// since we hash these in the protocol, those constraints are quite
+// liberal, but for correctness we check any string is valid UTF-8.
+func IsValidName(name string) error {
+	if !utf8.ValidString(name) {
+		return fmt.Errorf("Name is not a valid UTF-8 string")
+	}
+	return nil
 }
 
 // IsValidID checks that an id is of the expected length.
