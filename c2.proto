@@ -39,7 +39,8 @@ message C2Response {
 
     bool success = 1;
     string err = 2;
-    repeated string ids = 3;
-    repeated string topics = 4;
-    uint64 count = 5;
+    repeated string names = 3;
+    repeated string ids = 4;
+    repeated string topics = 5;
+    uint64 count = 6;
 }
