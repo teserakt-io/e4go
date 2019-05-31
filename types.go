@@ -19,6 +19,9 @@ const (
 
 	IDLenHex  = IDLen * 2
 	KeyLenHex = KeyLen * 2
+
+	NameMinLen = 1
+	NameMaxLen = 255
 )
 
 // Command is a command sent by C2 to a client.
@@ -69,6 +72,10 @@ func (c *Command) ToString() string {
 func IsValidName(name string) error {
 	if !utf8.ValidString(name) {
 		return fmt.Errorf("Name is not a valid UTF-8 string")
+	}
+	namelen := len(name)
+	if namelen < NameMinLen || namelen > NameMaxLen {
+		return fmt.Errorf("Name length is invalid, names are between %d and %d characters", NameMinLen, NameMaxLen)
 	}
 	return nil
 }
