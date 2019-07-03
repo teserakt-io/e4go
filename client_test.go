@@ -4,14 +4,70 @@ import (
 	"testing"
 )
 
-func TestWriteRead(t *testing.T) {
-	filePath := "./test/data/e4clienttest"
+func TestClientNew(t *testing.T) {
 
-	c := NewClientPretty("someid", "somepwd", filePath)
+	c1 := NewClientPretty("someid", "somepwd", "./test/data/clienttestnew")
 
-	err := c.SetTopicKey(RandomKey(), HashTopic("meh"))
+	c2 := NewClientPretty("someid", "somepwd", "./test/data/clienttestnew")
+
+	if string(c1.ID) != string(c2.ID) {
+		t.Fatalf("ID of new clients don't match")
+	}
+
+	if string(c1.Key) != string(c2.Key) {
+		t.Fatalf("keys of new clients don't match")
+	}
+
+	if c1.ReceivingTopic != c2.ReceivingTopic {
+		t.Fatalf("receiving topics of new clients don't match")
+	}
+}
+
+func TestClientProtectUnprotect(t *testing.T) {
+
+	c := NewClient(nil, nil, "./test/data/clienttestprotect")
+
+	payload := []byte("cleartext")
+	topic := "topic"
+
+	err := c.SetTopicKey(RandomKey(), HashTopic(topic))
+
 	if err != nil {
 		t.Fatalf("SetTopicKey failed: %s", err)
+	}
+
+	protected, err := c.Protect(payload, topic)
+
+	if err != nil {
+		t.Fatalf("Protect failed: %s", err)
+	}
+
+	unprotected, err := c.Unprotect(protected, topic)
+
+	if err != nil {
+		t.Fatalf("Protect failed: %s", err)
+	}
+
+	if string(payload) != string(unprotected) {
+		t.Fatalf("decrypted payload doesn't match")
+	}
+}
+
+func TestClientWriteRead(t *testing.T) {
+	filePath := "./test/data/clienttestwriteread"
+
+	c := NewClient(nil, nil, filePath)
+
+	err := c.SetTopicKey(RandomKey(), HashTopic("topic"))
+
+	if err != nil {
+		t.Fatalf("SetTopicKey failed: %s", err)
+	}
+
+	err = c.SetIDKey(RandomKey())
+
+	if err != nil {
+		t.Fatalf("SetIDKey failed: %s", err)
 	}
 
 	if len(c.Topickeys) != 1 {

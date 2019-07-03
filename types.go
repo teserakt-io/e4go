@@ -35,6 +35,17 @@ const (
 	SetTopicKey
 )
 
+// Protocol defines the type of message protection
+type Protocol int
+
+// ...
+const (
+	SymKey Protocol = iota
+	PubKey
+	PubKeyNIST
+	PostQuantum
+)
+
 // ToByte converts a command into its byte representation
 func (c *Command) ToByte() byte {
 	switch *c {

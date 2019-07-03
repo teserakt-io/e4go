@@ -12,6 +12,7 @@ import (
 // ErrTopicKeyNotFound will signal to applications that a key is missing.
 var (
 	ErrTopicKeyNotFound = errors.New("topic key not found")
+	ErrInvalidProtocol  = errors.New("invalid protocol version")
 )
 
 // Client is a structure representing the client state, saved to disk for persistent storage.
@@ -21,8 +22,9 @@ type Client struct {
 	Topickeys map[string][]byte
 	// Topickeys maps a topic hash to a key
 	// (slices []byte can't be map keys, converting to strings)
-	FilePath       string
-	ReceivingTopic string
+	FilePath        string
+	ReceivingTopic  string
+	ProtocolVersion Protocol
 }
 
 // NewClient creates a new client, generating a random ID or key if they are nil.
@@ -103,7 +105,15 @@ func (c *Client) Protect(payload []byte, topic string) ([]byte, error) {
 	topichash := string(HashTopic(topic))
 	if key, ok := c.Topickeys[topichash]; ok {
 
-		protected, err := Protect(payload, key)
+		var protected []byte
+		var err error
+
+		switch c.ProtocolVersion {
+		case SymKey:
+			protected, err = Protect(payload, key)
+		default:
+			return nil, ErrInvalidProtocol
+		}
 		if err != nil {
 			return nil, err
 		}

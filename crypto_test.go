@@ -229,7 +229,7 @@ func TestProtectUnprotect(t *testing.T) {
 
 		_, err = Unprotect(invalidprotected, key)
 		if err == nil {
-			t.Fatalf("Ciphertext changed: decryption did not fail as expected")
+			t.Fatalf("ciphertext changed: decryption did not fail as expected")
 		}
 
 		// invalid key
@@ -241,7 +241,7 @@ func TestProtectUnprotect(t *testing.T) {
 
 		_, err = Unprotect(protected, invalidkey)
 		if err == nil {
-			t.Fatalf("Ciphertext changed: decryption did not fail as expected")
+			t.Fatalf("ciphertext changed: decryption did not fail as expected")
 		}
 
 		// future timestamp and past timestamp

@@ -130,3 +130,20 @@ func Unprotect(protected []byte, key []byte) ([]byte, error) {
 
 	return pt, nil
 }
+
+/*
+func ProtectPK(message []byte, key []byte) ([]byte, error) {
+
+	timestamp := make([]byte, TimestampLen)
+	binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
+
+	ct, err := Encrypt(key, timestamp, message)
+	if err != nil {
+		return nil, err
+	}
+	protected := append(timestamp, id)
+	protected := append(timestamp, ct...)
+
+	return protected, nil
+}
+*/
