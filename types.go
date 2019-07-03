@@ -42,7 +42,7 @@ type Protocol int
 const (
 	SymKey Protocol = iota
 	PubKey
-	PubKeyNIST
+	PubKeyFIPS
 	PostQuantum
 )
 

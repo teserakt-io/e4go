@@ -1,12 +1,17 @@
 package e4common
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"encoding/gob"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
 	"os"
+
+	"golang.org/x/crypto/ed25519"
 )
 
 // ErrTopicKeyNotFound will signal to applications that a key is missing.
@@ -17,9 +22,11 @@ var (
 
 // Client is a structure representing the client state, saved to disk for persistent storage.
 type Client struct {
-	ID        []byte
-	Key       []byte
-	Topickeys map[string][]byte
+	ID         []byte
+	SymKey     []byte             // for SymKey mode only
+	Ed25519Key ed25519.PrivateKey // for PubKey mode only
+	ECDSAKey   *ecdsa.PrivateKey  // for PubKeyFIPS mode only
+	Topickeys  map[string][]byte
 	// Topickeys maps a topic hash to a key
 	// (slices []byte can't be map keys, converting to strings)
 	FilePath        string
@@ -28,23 +35,46 @@ type Client struct {
 }
 
 // NewClient creates a new client, generating a random ID or key if they are nil.
-func NewClient(id, key []byte, filePath string) *Client {
+func NewClient(id, symKey []byte, ed25519Key ed25519.PrivateKey, ECDSAKey *ecdsa.PrivateKey, filePath string, protocolVersion Protocol) *Client {
+
+	var err error
+
 	if id == nil {
 		id = RandomID()
 	}
-	if key == nil {
-		key = RandomKey()
+
+	if symKey == nil && protocolVersion == SymKey {
+		symKey = RandomKey()
 	}
+
+	if ed25519Key == nil && protocolVersion == PubKey {
+		_, ed25519Key, err = ed25519.GenerateKey(nil)
+		if err != nil {
+			return nil
+		}
+	}
+
+	if ECDSAKey.D == nil && protocolVersion == PubKeyFIPS {
+		ECDSAKey, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+
+		if err != nil {
+			return nil
+		}
+	}
+
 	topickeys := make(map[string][]byte)
 
 	receivingTopic := TopicForID(id)
 
 	c := &Client{
-		ID:             id,
-		Key:            key,
-		Topickeys:      topickeys,
-		FilePath:       filePath,
-		ReceivingTopic: receivingTopic,
+		ID:              id,
+		SymKey:          symKey,
+		Ed25519Key:      ed25519Key,
+		ECDSAKey:        ECDSAKey,
+		Topickeys:       topickeys,
+		FilePath:        filePath,
+		ProtocolVersion: protocolVersion,
+		ReceivingTopic:  receivingTopic,
 	}
 
 	log.SetPrefix("e4client\t")
@@ -53,10 +83,10 @@ func NewClient(id, key []byte, filePath string) *Client {
 }
 
 // NewClientPretty is like NewClient but takes an ID alias and a password, rather than raw values.
-func NewClientPretty(idalias, pwd, filePath string) *Client {
+func NewClientPretty(idalias, pwd, filePath string, protocolVersion Protocol) *Client {
 	key := HashPwd(pwd)
 	id := HashIDAlias(idalias)
-	return NewClient(id, key, filePath)
+	return NewClient(id, key, filePath, protocolVersion)
 }
 
 // LoadClient loads a client state from the file system.
@@ -110,7 +140,9 @@ func (c *Client) Protect(payload []byte, topic string) ([]byte, error) {
 
 		switch c.ProtocolVersion {
 		case SymKey:
-			protected, err = Protect(payload, key)
+			protected, err = ProtectSymKey(payload, key)
+		case PubKey:
+			protected, err = ProtectPubKey(payload, key, c.Ed25519Key, c.ID)
 		default:
 			return nil, ErrInvalidProtocol
 		}
@@ -127,7 +159,16 @@ func (c *Client) Unprotect(protected []byte, topic string) ([]byte, error) {
 	topichash := string(HashTopic(topic))
 	if key, ok := c.Topickeys[topichash]; ok {
 
-		message, err := Unprotect(protected, key)
+		var message []byte
+		var err error
+
+		switch c.ProtocolVersion {
+
+		case SymKey:
+			message, err = UnprotectSymKey(protected, key)
+		default:
+			return nil, ErrInvalidProtocol
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -138,7 +179,17 @@ func (c *Client) Unprotect(protected []byte, topic string) ([]byte, error) {
 
 // ProcessCommand decrypts a C2 commands and modifies the client state according to the command content.
 func (c *Client) ProcessCommand(protected []byte) (string, error) {
-	command, err := Unprotect(protected, c.Key)
+
+	var command []byte
+	var err error
+
+	switch c.ProtocolVersion {
+
+	case SymKey:
+		command, err = UnprotectSymKey(protected, c.SymKey)
+	default:
+		return "", ErrInvalidProtocol
+	}
 	if err != nil {
 		return "", err
 	}

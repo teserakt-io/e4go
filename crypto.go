@@ -9,6 +9,7 @@ import (
 	miscreant "github.com/miscreant/miscreant/go"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/sha3"
+	"golang.org/x/crypto/ed25519"
 )
 
 // HashTopic creates a topic hash from a topic string.
@@ -89,8 +90,8 @@ func RandomID() []byte {
 	return id
 }
 
-// Protect creates a protected messages, generating a timestamp and a ciphertext.
-func Protect(message []byte, key []byte) ([]byte, error) {
+// ProtectSymKey creates a protected message in the symmetric key mode
+func ProtectSymKey(message []byte, key []byte) ([]byte, error) {
 
 	timestamp := make([]byte, TimestampLen)
 	binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
@@ -104,8 +105,8 @@ func Protect(message []byte, key []byte) ([]byte, error) {
 	return protected, nil
 }
 
-// Unprotect verifies a protected message's timestamp and ciphertext and decrypts it.
-func Unprotect(protected []byte, key []byte) ([]byte, error) {
+// UnprotectSymKey verifies a protected message's in the symmetric key mode, returning the plaintext if it succeeds
+func UnprotectSymKey(protected []byte, key []byte) ([]byte, error) {
 
 	if len(protected) <= TimestampLen {
 		return nil, errors.New("ciphertext to short")
@@ -131,8 +132,7 @@ func Unprotect(protected []byte, key []byte) ([]byte, error) {
 	return pt, nil
 }
 
-/*
-func ProtectPK(message []byte, key []byte) ([]byte, error) {
+func ProtectPubKey(message []byte, key []byte, privkey []byte, clientID []byte) ([]byte, error) {
 
 	timestamp := make([]byte, TimestampLen)
 	binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
@@ -141,8 +141,16 @@ func ProtectPK(message []byte, key []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	protected := append(timestamp, id)
-	protected := append(timestamp, ct...)
+
+	if err = IsValidID(clientID); err {
+		return nil, err
+	}
+
+	sig := ed25519.Sign()
+
+	protected := append(timestamp, id...)
+	protected := append(protected, sig...)
+	protected := append(protected, ct...)
 
 	return protected, nil
 }
