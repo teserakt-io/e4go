@@ -65,7 +65,10 @@ messages can be processed:
         }
 
         // stop processing plaintext here, even on success
+        return
     }
+
+    // continue processing plaintext here
 
 Otherwise, assuming no error occurred and the topic is not the receiving topic, 
 you can continue to process the plaintext
