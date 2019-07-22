@@ -1,21 +1,23 @@
 package e4common
 
 import (
+	"crypto/ecdsa"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"time"
 
 	miscreant "github.com/miscreant/miscreant/go"
 	"golang.org/x/crypto/argon2"
-	"golang.org/x/crypto/sha3"
 	"golang.org/x/crypto/ed25519"
+	"golang.org/x/crypto/sha3"
 )
 
 // HashTopic creates a topic hash from a topic string.
 func HashTopic(topic string) []byte {
 
-	return hashStuff([]byte(topic))
+	return hashStuff([]byte(topic))[:HashLen]
 }
 
 // HashIDAlias creates an ID from an ID alias string.
@@ -132,7 +134,8 @@ func UnprotectSymKey(protected []byte, key []byte) ([]byte, error) {
 	return pt, nil
 }
 
-func ProtectPubKey(message []byte, key []byte, privkey []byte, clientID []byte) ([]byte, error) {
+// ProtectPubKey protects a non-command message using pubkey crypto
+func ProtectPubKey(message, key []byte, edkey ed25519.PrivateKey, clientID []byte) ([]byte, error) {
 
 	timestamp := make([]byte, TimestampLen)
 	binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
@@ -142,16 +145,43 @@ func ProtectPubKey(message []byte, key []byte, privkey []byte, clientID []byte) 
 		return nil, err
 	}
 
-	if err = IsValidID(clientID); err {
+	if err = IsValidID(clientID); err != nil {
 		return nil, err
 	}
 
-	sig := ed25519.Sign()
+	// sig should always be ed25519.SignatureSize=64 bytes
+	sig := ed25519.Sign(edkey, message)
 
-	protected := append(timestamp, id...)
-	protected := append(protected, sig...)
-	protected := append(protected, ct...)
+	protected := append(timestamp, clientID...)
+	protected = append(protected, sig...)
+	protected = append(protected, ct...)
 
 	return protected, nil
 }
-*/
+
+// ProtectPubKeyFIPS protects a non-command messages using FIPS-compliant pubkey crypto
+func ProtectPubKeyFIPS(message, key []byte, eckey *ecdsa.PrivateKey, clientID []byte) ([]byte, error) {
+
+	timestamp := make([]byte, TimestampLen)
+	binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
+
+	ct, err := Encrypt(key, timestamp, message)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = IsValidID(clientID); err != nil {
+		return nil, err
+	}
+
+	messagehash := sha256.Sum256(message)
+
+	// sig should always be 64 bytes
+	sig, err := ecdsa.Sign(rand.Reader, eckey, messagehash[:])
+
+	protected := append(timestamp, clientID...)
+	protected = append(protected, sig...)
+	protected = append(protected, ct...)
+
+	return protected, nil
+}

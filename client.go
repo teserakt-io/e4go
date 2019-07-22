@@ -29,6 +29,7 @@ type Client struct {
 	Topickeys  map[string][]byte
 	// Topickeys maps a topic hash to a key
 	// (slices []byte can't be map keys, converting to strings)
+	Pubkeys         map[string][]byte
 	FilePath        string
 	ReceivingTopic  string
 	ProtocolVersion Protocol
@@ -130,8 +131,18 @@ func readGob(filePath string, object interface{}) error {
 	return err
 }
 
-// Protect creates the protected payload using the key associated to the topic.
-func (c *Client) Protect(payload []byte, topic string) ([]byte, error) {
+// ProtectCommand creates a protected command aimed for a specific client
+// difference with Protect() is that the payload is encrypted using the ECDH result
+// key []byte is the key associated to the receiver, either sym, ed, or ecdsa
+func (c *Client) ProtectCommand(command []byte, key []byte) ([]byte, error) {
+
+	// TODO: convert byte type to whatever format the version  mandates
+
+	return nil, nil
+}
+
+// ProtectMessage creates the protected message using the key associated to the topic.
+func (c *Client) ProtectMessage(payload []byte, topic string) ([]byte, error) {
 	topichash := string(HashTopic(topic))
 	if key, ok := c.Topickeys[topichash]; ok {
 
@@ -143,6 +154,8 @@ func (c *Client) Protect(payload []byte, topic string) ([]byte, error) {
 			protected, err = ProtectSymKey(payload, key)
 		case PubKey:
 			protected, err = ProtectPubKey(payload, key, c.Ed25519Key, c.ID)
+		case PubKeyFIPS:
+			protected, err = ProtectPubKeyFIPS(payload, key, c.ECDSAKey)
 		default:
 			return nil, ErrInvalidProtocol
 		}

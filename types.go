@@ -11,7 +11,7 @@ const (
 	IDLen           = 16
 	KeyLen          = 32
 	TagLen          = 16
-	HashLen         = 32
+	HashLen         = 16
 	TimestampLen    = 8
 	MaxTopicLen     = 512
 	MaxSecondsDelay = 60 * 10
