@@ -1,9 +1,12 @@
 package e4common
 
 import (
+	"bytes"
 	"encoding/hex"
 	fmt "fmt"
 	utf8 "unicode/utf8"
+
+	"golang.org/x/crypto/ed25519"
 )
 
 // ...
@@ -33,6 +36,9 @@ const (
 	ResetTopics
 	SetIDKey
 	SetTopicKey
+	RemovePubKey
+	ResetPubKeys
+	SetPubKey
 )
 
 // Protocol defines the type of message protection
@@ -42,8 +48,6 @@ type Protocol int
 const (
 	SymKey Protocol = iota
 	PubKey
-	PubKeyFIPS
-	PostQuantum
 )
 
 // ToByte converts a command into its byte representation
@@ -57,6 +61,12 @@ func (c *Command) ToByte() byte {
 		return 2
 	case SetTopicKey:
 		return 3
+	case RemovePubKey:
+		return 4
+	case ResetPubKeys:
+		return 5
+	case SetPubKey:
+		return 6
 	}
 	return 255
 }
@@ -73,6 +83,12 @@ func (c *Command) ToString() string {
 		return "SetIDKey"
 	case SetTopicKey:
 		return "SetTopicKey"
+	case RemovePubKey:
+		return "RemovePubKey"
+	case ResetPubKeys:
+		return "ResetPubKeys"
+	case SetPubKey:
+		return "SetPubKey"
 	}
 	return ""
 }
@@ -101,11 +117,27 @@ func IsValidID(id []byte) error {
 	return nil
 }
 
-// IsValidKey checks that a key is of the expected length.
-func IsValidKey(key []byte) error {
+// IsValidSymKey checks that a key is of the expected length.
+func IsValidSymKey(key []byte) error {
 
 	if len(key) != KeyLen {
-		return fmt.Errorf("Invalid Key length, expected %d, got %d", KeyLen, len(key))
+		return fmt.Errorf("Invalid symmetric key length, expected %d, got %d", KeyLen, len(key))
+	}
+
+	return nil
+}
+
+// IsValidPubKey checks that a key is of the expected length.
+func IsValidPubKey(key []byte) error {
+
+	if len(key) != ed25519.PublicKeySize {
+		return fmt.Errorf("Invalid public key length, expected %d, got %d", KeyLen, len(key))
+	}
+
+	zeros := make([]byte, ed25519.PublicKeySize)
+
+	if bytes.Equal(zeros, key) {
+		return fmt.Errorf("Invalid public key, all zeros")
 	}
 
 	return nil

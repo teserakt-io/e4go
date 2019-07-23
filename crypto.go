@@ -1,16 +1,14 @@
 package e4common
 
 import (
-	"crypto/ecdsa"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"time"
 
 	miscreant "github.com/miscreant/miscreant/go"
 	"golang.org/x/crypto/argon2"
-	"golang.org/x/crypto/ed25519"
+	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -40,7 +38,7 @@ func hashStuff(data []byte) []byte {
 // Encrypt creates an authenticated ciphertext.
 func Encrypt(key []byte, ad []byte, pt []byte) ([]byte, error) {
 
-	if err := IsValidKey(key); err != nil {
+	if err := IsValidSymKey(key); err != nil {
 		return nil, err
 	}
 
@@ -59,7 +57,7 @@ func Encrypt(key []byte, ad []byte, pt []byte) ([]byte, error) {
 // Decrypt decrypts and verifies an authenticated ciphertext.
 func Decrypt(key []byte, ad []byte, ct []byte) ([]byte, error) {
 
-	if err := IsValidKey(key); err != nil {
+	if err := IsValidSymKey(key); err != nil {
 		return nil, err
 	}
 
@@ -92,96 +90,33 @@ func RandomID() []byte {
 	return id
 }
 
-// ProtectSymKey creates a protected message in the symmetric key mode
-func ProtectSymKey(message []byte, key []byte) ([]byte, error) {
+// ProtectCommandSymKey is called by C2, not clients
+func ProtectCommandSymKey(command []byte, key []byte) ([]byte, error) {
+
+	return protectSymKey(command, key)
+}
+
+// ProtectCommandPubKey is called by C2, not clients
+func ProtectCommandPubKey(command []byte, clientpk, c2sk *[32]byte) ([]byte, error) {
+
+	var shared *[32]byte
+	curve25519.ScalarMult(shared, c2sk, clientpk)
+
+	key := hashStuff(shared[:])[:KeyLen]
+
+	return protectSymKey(command, key)
+}
+
+func protectSymKey(payload []byte, key []byte) ([]byte, error) {
 
 	timestamp := make([]byte, TimestampLen)
 	binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
 
-	ct, err := Encrypt(key, timestamp, message)
+	ct, err := Encrypt(key, timestamp, payload)
 	if err != nil {
 		return nil, err
 	}
 	protected := append(timestamp, ct...)
-
-	return protected, nil
-}
-
-// UnprotectSymKey verifies a protected message's in the symmetric key mode, returning the plaintext if it succeeds
-func UnprotectSymKey(protected []byte, key []byte) ([]byte, error) {
-
-	if len(protected) <= TimestampLen {
-		return nil, errors.New("ciphertext to short")
-	}
-
-	ct := protected[TimestampLen:]
-	timestamp := protected[:TimestampLen]
-
-	ts := binary.LittleEndian.Uint64(timestamp)
-	now := uint64(time.Now().Unix())
-	if now < ts {
-		return nil, errors.New("timestamp received is in the future")
-	}
-	if now-ts > MaxSecondsDelay {
-		return nil, errors.New("timestamp too old")
-	}
-
-	pt, err := Decrypt(key, timestamp, ct)
-	if err != nil {
-		return nil, err
-	}
-
-	return pt, nil
-}
-
-// ProtectPubKey protects a non-command message using pubkey crypto
-func ProtectPubKey(message, key []byte, edkey ed25519.PrivateKey, clientID []byte) ([]byte, error) {
-
-	timestamp := make([]byte, TimestampLen)
-	binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
-
-	ct, err := Encrypt(key, timestamp, message)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = IsValidID(clientID); err != nil {
-		return nil, err
-	}
-
-	// sig should always be ed25519.SignatureSize=64 bytes
-	sig := ed25519.Sign(edkey, message)
-
-	protected := append(timestamp, clientID...)
-	protected = append(protected, sig...)
-	protected = append(protected, ct...)
-
-	return protected, nil
-}
-
-// ProtectPubKeyFIPS protects a non-command messages using FIPS-compliant pubkey crypto
-func ProtectPubKeyFIPS(message, key []byte, eckey *ecdsa.PrivateKey, clientID []byte) ([]byte, error) {
-
-	timestamp := make([]byte, TimestampLen)
-	binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
-
-	ct, err := Encrypt(key, timestamp, message)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = IsValidID(clientID); err != nil {
-		return nil, err
-	}
-
-	messagehash := sha256.Sum256(message)
-
-	// sig should always be 64 bytes
-	sig, err := ecdsa.Sign(rand.Reader, eckey, messagehash[:])
-
-	protected := append(timestamp, clientID...)
-	protected = append(protected, sig...)
-	protected = append(protected, ct...)
 
 	return protected, nil
 }
