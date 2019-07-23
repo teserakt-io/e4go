@@ -114,6 +114,14 @@ func (c *Client) Protect(payload []byte, topic string) ([]byte, error) {
 
 // Unprotect decrypts a protected payload using the key associated to the topic.
 func (c *Client) Unprotect(protected []byte, topic string) ([]byte, error) {
+	if topic == c.ReceivingTopic {
+		command, err := Unprotect(protected, c.Key)
+		if err != nil {
+			return nil, err
+		}
+
+		return c.processCommand(command)
+	}
 	topichash := string(HashTopic(topic))
 	if key, ok := c.Topickeys[topichash]; ok {
 
@@ -127,11 +135,7 @@ func (c *Client) Unprotect(protected []byte, topic string) ([]byte, error) {
 }
 
 // ProcessCommand decrypts a C2 commands and modifies the client state according to the command content.
-func (c *Client) ProcessCommand(protected []byte) (string, error) {
-	command, err := Unprotect(protected, c.Key)
-	if err != nil {
-		return "", err
-	}
+func (c *Client) processCommand(command []byte) ([]byte, error) {
 
 	cmd := Command(command[0])
 	s := cmd.ToString()
@@ -140,32 +144,32 @@ func (c *Client) ProcessCommand(protected []byte) (string, error) {
 
 	case RemoveTopic:
 		if len(command) != HashLen+1 {
-			return "", errors.New("invalid RemoveTopic argument")
+			return nil, errors.New("invalid RemoveTopic argument")
 		}
 		log.Println("remove topic ", hex.EncodeToString(command[1:]))
-		return s, c.RemoveTopic(command[1:])
+		return []byte(s), c.RemoveTopic(command[1:])
 
 	case ResetTopics:
 		if len(command) != 1 {
-			return "", errors.New("invalid ResetTopics argument")
+			return nil, errors.New("invalid ResetTopics argument")
 		}
-		return s, c.ResetTopics()
+		return []byte(s), c.ResetTopics()
 
 	case SetIDKey:
 		if len(command) != KeyLen+1 {
-			return "", errors.New("invalid SetIDKey argument")
+			return nil, errors.New("invalid SetIDKey argument")
 		}
-		return s, c.SetIDKey(command[1:])
+		return []byte(s), c.SetIDKey(command[1:])
 
 	case SetTopicKey:
 		if len(command) != KeyLen+HashLen+1 {
-			return "", errors.New("invalid SetTopicKey argument")
+			return nil, errors.New("invalid SetTopicKey argument")
 		}
 		log.Println("setting topic key for hash ", hex.EncodeToString(command[1+KeyLen:]))
-		return s, c.SetTopicKey(command[1:1+KeyLen], command[1+KeyLen:])
+		return []byte(s), c.SetTopicKey(command[1:1+KeyLen], command[1+KeyLen:])
 
 	default:
-		return "", errors.New("invalid command")
+		return nil, errors.New("invalid command")
 	}
 }
 
