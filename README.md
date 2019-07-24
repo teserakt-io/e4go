@@ -54,24 +54,25 @@ now also have:
 You can then unprotect the message as follows:
 
     plaintext, err := client.Unprotect(message, topic)
-
-You should then insert the following check into your code to ensure that E4 
-messages can be processed:
-
-    if topic == client.ReceivingTopic {
-        command, err := cli.E4.ProcessCommand([]byte(plaintext))
-        if err != nil {
-            // error reporting as you would normally do it
-        }
-
-        // stop processing plaintext here, even on success
-        return
+    if err != nil {
+        // your error reporting here
     }
 
-    // continue processing plaintext here
+If you receive no error, the plaintext may still be nil. This happens when 
+E4 has processed a control message. In this case you can simply not act on 
+the received message - E4 has already processed it. If you want to detect this 
+case you can test for
 
-Otherwise, assuming no error occurred and the topic is not the receiving topic, 
-you can continue to process the plaintext
+    if plaintext == nil { ... }
+
+or alternatively
+
+    if topic == client.ReceivingTopic
+
+which indicates a message on E4's control channel.
+
+You should not try to parse E4's messages yourself and they are deliberately 
+not returned to users as this may induce security vulnerabilities.
 
 ### Sending E4 messages
 
