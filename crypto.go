@@ -33,7 +33,6 @@ func DeriveSymKey(pwd string) []byte {
 }
 
 // DerivePrivKey derives an Ed25519 private key from a password using Argon2.
-// (Replaces HashPwd)
 func DerivePrivKey(pwd string) ed25519.PrivateKey {
 
 	seed := argon2.Key([]byte(pwd), nil, 1, 64*1024, 4, ed25519.SeedSize)

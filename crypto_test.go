@@ -24,7 +24,7 @@ func TestHash(t *testing.T) {
 	if h != "3a985da74fe225b2045c172d6bd390bd" {
 		t.Fatalf("hash of ID alias incorrect")
 	}
-	h = hex.EncodeToString(HashPwd("abc"))
+	h = hex.EncodeToString(DeriveSymKey("abc"))
 	if h != "fe8062b1208c8c97637810bdc2c668a3a8224f5e30fbeb13cb1508c4a4a7269a" {
 		t.Fatalf("hash of password incorrect")
 	}
@@ -191,85 +191,14 @@ func TestEncDec(t *testing.T) {
 /* TestProtectUnprotect is an equivalent function to TestEncDec,
    except it works as the E4 API level. Tests that we can retrieve valid
    plaintext and also tests the E4 API is resistant to modification. */
-func TestProtectUnprotect(t *testing.T) {
+func TestProtectUnprotectMessage(t *testing.T) {
 
-	for i := 0; i < 2048; i++ {
-		rdelta := getRDelta()
-		msgLen := 123 + rdelta
+}
 
-		key := make([]byte, KeyLen)
-		msg := make([]byte, msgLen)
+func TestProtectUnprotectCommandsSymKey(t *testing.T) {
 
-		rand.Read(key)
-		rand.Read(msg)
+}
 
-		protected, err := Protect(msg, key)
-		if err != nil {
-			t.Fatalf("protect failed: %s", err)
-		}
+func TestProtectUnprotectCommandsPubKey(t *testing.T) {
 
-		protectedlen := msgLen + TagLen + TimestampLen
-
-		// happy case.
-		unprotected, err := Unprotect(protected, key)
-		if err != nil {
-			t.Fatalf("unprotect failed: %s", err)
-		}
-		if !bytes.Equal(unprotected, msg) {
-			t.Fatalf("unprotected message different from the original")
-		}
-
-		// wrong ciphertext:
-
-		invalidprotected := make([]byte, msgLen)
-		copy(invalidprotected, protected)
-		for i := range invalidprotected {
-			invalidprotected[i] ^= 0x02
-		}
-
-		_, err = Unprotect(invalidprotected, key)
-		if err == nil {
-			t.Fatalf("ciphertext changed: decryption did not fail as expected")
-		}
-
-		// invalid key
-		invalidkey := make([]byte, KeyLen)
-		copy(invalidkey, key)
-		for i := range invalidkey {
-			invalidkey[i] ^= 0x03
-		}
-
-		_, err = Unprotect(protected, invalidkey)
-		if err == nil {
-			t.Fatalf("ciphertext changed: decryption did not fail as expected")
-		}
-
-		// future timestamp and past timestamp
-		timestamporig := protected[:TimestampLen]
-		ts := binary.LittleEndian.Uint64(timestamporig)
-		tsf := ts + 1000000
-		tsp := ts - (MaxSecondsDelay + 1)
-		tsfuture := make([]byte, 8)
-		tspast := make([]byte, 8)
-		binary.LittleEndian.PutUint64(tsfuture, tsf)
-		binary.LittleEndian.PutUint64(tspast, tsp)
-
-		futureinvalidprotect := make([]byte, protectedlen)
-		pastinvalidprotect := make([]byte, protectedlen)
-		copy(futureinvalidprotect, tsfuture)
-		copy(pastinvalidprotect, tspast)
-		copy(futureinvalidprotect[TimestampLen:], protected[TimestampLen:])
-		copy(pastinvalidprotect[TimestampLen:], protected[TimestampLen:])
-
-		_, err = Unprotect(futureinvalidprotect, invalidkey)
-		if err == nil {
-			t.Fatalf("timestamp in future: decryption did not fail as expected")
-		}
-
-		_, err = Unprotect(pastinvalidprotect, invalidkey)
-		if err == nil {
-			t.Fatalf("timestamp too old: decryption did not fail as expected")
-		}
-
-	}
 }

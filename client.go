@@ -19,9 +19,13 @@ var (
 	// ErrTopicKeyNotFound occurs when a topic key is missing when encryption/decrypting.
 	ErrTopicKeyNotFound = errors.New("topic key not found")
 	// ErrPubKeyNotFound occurs when a public key is missing when verifying a signature.
-	ErrPubKeyNotFound   = errors.New("signer public key not found")
-	ErrInvalidProtocol  = errors.New("invalid protocol version")
+	ErrPubKeyNotFound = errors.New("signer public key not found")
+	// ErrInvalidProtocol occurs when the protocol version received does not exist.
+	ErrInvalidProtocol = errors.New("invalid protocol version")
+	// ErrInvalidSignature occurs when a signature verification fails.
 	ErrInvalidSignature = errors.New("invalid signature")
+	// ErrInvalidProtectedLen occurs when the protected message is  not of the expected length.
+	ErrInvalidProtectedLen = errors.New("invalid length of protected message")
 )
 
 // Client is a structure representing the client state, saved to disk for persistent storage.
@@ -91,11 +95,20 @@ func NewClient(id, symKey []byte, ed25519Key ed25519.PrivateKey, filePath string
 }
 
 // NewClientPretty is like NewClient but takes an ID alias and a password, rather than raw values.
-func NewClientPretty(idalias, pwd, filePath string, protocolVersion Protocol) *Client {
-	key := HashPwd(pwd)
+func NewClientPretty(idalias, pwd, filePath string, protocolVersion Protocol) (*Client, error) {
+	var key []byte
+	var ed25519Key ed25519.PrivateKey
+
+	if protocolVersion == SymKey {
+		key = DeriveSymKey(pwd)
+		ed25519Key = nil
+
+	} else if protocolVersion == PubKey {
+		key = nil
+		ed25519Key = DerivePrivKey(pwd)
+	}
 	id := HashIDAlias(idalias)
-	ed25519.SeedSize
-	return NewClient(id, key, nil, filePath, protocolVersion)
+	return NewClient(id, key, ed25519Key, filePath, protocolVersion)
 }
 
 // LoadClient loads a client state from the file system.
@@ -145,12 +158,15 @@ func (c *Client) ProtectMessage(payload []byte, topic string) ([]byte, error) {
 	if key, ok := c.Topickeys[topichash]; ok {
 
 		var protected []byte
+		var protectedLen int
 		var err error
 
 		switch c.ProtocolVersion {
 		case SymKey:
+			protectedLen = TimestampLen + len(payload) + TagLen
 			protected, err = c.protectMessageSymKey(payload, key)
 		case PubKey:
+			protectedLen = TimestampLen + IDLen + len(payload) + TagLen + ed25519.SignatureSize
 			protected, err = c.protectMessagePubKey(payload, key)
 		default:
 			return nil, ErrInvalidProtocol
@@ -158,6 +174,10 @@ func (c *Client) ProtectMessage(payload []byte, topic string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+		if protectedLen != len(protected) {
+			return nil, ErrInvalidProtectedLen
+		}
+
 		return protected, nil
 	}
 	return nil, ErrTopicKeyNotFound
@@ -268,6 +288,10 @@ func (c *Client) protectMessagePubKey(message, key []byte) ([]byte, error) {
 
 	// sig should always be ed25519.SignatureSize=64 bytes
 	sig := ed25519.Sign(c.Ed25519Key, protected)
+
+	if len(sig) != ed25519.SignatureSize {
+		return nil, ErrInvalidSignature
+	}
 
 	protected = append(protected, sig...)
 
