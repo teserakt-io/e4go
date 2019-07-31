@@ -6,6 +6,9 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"testing"
+
+	"github.com/agl/ed25519/extra25519"
+	"golang.org/x/crypto/ed25519"
 )
 
 /* getRDelta produces a random 16-bit integer to allow us to
@@ -188,17 +191,54 @@ func TestEncDec(t *testing.T) {
 	}
 }
 
-/* TestProtectUnprotect is an equivalent function to TestEncDec,
-   except it works as the E4 API level. Tests that we can retrieve valid
-   plaintext and also tests the E4 API is resistant to modification. */
-func TestProtectUnprotectMessage(t *testing.T) {
-
-}
-
 func TestProtectUnprotectCommandsSymKey(t *testing.T) {
 
 }
 
 func TestProtectUnprotectCommandsPubKey(t *testing.T) {
 
+	filePath := "./test/data/clienttestcommand"
+
+	protocol := PubKey
+
+	c, err := NewClient(nil, nil, nil, filePath, protocol)
+
+	if err != nil {
+		t.Fatalf("NewClient failed: %v", err)
+	}
+
+	var cpk [32]byte
+	copy(cpk[:], c.Ed25519Key[32:])
+
+	_, sk, err := ed25519.GenerateKey(rand.Reader)
+	var c2edsk [64]byte
+	var c2edpk [32]byte
+	var c2pk [32]byte
+	var c2sk [32]byte
+	copy(c2edsk[:], sk)
+	copy(c2edpk[:], sk[32:])
+
+	extra25519.PublicKeyToCurve25519(&c2pk, &c2edpk)
+	extra25519.PrivateKeyToCurve25519(&c2sk, &c2edsk)
+
+	command := make([]byte, 64)
+	rand.Read(command)
+
+	c.C2Key = &c2pk
+
+	protected, err := ProtectCommandPubKey(command, &cpk, &c2sk)
+
+	if err != nil {
+		t.Fatalf("ProtectCommandPubKey failed: %v", err)
+	}
+
+	res, err := c.Unprotect(protected, c.ReceivingTopic)
+	if res != nil {
+		t.Fatalf("Unprotect returned non-nil value")
+	}
+	if err != nil {
+		t.Fatalf("Unprotect failed: %v", err)
+	}
+
+	// TODO: check processing of command with real command
 }
