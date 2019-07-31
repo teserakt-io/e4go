@@ -15,9 +15,10 @@ import (
 	"golang.org/x/crypto/ed25519"
 )
 
-// ErrTopicKeyNotFound will signal to applications that a key is missing.
 var (
+	// ErrTopicKeyNotFound occurs when a topic key is missing when encryption/decrypting.
 	ErrTopicKeyNotFound = errors.New("topic key not found")
+	// ErrPubKeyNotFound occurs when a public key is missing when verifying a signature.
 	ErrPubKeyNotFound   = errors.New("signer public key not found")
 	ErrInvalidProtocol  = errors.New("invalid protocol version")
 	ErrInvalidSignature = errors.New("invalid signature")
@@ -39,7 +40,7 @@ type Client struct {
 }
 
 // NewClient creates a new client, generating a random ID or key if they are nil.
-func NewClient(id, symKey []byte, ed25519Key ed25519.PrivateKey, filePath string, protocolVersion Protocol) *Client {
+func NewClient(id, symKey []byte, ed25519Key ed25519.PrivateKey, filePath string, protocolVersion Protocol) (*Client, error) {
 
 	var err error
 
@@ -47,17 +48,29 @@ func NewClient(id, symKey []byte, ed25519Key ed25519.PrivateKey, filePath string
 		id = RandomID()
 	}
 
-	if symKey == nil && protocolVersion == SymKey {
-		symKey = RandomKey()
+	if protocolVersion == SymKey {
+		if symKey == nil {
+			symKey = RandomKey()
+		}
+		if err = IsValidSymKey(symKey); err != nil {
+			return nil, err
+		}
+		ed25519Key = nil
+	} else if protocolVersion == PubKey {
+		if ed25519Key == nil {
+			_, ed25519Key, err = ed25519.GenerateKey(nil)
+		}
+		if err != nil {
+			return nil, err
+		}
+		if err = IsValidPrivKey(ed25519Key); err != nil {
+			return nil, err
+		}
+		symKey = nil
 	}
 
-	if ed25519Key == nil && protocolVersion == PubKey {
-		_, ed25519Key, err = ed25519.GenerateKey(nil)
-		if err != nil {
-			return nil
-		}
-	}
 	topickeys := make(map[string][]byte)
+	pubkeys := make(map[string][]byte)
 
 	receivingTopic := TopicForID(id)
 
@@ -66,6 +79,7 @@ func NewClient(id, symKey []byte, ed25519Key ed25519.PrivateKey, filePath string
 		SymKey:          symKey,
 		Ed25519Key:      ed25519Key,
 		Topickeys:       topickeys,
+		Pubkeys:         pubkeys,
 		FilePath:        filePath,
 		ProtocolVersion: protocolVersion,
 		ReceivingTopic:  receivingTopic,
@@ -73,13 +87,14 @@ func NewClient(id, symKey []byte, ed25519Key ed25519.PrivateKey, filePath string
 
 	log.SetPrefix("e4client\t")
 
-	return c
+	return c, nil
 }
 
 // NewClientPretty is like NewClient but takes an ID alias and a password, rather than raw values.
 func NewClientPretty(idalias, pwd, filePath string, protocolVersion Protocol) *Client {
 	key := HashPwd(pwd)
 	id := HashIDAlias(idalias)
+	ed25519.SeedSize
 	return NewClient(id, key, nil, filePath, protocolVersion)
 }
 

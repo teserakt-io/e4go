@@ -127,11 +127,27 @@ func IsValidSymKey(key []byte) error {
 	return nil
 }
 
-// IsValidPubKey checks that a key is of the expected length.
+// IsValidPrivKey checks that a key is of the expected length and not all zero.
+func IsValidPrivKey(key []byte) error {
+
+	if len(key) != ed25519.PrivateKeySize {
+		return fmt.Errorf("Invalid private key length, expected %d, got %d", ed25519.PrivateKeySize, len(key))
+	}
+
+	zeros := make([]byte, ed25519.PublicKeySize)
+
+	if bytes.Equal(zeros, key) {
+		return fmt.Errorf("Invalid public key, all zeros")
+	}
+
+	return nil
+}
+
+// IsValidPubKey checks that a key is of the expected length and not all zero.
 func IsValidPubKey(key []byte) error {
 
 	if len(key) != ed25519.PublicKeySize {
-		return fmt.Errorf("Invalid public key length, expected %d, got %d", KeyLen, len(key))
+		return fmt.Errorf("Invalid public key length, expected %d, got %d", ed25519.PublicKeySize, len(key))
 	}
 
 	zeros := make([]byte, ed25519.PublicKeySize)

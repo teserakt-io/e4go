@@ -6,6 +6,31 @@ import (
 
 func TestClientNew(t *testing.T) {
 
+	id := make([]byte, IDLen)
+	k := make([]byte, KeyLen)
+	path := "./test/data/clienttestnew"
+	protocol := SymKey
+
+	c1, err := NewClient(id, k, k, path, protocol)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if c1.ReceivingTopic != TopicForID(id) {
+		t.Fatalf("receiving topic does not match")
+	}
+
+	if c1.Ed25519Key != nil {
+		t.Fatalf("ed25519 key should be nil in a SymKey client")
+	}
+
+}
+
+// OLD TESTS
+
+func TestClientNewPretty(t *testing.T) {
+
 	c1 := NewClientPretty("someid", "somepwd", "./test/data/clienttestnew")
 
 	c2 := NewClientPretty("someid", "somepwd", "./test/data/clienttestnew")
@@ -99,4 +124,26 @@ func TestClientWriteRead(t *testing.T) {
 	if len(cc.Topickeys) != 0 {
 		t.Fatalf("invalid number of topic keys: %d vs 0 expected", len(cc.Topickeys))
 	}
+}
+
+// NEW TESTS
+
+func TestProtectUnprotectMessageSymKey(t *testing.T) {
+
+}
+
+func TestProtectUnprotectMessagePubKey(t *testing.T) {
+
+}
+
+func TestProtectUnprotectCommandsSymKey(t *testing.T) {
+
+}
+
+func TestProtectUnprotectCommandsPubKey(t *testing.T) {
+
+}
+
+func TestCommands(t *testing.T) {
+
 }

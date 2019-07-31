@@ -9,6 +9,7 @@ import (
 	miscreant "github.com/miscreant/miscreant/go"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/curve25519"
+	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -24,10 +25,19 @@ func HashIDAlias(idalias string) []byte {
 	return hashStuff([]byte(idalias))[:IDLen]
 }
 
-// HashPwd hashes a password with Argon2
-func HashPwd(pwd string) []byte {
+// DeriveSymKey derives a symmetric key from a password using Argon2.
+// (Replaces HashPwd)
+func DeriveSymKey(pwd string) []byte {
 
 	return argon2.Key([]byte(pwd), nil, 1, 64*1024, 4, KeyLen)
+}
+
+// DerivePrivKey derives an Ed25519 private key from a password using Argon2.
+// (Replaces HashPwd)
+func DerivePrivKey(pwd string) ed25519.PrivateKey {
+
+	seed := argon2.Key([]byte(pwd), nil, 1, 64*1024, 4, ed25519.SeedSize)
+	return ed25519.NewKeyFromSeed(seed)
 }
 
 func hashStuff(data []byte) []byte {
