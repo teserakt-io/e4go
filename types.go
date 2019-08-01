@@ -3,6 +3,7 @@ package e4common
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	fmt "fmt"
 	utf8 "unicode/utf8"
 
@@ -48,6 +49,13 @@ type Protocol int
 const (
 	SymKey Protocol = iota
 	PubKey
+)
+
+var (
+	blankEd25519pk [ed25519.PublicKeySize]byte
+	zeroEd25519pk  = blankEd25519pk[:]
+	blankEd25519sk [ed25519.PrivateKeySize]byte
+	zeroEd25519sk  = blankEd25519sk[:]
 )
 
 // ToByte converts a command into its byte representation
@@ -130,32 +138,24 @@ func IsValidSymKey(key []byte) error {
 // IsValidPrivKey checks that a key is of the expected length and not all zero.
 func IsValidPrivKey(key []byte) error {
 
-	if len(key) != ed25519.PrivateKeySize {
-		return fmt.Errorf("Invalid private key length, expected %d, got %d", ed25519.PrivateKeySize, len(key))
+	if g, w := len(key), ed25519.PrivateKeySize; g != w {
+		return fmt.Errorf("Invalid private key length, expected %d, got %d", g, w)
 	}
-
-	zeros := make([]byte, ed25519.PublicKeySize)
-
-	if bytes.Equal(zeros, key) {
-		return fmt.Errorf("Invalid public key, all zeros")
+	if bytes.Equal(zeroEd25519sk, key) {
+		return errors.New("Invalid private key, all zeros")
 	}
-
 	return nil
 }
 
 // IsValidPubKey checks that a key is of the expected length and not all zero.
 func IsValidPubKey(key []byte) error {
 
-	if len(key) != ed25519.PublicKeySize {
-		return fmt.Errorf("Invalid public key length, expected %d, got %d", ed25519.PublicKeySize, len(key))
+	if g, w := len(key), ed25519.PublicKeySize; g != w {
+		return fmt.Errorf("Invalid public key length, expected %d, got %d", g, w)
 	}
-
-	zeros := make([]byte, ed25519.PublicKeySize)
-
-	if bytes.Equal(zeros, key) {
-		return fmt.Errorf("Invalid public key, all zeros")
+	if bytes.Equal(zeroEd25519pk, key) {
+		return errors.New("Invalid public key, all zeros")
 	}
-
 	return nil
 }
 
