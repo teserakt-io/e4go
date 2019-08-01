@@ -191,10 +191,6 @@ func TestEncDec(t *testing.T) {
 	}
 }
 
-func TestProtectUnprotectCommandsSymKey(t *testing.T) {
-
-}
-
 func TestProtectUnprotectCommandsPubKey(t *testing.T) {
 
 	filePath := "./test/data/clienttestcommand"
@@ -207,8 +203,10 @@ func TestProtectUnprotectCommandsPubKey(t *testing.T) {
 		t.Fatalf("NewClient failed: %v", err)
 	}
 
+	var cedpk [32]byte
 	var cpk [32]byte
-	copy(cpk[:], c.Ed25519Key[32:])
+	copy(cedpk[:], c.Ed25519Key[32:])
+	extra25519.PublicKeyToCurve25519(&cpk, &cedpk)
 
 	_, sk, err := ed25519.GenerateKey(rand.Reader)
 	var c2edsk [64]byte
@@ -217,20 +215,19 @@ func TestProtectUnprotectCommandsPubKey(t *testing.T) {
 	var c2sk [32]byte
 	copy(c2edsk[:], sk)
 	copy(c2edpk[:], sk[32:])
-
 	extra25519.PublicKeyToCurve25519(&c2pk, &c2edpk)
 	extra25519.PrivateKeyToCurve25519(&c2sk, &c2edsk)
 
-	command := make([]byte, 64)
-	rand.Read(command)
-
-	c.C2Key = &c2pk
+	command := make([]byte, 1)
+	command[0] = 0x05
 
 	protected, err := ProtectCommandPubKey(command, &cpk, &c2sk)
 
 	if err != nil {
 		t.Fatalf("ProtectCommandPubKey failed: %v", err)
 	}
+
+	c.C2Key = c2pk
 
 	res, err := c.Unprotect(protected, c.ReceivingTopic)
 	if res != nil {
@@ -239,6 +236,4 @@ func TestProtectUnprotectCommandsPubKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unprotect failed: %v", err)
 	}
-
-	// TODO: check processing of command with real command
 }

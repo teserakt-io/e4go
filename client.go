@@ -33,7 +33,7 @@ type Client struct {
 	ID         []byte
 	SymKey     []byte             // for SymKey mode only
 	Ed25519Key ed25519.PrivateKey // for PubKey mode only
-	C2Key      *[32]byte          // C2's key, for  PubKey mode only
+	C2Key      [32]byte           // C2's key, for  PubKey mode only
 	Topickeys  map[string][]byte
 	// Topickeys maps a topic hash to a key
 	// (slices []byte can't be map keys, converting to strings)
@@ -301,13 +301,13 @@ func (c *Client) protectMessagePubKey(message, key []byte) ([]byte, error) {
 func (c *Client) unprotectCommandPubKey(protected []byte) ([]byte, error) {
 
 	// convert ed key to curve key
-	var curvekey *[32]byte
+	var curvekey [32]byte
 	var edkey [64]byte
 	copy(edkey[:], c.Ed25519Key)
-	extra25519.PrivateKeyToCurve25519(curvekey, &edkey)
+	extra25519.PrivateKeyToCurve25519(&curvekey, &edkey)
 
-	var shared *[32]byte
-	curve25519.ScalarMult(shared, curvekey, c.C2Key)
+	var shared [32]byte
+	curve25519.ScalarMult(&shared, &curvekey, &c.C2Key)
 
 	key := hashStuff(shared[:])[:KeyLen]
 
@@ -317,7 +317,7 @@ func (c *Client) unprotectCommandPubKey(protected []byte) ([]byte, error) {
 func (c *Client) unprotectMessagePubKey(protected []byte, key []byte) ([]byte, error) {
 
 	if len(protected) <= TimestampLen+ed25519.SignatureSize {
-		return nil, errors.New("ciphertext to short")
+		return nil, ErrInvalidProtectedLen
 	}
 
 	// first check timestamp

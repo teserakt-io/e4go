@@ -108,8 +108,8 @@ func ProtectCommandSymKey(command []byte, key []byte) ([]byte, error) {
 // ProtectCommandPubKey is called by C2, not clients
 func ProtectCommandPubKey(command []byte, clientpk, c2sk *[32]byte) ([]byte, error) {
 
-	var shared *[32]byte
-	curve25519.ScalarMult(shared, c2sk, clientpk)
+	var shared [32]byte
+	curve25519.ScalarMult(&shared, c2sk, clientpk)
 
 	key := hashStuff(shared[:])[:KeyLen]
 
