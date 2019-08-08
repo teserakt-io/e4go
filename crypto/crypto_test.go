@@ -1,38 +1,10 @@
-package e4common
+package crypto
 
 import (
 	"bytes"
 	"crypto/rand"
-	"encoding/binary"
-	"encoding/hex"
 	"testing"
-
-	"github.com/agl/ed25519/extra25519"
-	"golang.org/x/crypto/ed25519"
 )
-
-/* getRDelta produces a random 16-bit integer to allow us to
-   vary key sizes, plaintext sizes etc. */
-func getRDelta() uint16 {
-	randadjust := make([]byte, 2)
-	rand.Read(randadjust)
-	return binary.LittleEndian.Uint16(randadjust)
-}
-
-/* TestHash tests KATs for both the hash function of choice and
- * the password hashing function / KDF of choice */
-func TestHash(t *testing.T) {
-
-	h := hex.EncodeToString(HashIDAlias("abc"))
-	if h != "3a985da74fe225b2045c172d6bd390bd" {
-		t.Fatalf("hash of ID alias incorrect")
-	}
-	h = hex.EncodeToString(DeriveSymKey("abc"))
-	if h != "fe8062b1208c8c97637810bdc2c668a3a8224f5e30fbeb13cb1508c4a4a7269a" {
-		t.Fatalf("hash of password incorrect")
-	}
-
-}
 
 func TestRandomID(t *testing.T) {
 	for i := 0; i < 2048; i++ {
@@ -50,7 +22,6 @@ func TestRandomID(t *testing.T) {
 
 /* Test encrypt tests KATs for the encryption code */
 func TestEncrypt(t *testing.T) {
-
 	ptLen := 64
 	adLen := 8
 
@@ -84,7 +55,6 @@ func TestEncrypt(t *testing.T) {
    TODO: proper random testing?
 */
 func TestRandom(t *testing.T) {
-
 	for i := 0; i < 2048; i++ {
 		zeroes := make([]byte, KeyLen)
 		k1 := RandomKey()
@@ -105,10 +75,9 @@ func TestRandom(t *testing.T) {
    we encrypted. In addition, it tests that modifications to
   associated data, ciphertext or key produce a failure result. */
 func TestEncDec(t *testing.T) {
-
 	for i := 0; i < 2048; i++ {
 
-		rdelta := getRDelta()
+		rdelta := GetRDelta()
 
 		ptLen := 1234 + rdelta
 
@@ -188,52 +157,5 @@ func TestEncDec(t *testing.T) {
 		if err == nil {
 			t.Fatalf("invalid key: decryption did not fail as expected.")
 		}
-	}
-}
-
-func TestProtectUnprotectCommandsPubKey(t *testing.T) {
-
-	filePath := "./test/data/clienttestcommand"
-
-	protocol := PubKey
-
-	c, err := NewClient(nil, nil, nil, filePath, protocol)
-
-	if err != nil {
-		t.Fatalf("NewClient failed: %v", err)
-	}
-
-	var cedpk [32]byte
-	var cpk [32]byte
-	copy(cedpk[:], c.Ed25519Key[32:])
-	extra25519.PublicKeyToCurve25519(&cpk, &cedpk)
-
-	_, sk, err := ed25519.GenerateKey(rand.Reader)
-	var c2edsk [64]byte
-	var c2edpk [32]byte
-	var c2pk [32]byte
-	var c2sk [32]byte
-	copy(c2edsk[:], sk)
-	copy(c2edpk[:], sk[32:])
-	extra25519.PublicKeyToCurve25519(&c2pk, &c2edpk)
-	extra25519.PrivateKeyToCurve25519(&c2sk, &c2edsk)
-
-	command := make([]byte, 1)
-	command[0] = 0x05
-
-	protected, err := ProtectCommandPubKey(command, &cpk, &c2sk)
-
-	if err != nil {
-		t.Fatalf("ProtectCommandPubKey failed: %v", err)
-	}
-
-	c.C2Key = c2pk
-
-	res, err := c.Unprotect(protected, c.ReceivingTopic)
-	if res != nil {
-		t.Fatalf("Unprotect returned non-nil value")
-	}
-	if err != nil {
-		t.Fatalf("Unprotect failed: %v", err)
 	}
 }
