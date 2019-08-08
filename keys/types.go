@@ -17,7 +17,6 @@ type TopicKey []byte
 
 // ClientKey defines an interface for E4 client key implementations
 type ClientKey interface {
-	Validate() error
 	ProtectMessage(payload []byte, topicKey TopicKey) ([]byte, error)
 	UnprotectMessage(protected []byte, topicKey TopicKey) ([]byte, error)
 	UnprotectCommand(protected []byte) ([]byte, error)

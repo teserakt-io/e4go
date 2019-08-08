@@ -6,6 +6,8 @@ import (
 	"errors"
 	"time"
 
+	"golang.org/x/crypto/ed25519"
+
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/curve25519"
 
@@ -146,4 +148,10 @@ func GetRDelta() uint16 {
 	randadjust := make([]byte, 2)
 	rand.Read(randadjust)
 	return binary.LittleEndian.Uint16(randadjust)
+}
+
+// Ed25519PrivateKeyFromPassword creates a ed25519.PrivateKey from a password
+func Ed25519PrivateKeyFromPassword(password string) ed25519.PrivateKey {
+	seed := argon2.Key([]byte(password), nil, 1, 64*1024, 4, ed25519.SeedSize)
+	return ed25519.NewKeyFromSeed(seed)
 }

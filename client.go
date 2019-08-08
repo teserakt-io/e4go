@@ -96,19 +96,19 @@ func newClient(id []byte, clientKey keys.ClientKey, filePath string) (Client, er
 		return nil, errors.New("client id must not be empty")
 	}
 
-	if err := clientKey.Validate(); err != nil {
-		return nil, fmt.Errorf("key validation failed: %v", err)
-	}
-
-	log.SetPrefix("e4client\t")
-
-	return &client{
-		ID:             id,
+	c := &client{
 		Key:            clientKey,
 		TopicKeys:      make(map[string]keys.TopicKey),
 		FilePath:       filePath,
 		ReceivingTopic: topicForID(id),
-	}, nil
+	}
+
+	c.ID = make([]byte, len(id))
+	copy(c.ID, id)
+
+	log.SetPrefix("e4client\t")
+
+	return c, nil
 }
 
 // NewClientPretty is like NewClient but takes an client name and a password, rather than raw values.

@@ -40,6 +40,7 @@ func TestValidateName(t *testing.T) {
 func TestValidateID(t *testing.T) {
 	t.Run("Invalid ids return an error", func(t *testing.T) {
 		invalidIDs := [][]byte{
+			nil,
 			[]byte{},
 			make([]byte, IDLen-1),
 			make([]byte, IDLen+1),
@@ -76,6 +77,7 @@ func TestValidEd25519PrivKey(t *testing.T) {
 		rand.Read(tooShortKey)
 
 		invalidKeys := []ed25519.PrivateKey{
+			nil,
 			allZeroKey,
 			tooLongKey,
 			tooShortKey,

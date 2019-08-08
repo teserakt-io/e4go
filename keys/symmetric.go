@@ -2,6 +2,7 @@ package keys
 
 import (
 	"encoding/json"
+	"fmt"
 
 	e4crypto "gitlab.com/teserakt/e4common/crypto"
 )
@@ -25,11 +26,14 @@ func NewSymKeyFromPassword(pwd string) (SymKey, error) {
 
 // NewSymKey creates a new SymKey
 func NewSymKey(key []byte) (SymKey, error) {
+	if err := e4crypto.ValidateSymKey(key); err != nil {
+		return nil, fmt.Errorf("failed to validate sym key: %v", err)
+	}
+
 	s := &symKey{}
 
-	if err := s.SetKey(key); err != nil {
-		return nil, err
-	}
+	s.Key = make([]byte, len(key))
+	copy(s.Key, key)
 
 	return s, nil
 }
@@ -37,11 +41,6 @@ func NewSymKey(key []byte) (SymKey, error) {
 // NewRandomSymKey creates a new SymKey from random value
 func NewRandomSymKey() (SymKey, error) {
 	return NewSymKey(e4crypto.RandomKey())
-}
-
-// Validate returns an error when the key is not a valid SymKey
-func (k *symKey) Validate() error {
-	return e4crypto.ValidateSymKey(k.Key)
 }
 
 // Protect will encrypt payload with the key and returns it, or an error if it fail.

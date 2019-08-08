@@ -11,7 +11,6 @@ import (
 	e4crypto "gitlab.com/teserakt/e4common/crypto"
 
 	"github.com/agl/ed25519/extra25519"
-	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/ed25519"
 )
@@ -41,18 +40,27 @@ func NewEd25519Key(signerID []byte, privateKey ed25519.PrivateKey, c2PublicKey [
 		return nil, fmt.Errorf("invalid signerID len, expected %d, got %d", e4crypto.IDLen, len(signerID))
 	}
 
-	return &ed25519Key{
-		SignerID:    signerID,
-		PrivateKey:  privateKey,
+	if err := e4crypto.ValidEd25519PrivKey(privateKey); err != nil {
+		return nil, err
+	}
+
+	e := &ed25519Key{
 		C2PublicKey: c2PublicKey,
 		PubKeys:     make(map[string][]byte),
-	}, nil
+	}
+
+	e.PrivateKey = make([]byte, len(privateKey))
+	copy(e.PrivateKey, privateKey)
+
+	e.SignerID = make([]byte, len(signerID))
+	copy(e.SignerID, signerID)
+
+	return e, nil
 }
 
 // NewEd25519KeyFromPassword creates a new ed25519 e4 client key from given password
 func NewEd25519KeyFromPassword(signerID []byte, pwd string, c2Key [32]byte) (Ed25519Key, error) {
-	seed := argon2.Key([]byte(pwd), nil, 1, 64*1024, 4, ed25519.SeedSize)
-	return NewEd25519Key(signerID, ed25519.NewKeyFromSeed(seed), c2Key)
+	return NewEd25519Key(signerID, e4crypto.Ed25519PrivateKeyFromPassword(pwd), c2Key)
 }
 
 // NewRandomEd25519Key creates a new Ed25519 key from a random value
@@ -65,14 +73,9 @@ func NewRandomEd25519Key(signerID []byte, c2Key [32]byte) (Ed25519Key, error) {
 	return NewEd25519Key(signerID, privateKey, c2Key)
 }
 
-// Validate returns an error when the private key is not a valid Ed25519Key
-func (k *ed25519Key) Validate() error {
-	return e4crypto.ValidEd25519PrivKey(k.PrivateKey)
-}
-
 // Protect will encrypt and sign the payload with the private key and returns it, or an error if it fail.
 func (k *ed25519Key) ProtectMessage(payload []byte, topicKey TopicKey) ([]byte, error) {
-	// TODO validate the given key ?
+	// TODO validate the given topic key ?
 
 	timestamp := make([]byte, e4crypto.TimestampLen)
 	binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
@@ -197,7 +200,7 @@ func (k *ed25519Key) ResetPubKeys() {
 
 // SetKey will validate the given key and copy it into the ed25519Key key when valid
 func (k *ed25519Key) SetKey(key []byte) error {
-	if err := e4crypto.ValidEd25519PrivKey(k.PrivateKey); err != nil {
+	if err := e4crypto.ValidEd25519PrivKey(key); err != nil {
 		return err
 	}
 
