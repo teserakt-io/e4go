@@ -3,15 +3,26 @@ package crypto
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/binary"
 	"testing"
+	"time"
 )
 
 func TestRandomID(t *testing.T) {
+	zeroid := make([]byte, IDLen)
+
 	for i := 0; i < 2048; i++ {
-		zeroid := make([]byte, IDLen)
 		randomidx := RandomID()
 		randomidy := RandomID()
-		if bytes.Equal(randomidx, zeroid) {
+
+		if len(randomidx) != IDLen {
+			t.Fatalf("expected ID length to be %d, got %d", IDLen, len(randomidx))
+		}
+		if len(randomidy) != IDLen {
+			t.Fatalf("expected ID length to be %d, got %d", IDLen, len(randomidx))
+		}
+
+		if bytes.Equal(randomidx, zeroid) || bytes.Equal(randomidy, zeroid) {
 			t.Fatalf("ID is all zeros, not random")
 		}
 		if bytes.Equal(randomidx, randomidy) {
@@ -54,17 +65,24 @@ func TestEncrypt(t *testing.T) {
 
    TODO: proper random testing?
 */
-func TestRandom(t *testing.T) {
+func TestRandomKey(t *testing.T) {
+	zeroes := make([]byte, KeyLen)
+
 	for i := 0; i < 2048; i++ {
-		zeroes := make([]byte, KeyLen)
 		k1 := RandomKey()
 		k2 := RandomKey()
+
 		if string(k1) == string(k2) {
-			t.Fatalf("RandomKey isn't random")
+			t.Fatal("RandomKey isn't random")
 		}
-		if len(k1) != KeyLen || len(k2) != KeyLen {
-			t.Fatalf("random key of incorrect length")
+
+		if len(k1) != KeyLen {
+			t.Fatalf("random key of incorrect length, expected %d, got %d", KeyLen, len(k1))
 		}
+		if len(k2) != KeyLen {
+			t.Fatalf("random key of incorrect length, expected %d, got %d", KeyLen, len(k1))
+		}
+
 		if string(k1) == string(zeroes) || string(k2) == string(zeroes) {
 			t.Fatalf("randomness not random")
 		}
@@ -101,14 +119,14 @@ func TestEncDec(t *testing.T) {
 		// happy case:
 		ptt, err := Decrypt(key, ad, ct)
 		if err != nil {
-			t.Fatalf("decryption failed: %s", err)
+			t.Fatalf("decryption failed: %v", err)
 		}
 		if len(pt) != len(ptt) {
 			t.Fatalf("decrypted message has different length than original: %d vs %d", len(ptt), len(pt))
 		}
 
 		if !bytes.Equal(pt, ptt) {
-			t.Fatalf("decrypted message different from the original")
+			t.Fatal("decrypted message different from the original")
 		}
 
 		// invalid ad:
@@ -121,7 +139,7 @@ func TestEncDec(t *testing.T) {
 
 		_, err = Decrypt(key, adinvalid, ct)
 		if err == nil {
-			t.Fatalf("invalid ad: decryption did not fail as expected.")
+			t.Fatal("invalid ad: decryption did not fail as expected.")
 		}
 
 		// invalid ciphertext
@@ -133,7 +151,7 @@ func TestEncDec(t *testing.T) {
 		}
 		_, err = Decrypt(key, ad, ctinvalid)
 		if err == nil {
-			t.Fatalf("invalid ct: decryption did not fail as expected.")
+			t.Fatal("invalid ct: decryption did not fail as expected.")
 		}
 
 		// invalid key should obviously not work either
@@ -143,19 +161,79 @@ func TestEncDec(t *testing.T) {
 		}
 
 		if bytes.Equal(zerokey, key) {
-			t.Fatalf("key isn't random (all zeros), probably a failure")
+			t.Fatal("key isn't random (all zeros), probably a failure")
 		}
 
 		_, err = Decrypt(zerokey, ad, ct)
 		if err == nil {
-			t.Fatalf("invalid key: decryption did not fail as expected.")
+			t.Fatal("invalid key: decryption did not fail as expected.")
 		}
 
 		// truncated/too short ciphertext
 		truncct := ct[:2]
 		_, err = Decrypt(key, ad, truncct)
 		if err == nil {
-			t.Fatalf("invalid key: decryption did not fail as expected.")
+			t.Fatal("invalid key: decryption did not fail as expected.")
 		}
+	}
+}
+
+func TestEncryptInvalidKeys(t *testing.T) {
+	key := make([]byte, KeyLen)
+	_, err := Encrypt(key, nil, nil)
+	if err == nil {
+		t.Fatal("expected an error when calling encrypt with zero key")
+	}
+
+	_, err = Encrypt(key[:len(key)-1], nil, nil)
+	if err == nil {
+		t.Fatal("expected an error when calling encrypt with too short key")
+	}
+}
+
+func TestProtectUnprotectSymKey(t *testing.T) {
+	payload := []byte("some test payload")
+	key := RandomKey()
+
+	protected, err := ProtectSymKey(payload, key)
+	if err != nil {
+		t.Fatalf("ProtectSymKey failed: %v", err)
+	}
+
+	unprotected, err := UnprotectSymKey(protected, key)
+	if err != nil {
+		t.Fatalf("UnprotectSymKey failed: %v", err)
+	}
+
+	if bytes.Equal(unprotected, payload) == false {
+		t.Fatalf("Expected unprotected payload to be %v, got %v", payload, unprotected)
+	}
+
+	now := time.Now()
+	timestamp := make([]byte, TimestampLen)
+
+	// Replace timestamp in cipher by a too old timestamp
+	pastTs := now.Add(time.Duration(-MaxSecondsDelay) * time.Second)
+	binary.LittleEndian.PutUint64(timestamp, uint64(pastTs.Unix()))
+	protected = append(timestamp, protected[TimestampLen:]...)
+	_, err = UnprotectSymKey(protected, key)
+	if err != ErrTimestampTooOld {
+		t.Fatalf("Expected %v, got %v", ErrTimestampTooOld, err)
+	}
+
+	// Replace timestamp in cipher by a timestamp in futur
+	futurTs := now.Add(1 * time.Second)
+	binary.LittleEndian.PutUint64(timestamp, uint64(futurTs.Unix()))
+	protected = append(timestamp, protected[TimestampLen:]...)
+	_, err = UnprotectSymKey(protected, key)
+	if err != ErrTimestampInFutur {
+		t.Fatalf("Expected %v, got %v", ErrTimestampInFutur, err)
+	}
+
+	// Too short cipher are not allowed
+	protected = make([]byte, TimestampLen)
+	_, err = UnprotectSymKey(protected, key)
+	if err != ErrTooShortCipher {
+		t.Fatalf("Expected %v, got %v", ErrTooShortCipher, err)
 	}
 }

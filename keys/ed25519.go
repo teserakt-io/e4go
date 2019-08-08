@@ -153,7 +153,7 @@ func (k *ed25519Key) UnprotectCommand(protected []byte) ([]byte, error) {
 	var shared [32]byte
 	curve25519.ScalarMult(&shared, &curvekey, &k.C2PublicKey)
 
-	key := e4crypto.HashStuff(shared[:])[:e4crypto.KeyLen]
+	key := e4crypto.Sha3Sum256(shared[:])[:e4crypto.KeyLen]
 
 	return e4crypto.UnprotectSymKey(protected, key)
 }

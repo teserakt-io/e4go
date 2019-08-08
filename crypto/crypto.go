@@ -15,6 +15,12 @@ import (
 var (
 	// ErrInvalidProtectedLen occurs when the protected message is  not of the expected length.
 	ErrInvalidProtectedLen = errors.New("invalid length of protected message")
+	// ErrTooShortCipher occurs when trying to unprotect a cipher shorter than TimestampLen
+	ErrTooShortCipher = errors.New("ciphertext too short")
+	// ErrTimestampInFutur occurs when the cipher timestamp is in the future
+	ErrTimestampInFutur = errors.New("timestamp received is in the future")
+	// ErrTimestampTooOld occurs when the cipher timestamp is older than MaxSecondsDelay from now
+	ErrTimestampTooOld = errors.New("timestamp too old")
 )
 
 // Encrypt creates an authenticated ciphertext.
@@ -61,7 +67,7 @@ func ProtectCommandPubKey(command []byte, clientpk, c2sk *[32]byte) ([]byte, err
 	var shared [32]byte
 	curve25519.ScalarMult(&shared, c2sk, clientpk)
 
-	key := HashStuff(shared[:])[:KeyLen]
+	key := Sha3Sum256(shared[:])[:KeyLen]
 
 	return ProtectSymKey(command, key)
 }
@@ -93,20 +99,23 @@ func ProtectSymKey(payload []byte, key []byte) ([]byte, error) {
 
 // UnprotectSymKey attempt to decrypt protected bytes, using given symmetric key
 func UnprotectSymKey(protected []byte, key []byte) ([]byte, error) {
+	// TODO min lenght must be TimestampLen + TagLen ?
 	if len(protected) <= TimestampLen {
-		return nil, errors.New("ciphertext to short")
+		return nil, ErrTooShortCipher
 	}
 
 	ct := protected[TimestampLen:]
 	timestamp := protected[:TimestampLen]
 
-	ts := binary.LittleEndian.Uint64(timestamp)
-	now := uint64(time.Now().Unix())
-	if now < ts {
-		return nil, errors.New("timestamp received is in the future")
+	now := time.Now()
+	tsTime := time.Unix(int64(binary.LittleEndian.Uint64(timestamp)), 0)
+	minTime := now.Add(time.Duration(-MaxSecondsDelay) * time.Second)
+
+	if tsTime.After(now) {
+		return nil, ErrTimestampInFutur
 	}
-	if now-ts > MaxSecondsDelay {
-		return nil, errors.New("timestamp too old")
+	if tsTime.Before(minTime) {
+		return nil, ErrTimestampTooOld
 	}
 
 	pt, err := Decrypt(key, timestamp, ct)

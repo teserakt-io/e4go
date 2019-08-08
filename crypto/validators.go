@@ -22,12 +22,11 @@ var (
 // ValidateSymKey checks that a key is of the expected length.
 func ValidateSymKey(key []byte) error {
 	if len(key) != KeyLen {
-		return fmt.Errorf("Invalid symmetric key length, expected %d, got %d", KeyLen, len(key))
+		return fmt.Errorf("invalid symmetric key length, expected %d, got %d", KeyLen, len(key))
 	}
 
-	// TODO: validate this check
 	if bytes.Equal(zeroSymKey, key) {
-		return errors.New("Invalid symmetric key, all zeros")
+		return errors.New("invalid symmetric key, all zeros")
 	}
 
 	return nil
@@ -36,11 +35,11 @@ func ValidateSymKey(key []byte) error {
 // ValidEd25519PrivKey checks that a key is of the expected length and not all zero.
 func ValidEd25519PrivKey(key []byte) error {
 	if g, w := len(key), ed25519.PrivateKeySize; g != w {
-		return fmt.Errorf("Invalid private key length, expected %d, got %d", g, w)
+		return fmt.Errorf("invalid private key length, expected %d, got %d", g, w)
 	}
 
 	if bytes.Equal(zeroEd25519sk, key) {
-		return errors.New("Invalid private key, all zeros")
+		return errors.New("invalid private key, all zeros")
 	}
 
 	return nil
@@ -49,11 +48,11 @@ func ValidEd25519PrivKey(key []byte) error {
 // ValidateEd25519PubKey checks that a key is of the expected length and not all zero.
 func ValidateEd25519PubKey(key []byte) error {
 	if g, w := len(key), ed25519.PublicKeySize; g != w {
-		return fmt.Errorf("Invalid public key length, expected %d, got %d", g, w)
+		return fmt.Errorf("invalid public key length, expected %d, got %d", g, w)
 	}
 
 	if bytes.Equal(zeroEd25519pk, key) {
-		return errors.New("Invalid public key, all zeros")
+		return errors.New("invalid public key, all zeros")
 	}
 
 	return nil
@@ -62,7 +61,7 @@ func ValidateEd25519PubKey(key []byte) error {
 // ValidateID checks that an id is of the expected length.
 func ValidateID(id []byte) error {
 	if len(id) != IDLen {
-		return fmt.Errorf("Invalid ID length, expected %d, got %d", IDLen, len(id))
+		return fmt.Errorf("invalid ID length, expected %d, got %d", IDLen, len(id))
 	}
 
 	return nil
@@ -73,21 +72,25 @@ func ValidateID(id []byte) error {
 // liberal, but for correctness we check any string is valid UTF-8.
 func ValidateName(name string) error {
 	if !utf8.ValidString(name) {
-		return fmt.Errorf("Name is not a valid UTF-8 string")
+		return fmt.Errorf("name is not a valid UTF-8 string")
 	}
 
 	namelen := len(name)
 	if namelen < NameMinLen || namelen > NameMaxLen {
-		return fmt.Errorf("Name length is invalid, names are between %d and %d characters", NameMinLen, NameMaxLen)
+		return fmt.Errorf("name length is invalid, names are between %d and %d characters", NameMinLen, NameMaxLen)
 	}
 
 	return nil
 }
 
-// ValidateTopic checks if a topic is not too large.
+// ValidateTopic checks if a topic is not too large or empty
 func ValidateTopic(topic string) error {
 	if len(topic) > MaxTopicLen {
-		return fmt.Errorf("Topic too long, expected %d chars maximum, got %d", MaxTopicLen, len(topic))
+		return fmt.Errorf("topic too long, expected %d chars maximum, got %d", MaxTopicLen, len(topic))
+	}
+
+	if len(topic) <= 0 {
+		return errors.New("topic cannot be empty")
 	}
 
 	return nil
@@ -96,7 +99,7 @@ func ValidateTopic(topic string) error {
 // ValidateTopicHash checks that a topic hash is of the expected length.
 func ValidateTopicHash(topichash []byte) error {
 	if len(topichash) != HashLen {
-		return fmt.Errorf("Invalid Topic Hash length, expected %d, got %d", HashLen, len(topichash))
+		return fmt.Errorf("invalid Topic Hash length, expected %d, got %d", HashLen, len(topichash))
 	}
 
 	return nil
