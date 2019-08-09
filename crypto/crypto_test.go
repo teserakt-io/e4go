@@ -215,8 +215,8 @@ func TestProtectUnprotectSymKey(t *testing.T) {
 	// Replace timestamp in cipher by a too old timestamp
 	pastTs := now.Add(time.Duration(-MaxSecondsDelay) * time.Second)
 	binary.LittleEndian.PutUint64(timestamp, uint64(pastTs.Unix()))
-	protected = append(timestamp, protected[TimestampLen:]...)
-	_, err = UnprotectSymKey(protected, key)
+	tooOldProtected := append(timestamp, protected[TimestampLen:]...)
+	_, err = UnprotectSymKey(tooOldProtected, key)
 	if err != ErrTimestampTooOld {
 		t.Fatalf("Expected %v, got %v", ErrTimestampTooOld, err)
 	}
@@ -224,16 +224,40 @@ func TestProtectUnprotectSymKey(t *testing.T) {
 	// Replace timestamp in cipher by a timestamp in futur
 	futurTs := now.Add(1 * time.Second)
 	binary.LittleEndian.PutUint64(timestamp, uint64(futurTs.Unix()))
-	protected = append(timestamp, protected[TimestampLen:]...)
-	_, err = UnprotectSymKey(protected, key)
+	futurProtected := append(timestamp, protected[TimestampLen:]...)
+	_, err = UnprotectSymKey(futurProtected, key)
 	if err != ErrTimestampInFutur {
 		t.Fatalf("Expected %v, got %v", ErrTimestampInFutur, err)
 	}
 
 	// Too short cipher are not allowed
-	protected = make([]byte, TimestampLen)
-	_, err = UnprotectSymKey(protected, key)
+	tooShortProtected := make([]byte, TimestampLen)
+	_, err = UnprotectSymKey(tooShortProtected, key)
 	if err != ErrTooShortCipher {
 		t.Fatalf("Expected %v, got %v", ErrTooShortCipher, err)
+	}
+
+	if _, err := UnprotectSymKey(protected, []byte("not a key")); err == nil {
+		t.Fatal("expected unprotectSymKey to fail with an invalid key")
+	}
+
+	if _, err := ProtectSymKey([]byte("message"), []byte("not a key")); err == nil {
+		t.Fatal("expected protectSymKey to fail with an invalid key")
+	}
+}
+
+func TestEd25519PrivateKeyFromPassword(t *testing.T) {
+	password := "some random password"
+	expectedKey := []byte{
+		0xb7, 0x5a, 0x20, 0xc3, 0x9f, 0xeb, 0x46, 0xd1, 0x89, 0xa8, 0x78, 0x4e, 0xda, 0x1a, 0x36, 0x6a, 0xa3, 0xea, 0x8d,
+		0xf4, 0x4f, 0xc5, 0xb7, 0xfd, 0x63, 0x4d, 0xa4, 0xd7, 0xe4, 0xaf, 0x98, 0xbe, 0x4f, 0x2e, 0x32, 0xfa, 0xdf, 0xc2,
+		0xb2, 0xab, 0x98, 0x2f, 0xd7, 0xc, 0xb0, 0xfa, 0x3b, 0x98, 0x5f, 0x71, 0x8, 0x14, 0x56, 0x9c, 0x73, 0xfe, 0xd8,
+		0x67, 0x82, 0xf2, 0xd5, 0x29, 0x73, 0x58,
+	}
+
+	key := Ed25519PrivateKeyFromPassword(password)
+
+	if bytes.Equal(expectedKey, key) == false {
+		t.Fatalf("expected key to be %#v, got %#v", expectedKey, key)
 	}
 }

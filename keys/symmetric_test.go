@@ -111,6 +111,10 @@ func TestSymKeyProtectUnprotectMessage(t *testing.T) {
 	if bytes.Equal(unprotected, expectedMessage) == false {
 		t.Fatalf("expected unprotected message to be %v, got %v", expectedMessage, unprotected)
 	}
+
+	if _, err := symKey.ProtectMessage([]byte("message"), []byte("not a key")); err == nil {
+		t.Fatalf("expected protectMessage to fail when given an invalid topic key")
+	}
 }
 
 func TestSymKeyUnprotectCommand(t *testing.T) {

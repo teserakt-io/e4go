@@ -3,7 +3,6 @@ package keys
 import (
 	"encoding/binary"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -88,13 +87,11 @@ func (k *ed25519Key) ProtectMessage(payload []byte, topicKey TopicKey) ([]byte, 
 
 	// sig should always be ed25519.SignatureSize=64 bytes
 	sig := ed25519.Sign(k.PrivateKey, protected)
-
 	if len(sig) != ed25519.SignatureSize {
 		return nil, ErrInvalidSignature
 	}
 
 	protected = append(protected, sig...)
-
 	protectedLen := e4crypto.TimestampLen + e4crypto.IDLen + len(payload) + e4crypto.TagLen + ed25519.SignatureSize
 	if protectedLen != len(protected) {
 		return nil, e4crypto.ErrInvalidProtectedLen
@@ -110,13 +107,8 @@ func (k *ed25519Key) UnprotectMessage(protected []byte, topicKey TopicKey) ([]by
 
 	// first check timestamp
 	timestamp := protected[:e4crypto.TimestampLen]
-	ts := binary.LittleEndian.Uint64(timestamp)
-	now := uint64(time.Now().Unix())
-	if now < ts {
-		return nil, errors.New("timestamp received is in the future")
-	}
-	if now-ts > e4crypto.MaxSecondsDelay {
-		return nil, errors.New("timestamp too old")
+	if err := e4crypto.ValidateTimestamp(timestamp); err != nil {
+		return nil, err
 	}
 
 	// then check signature

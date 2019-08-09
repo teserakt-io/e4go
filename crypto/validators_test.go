@@ -2,8 +2,10 @@ package crypto
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/crypto/ed25519"
 )
@@ -208,4 +210,24 @@ func TestValidateTopicHash(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestValidateTimestamp(t *testing.T) {
+	futurTimestamp := make([]byte, TimestampLen)
+	binary.LittleEndian.PutUint64(futurTimestamp, uint64(time.Now().Add(1*time.Second).Unix()))
+	if err := ValidateTimestamp(futurTimestamp); err == nil {
+		t.Fatalf("expected timestamp in futur to not be valid")
+	}
+
+	pastTimestamp := make([]byte, TimestampLen)
+	binary.LittleEndian.PutUint64(pastTimestamp, uint64(time.Now().Add(-(MaxSecondsDelay+1)*time.Second).Unix()))
+	if err := ValidateTimestamp(pastTimestamp); err == nil {
+		t.Fatalf("expected timestamp too far in past to not be valid")
+	}
+
+	validTimestamp := make([]byte, TimestampLen)
+	binary.LittleEndian.PutUint64(validTimestamp, uint64(time.Now().Unix()))
+	if err := ValidateTimestamp(validTimestamp); err != nil {
+		t.Fatalf("expected timestamp to be valid, got error: %v", err)
+	}
 }

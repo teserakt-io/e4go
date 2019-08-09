@@ -109,15 +109,8 @@ func UnprotectSymKey(protected []byte, key []byte) ([]byte, error) {
 	ct := protected[TimestampLen:]
 	timestamp := protected[:TimestampLen]
 
-	now := time.Now()
-	tsTime := time.Unix(int64(binary.LittleEndian.Uint64(timestamp)), 0)
-	minTime := now.Add(time.Duration(-MaxSecondsDelay) * time.Second)
-
-	if tsTime.After(now) {
-		return nil, ErrTimestampInFutur
-	}
-	if tsTime.Before(minTime) {
-		return nil, ErrTimestampTooOld
+	if err := ValidateTimestamp(timestamp); err != nil {
+		return nil, err
 	}
 
 	pt, err := Decrypt(key, timestamp, ct)

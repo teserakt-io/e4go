@@ -2,8 +2,10 @@ package keys
 
 import (
 	"bytes"
+	"encoding/binary"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/agl/ed25519/extra25519"
 
@@ -157,6 +159,25 @@ func TestEd25519KeyProtectUnprotectMessage(t *testing.T) {
 	_, err = k.UnprotectMessage(protected, badTopicKey)
 	if err == nil {
 		t.Fatal("expected unprotect to fail without the proper topic key")
+	}
+
+	if _, err := k.UnprotectMessage([]byte("too short"), topicKey); err == nil {
+		t.Fatal("expected unprotect to fail with a too short protected message")
+	}
+
+	if _, err := k.ProtectMessage([]byte("some message"), []byte("not a key")); err == nil {
+		t.Fatal("expected protect message to fail with a bad topic key")
+	}
+
+	tooOldProtected := make([]byte, len(protected))
+	copy(tooOldProtected, protected)
+
+	tooOldTs := make([]byte, e4crypto.TimestampLen)
+	binary.LittleEndian.PutUint64(tooOldTs, uint64(time.Now().Add(-(e4crypto.MaxSecondsDelay+1)*time.Second).Unix()))
+
+	tooOldProtected = append(tooOldTs, tooOldProtected[e4crypto.TimestampLen:]...)
+	if _, err := k.UnprotectMessage(tooOldProtected, topicKey); err == nil {
+		t.Fatal("expected unprotect message to fail with a too old timestamp")
 	}
 }
 

@@ -2,8 +2,10 @@ package crypto
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"time"
 	"unicode/utf8"
 
 	"golang.org/x/crypto/ed25519"
@@ -19,7 +21,8 @@ var (
 	zeroSymKey  = blankSymKey[:]
 )
 
-// ValidateSymKey checks that a key is of the expected length.
+// ValidateSymKey checks that a key is of the expected length
+// and not filled with zero
 func ValidateSymKey(key []byte) error {
 	if len(key) != KeyLen {
 		return fmt.Errorf("invalid symmetric key length, expected %d, got %d", KeyLen, len(key))
@@ -100,6 +103,23 @@ func ValidateTopic(topic string) error {
 func ValidateTopicHash(topichash []byte) error {
 	if len(topichash) != HashLen {
 		return fmt.Errorf("invalid Topic Hash length, expected %d, got %d", HashLen, len(topichash))
+	}
+
+	return nil
+}
+
+// ValidateTimestamp will check that given timestamp bytes are
+// a valid LittleEndian encoded timestamp, not in the future and not older than MaxSecondsDelay
+func ValidateTimestamp(timestamp []byte) error {
+	now := time.Now()
+	tsTime := time.Unix(int64(binary.LittleEndian.Uint64(timestamp)), 0)
+	minTime := now.Add(time.Duration(-MaxSecondsDelay) * time.Second)
+
+	if tsTime.After(now) {
+		return ErrTimestampInFutur
+	}
+	if tsTime.Before(minTime) {
+		return ErrTimestampTooOld
 	}
 
 	return nil
