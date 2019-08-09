@@ -25,7 +25,7 @@ func TestNewEd25519Key(t *testing.T) {
 		t.Fatalf("expected no error creating a key, got %v", err)
 	}
 
-	assertKeyContains(t, key, expectedSignerID, expectedPrivateKey, expectedC2PubKey)
+	assertEd25519KeyContains(t, key, expectedSignerID, expectedPrivateKey, expectedC2PubKey)
 
 	invalidSignerID := make([]byte, e4crypto.IDLen-1)
 	_, err = NewEd25519Key(invalidSignerID, expectedPrivateKey, expectedC2PubKey)
@@ -52,10 +52,16 @@ func TestNewEd25519KeyFromPassword(t *testing.T) {
 	}
 
 	expectedPrivateKey := e4crypto.Ed25519PrivateKeyFromPassword(password)
-	assertKeyContains(t, key, expectedSignerID, expectedPrivateKey, expectedC2PubKey)
+	assertEd25519KeyContains(t, key, expectedSignerID, expectedPrivateKey, expectedC2PubKey)
 }
 
-func assertKeyContains(t *testing.T, key Ed25519Key, expectedSignerID []byte, expectedPrivateKey ed25519.PrivateKey, expectedC2PubKey [32]byte) {
+func assertEd25519KeyContains(
+	t *testing.T,
+	key Ed25519Key,
+	expectedSignerID []byte,
+	expectedPrivateKey ed25519.PrivateKey,
+	expectedC2PubKey [32]byte,
+) {
 	tkey, ok := key.(*ed25519Key)
 	if !ok {
 		t.Fatal("failed to cast key")
@@ -112,7 +118,7 @@ func TestNewRandomEd25519Key(t *testing.T) {
 	}
 }
 
-func TestProtectUnprotectMessage(t *testing.T) {
+func TestEd25519KeyProtectUnprotectMessage(t *testing.T) {
 	clientID := e4crypto.HashIDAlias("test")
 	pubKey, privKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
@@ -154,7 +160,7 @@ func TestProtectUnprotectMessage(t *testing.T) {
 	}
 }
 
-func TestUnprotectCommand(t *testing.T) {
+func TestEd25519KeyUnprotectCommand(t *testing.T) {
 	clientID := e4crypto.HashIDAlias("test")
 	pubKey, privKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
@@ -203,7 +209,7 @@ func TestUnprotectCommand(t *testing.T) {
 	}
 }
 
-func TestPubKeys(t *testing.T) {
+func TestEd25519KeyPubKeys(t *testing.T) {
 	clientID := e4crypto.HashIDAlias("test")
 
 	k, err := NewRandomEd25519Key(clientID, getTestC2PublicKey(t))
@@ -300,7 +306,7 @@ func TestPubKeys(t *testing.T) {
 	}
 }
 
-func TestSetKey(t *testing.T) {
+func TestEd25519KeySetKey(t *testing.T) {
 	_, privateKey, err := ed25519.GenerateKey(nil)
 	clientID := e4crypto.HashIDAlias("test")
 
@@ -330,9 +336,14 @@ func TestSetKey(t *testing.T) {
 	if err := tkey.SetKey([]byte("not a key")); err == nil {
 		t.Fatal("expected SetKey with invalid key to returns an error")
 	}
+
+	privateKey2[0] = privateKey2[0] + 1
+	if bytes.Equal(tkey.PrivateKey, privateKey2) == true {
+		t.Fatalf("expected private key to have been copied, seems still pointing to same slice")
+	}
 }
 
-func TestMarshalJSON(t *testing.T) {
+func TestEd25519KeyMarshalJSON(t *testing.T) {
 	_, privateKey, err := ed25519.GenerateKey(nil)
 	clientID := e4crypto.HashIDAlias("test")
 	c2Pk := getTestC2PublicKey(t)

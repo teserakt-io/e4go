@@ -75,8 +75,6 @@ func NewRandomEd25519Key(signerID []byte, c2Key [32]byte) (Ed25519Key, error) {
 
 // Protect will encrypt and sign the payload with the private key and returns it, or an error if it fail.
 func (k *ed25519Key) ProtectMessage(payload []byte, topicKey TopicKey) ([]byte, error) {
-	// TODO validate the given topic key ?
-
 	timestamp := make([]byte, e4crypto.TimestampLen)
 	binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
 

@@ -3,7 +3,6 @@ package crypto
 import "golang.org/x/crypto/sha3"
 
 // Sha3Sum256 returns the sha3 sum of given data
-// TODO rename to more appropriate name
 func Sha3Sum256(data []byte) []byte {
 	h := sha3.Sum256(data)
 	return h[:]
