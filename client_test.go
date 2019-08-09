@@ -214,22 +214,26 @@ func TestCommands(t *testing.T) {
 }
 
 func TestProtectUnprotectCommandsPubKey(t *testing.T) {
-	_, sk, err := ed25519.GenerateKey(rand.Reader)
+	_, clientEdSk, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("Failed to generate ed25519 key: %v", err)
+	}
+	_, c2EdSk, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatalf("Failed to generate ed25519 key: %v", err)
 	}
 
 	var cedpk [32]byte
 	var cpk [32]byte
-	copy(cedpk[:], sk[32:])
+	copy(cedpk[:], clientEdSk[32:])
 	extra25519.PublicKeyToCurve25519(&cpk, &cedpk)
 
 	var c2edsk [64]byte
 	var c2edpk [32]byte
 	var c2pk [32]byte
 	var c2sk [32]byte
-	copy(c2edsk[:], sk)
-	copy(c2edpk[:], sk[32:])
+	copy(c2edsk[:], c2EdSk)
+	copy(c2edpk[:], c2EdSk[32:])
 	extra25519.PublicKeyToCurve25519(&c2pk, &c2edpk)
 	extra25519.PrivateKeyToCurve25519(&c2sk, &c2edsk)
 
@@ -241,7 +245,7 @@ func TestProtectUnprotectCommandsPubKey(t *testing.T) {
 	}
 
 	clientID := e4crypto.RandomID()
-	gc, err := NewPubKeyClient(clientID, sk, "./test/data/clienttestcommand", c2pk)
+	gc, err := NewPubKeyClient(clientID, clientEdSk, "./test/data/clienttestcommand", c2pk)
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
