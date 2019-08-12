@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 
 	"golang.org/x/crypto/ed25519"
 
@@ -27,15 +28,19 @@ var (
 
 // Client defines interface for protecting and unprotecting E4 messages and commands.
 type Client interface {
+	SetIDKey(key []byte) error
+
 	ProtectMessage(payload []byte, topic string) ([]byte, error)
 	Unprotect(protected []byte, topic string) ([]byte, error)
-	RemoveTopic(topichash []byte) error
-	ResetTopics() error
+
 	SetPubKey(key, clientID []byte) error
 	RemovePubKey(clientID []byte) error
 	ResetPubKeys() error
-	SetIDKey(key []byte) error
+	GetPubKeys() (map[string][]byte, error)
+
 	SetTopicKey(key, topichash []byte) error
+	RemoveTopic(topichash []byte) error
+	ResetTopics() error
 }
 
 // client implements Client interface.
@@ -50,6 +55,8 @@ type client struct {
 
 	FilePath       string
 	ReceivingTopic string
+
+	lock sync.RWMutex
 }
 
 var _ Client = (*client)(nil)
@@ -90,6 +97,30 @@ func NewPubKeyClient(id []byte, key ed25519.PrivateKey, filePath string, c2Publi
 	return newClient(newID, ed25519Key, filePath)
 }
 
+// NewSymKeyClientPretty is like NewClient but takes an client name and a password, rather than raw values.
+func NewSymKeyClientPretty(name string, password string, filePath string) (Client, error) {
+	id := e4crypto.HashIDAlias(name)
+
+	key, err := keys.NewSymKeyFromPassword(password)
+	if err != nil {
+		return nil, err
+	}
+
+	return newClient(id, key, filePath)
+}
+
+// NewPubKeyClientPretty is like NewClient but takes an client name and a password, rather than raw values.
+func NewPubKeyClientPretty(name string, password string, filePath string, c2PublicKey [32]byte) (Client, error) {
+	id := e4crypto.HashIDAlias(name)
+
+	key, err := keys.NewEd25519KeyFromPassword(id, password, c2PublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return newClient(id, key, filePath)
+}
+
 // newClient creates a new client, generating a random ID if they are empty.
 func newClient(id []byte, clientKey keys.ClientKey, filePath string) (Client, error) {
 	if len(id) == 0 {
@@ -111,12 +142,6 @@ func newClient(id []byte, clientKey keys.ClientKey, filePath string) (Client, er
 	return c, nil
 }
 
-// NewClientPretty is like NewClient but takes an client name and a password, rather than raw values.
-func NewClientPretty(name string, key keys.ClientKey, filePath string) (Client, error) {
-	id := e4crypto.HashIDAlias(name)
-	return newClient(id, key, filePath)
-}
-
 // LoadClient loads a client state from the file system.
 func LoadClient(filePath string) (Client, error) {
 	c := &client{}
@@ -131,7 +156,7 @@ func LoadClient(filePath string) (Client, error) {
 func (c *client) save() error {
 	err := writeJSON(c.FilePath, c)
 	if err != nil {
-		log.Print("client save failed")
+		log.Printf("failed to save client: %v", err)
 		return err
 	}
 	return nil
@@ -205,8 +230,11 @@ func (c *client) UnmarshalJSON(data []byte) error {
 
 // ProtectMessage ..
 func (c *client) ProtectMessage(payload []byte, topic string) ([]byte, error) {
-	topichash := string(e4crypto.HashTopic(topic))
+	topichash := hex.EncodeToString(e4crypto.HashTopic(topic))
+
+	c.lock.RLock()
 	topicKey, ok := c.TopicKeys[topichash]
+	c.lock.RUnlock()
 	if !ok {
 		return nil, ErrTopicKeyNotFound
 	}
@@ -227,7 +255,7 @@ func (c *client) Unprotect(protected []byte, topic string) ([]byte, error) {
 			return nil, err
 		}
 
-		err = c.processCommand(command)
+		err = processCommand(c, command)
 		if err != nil {
 			return nil, err
 		}
@@ -235,8 +263,10 @@ func (c *client) Unprotect(protected []byte, topic string) ([]byte, error) {
 		return nil, nil
 	}
 
-	topichash := string(e4crypto.HashTopic(topic))
+	topichash := hex.EncodeToString(e4crypto.HashTopic(topic))
+	c.lock.RLock()
 	key, ok := c.TopicKeys[topichash]
+	c.lock.RUnlock()
 	if !ok {
 		return nil, ErrTopicKeyNotFound
 	}
@@ -249,58 +279,17 @@ func (c *client) Unprotect(protected []byte, topic string) ([]byte, error) {
 	return message, nil
 }
 
-func (c *client) processCommand(command []byte) error {
-	switch Command(command[0]) {
-
-	case RemoveTopic:
-		if len(command) != e4crypto.HashLen+1 {
-			return errors.New("invalid RemoveTopic length")
-		}
-		log.Println("remove topic ", hex.EncodeToString(command[1:]))
-		return c.RemoveTopic(command[1:])
-
-	case ResetTopics:
-		if len(command) != 1 {
-			return errors.New("invalid ResetTopics length")
-		}
-		return c.ResetTopics()
-
-	case SetIDKey:
-		if len(command) != e4crypto.KeyLen+1 {
-			return errors.New("invalid SetIDKey length")
-		}
-		return c.SetIDKey(command[1:])
-
-	case SetTopicKey:
-		if len(command) != e4crypto.KeyLen+e4crypto.HashLen+1 {
-			return errors.New("invalid SetTopicKey length")
-		}
-		log.Println("setting topic key for hash ", hex.EncodeToString(command[1+e4crypto.KeyLen:]))
-		return c.SetTopicKey(command[1:1+e4crypto.KeyLen], command[1+e4crypto.KeyLen:])
-
-	case RemovePubKey:
-		if len(command) != e4crypto.IDLen+1 {
-			return errors.New("invalid RemovePubKey length")
-		}
-		log.Println("remove pubkey for client ", hex.EncodeToString(command[1:]))
-		return c.RemovePubKey(command[1:])
-
-	case ResetPubKeys:
-		if len(command) != 1 {
-			return errors.New("invalid ResetPubKeys length")
-		}
-		return c.ResetPubKeys()
-
-	case SetPubKey:
-		if len(command) != ed25519.PublicKeySize+e4crypto.IDLen+1 {
-			return errors.New("invalid SetPubKey length")
-		}
-		log.Println("setting pubkey for client ", hex.EncodeToString(command[1+ed25519.PublicKeySize:]))
-		return c.SetPubKey(command[1:1+ed25519.PublicKeySize], command[1+ed25519.PublicKeySize:])
-
-	default:
-		return errors.New("invalid command")
+// SetTopicKey adds a key to the given topic hash, erasing any previous entry
+func (c *client) SetTopicKey(key, topichash []byte) error {
+	if err := e4crypto.ValidateTopicHash(topichash); err != nil {
+		return fmt.Errorf("invalid topic hash: %v", err)
 	}
+
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	c.TopicKeys[hex.EncodeToString(topichash)] = key
+	return c.save()
 }
 
 // RemoveTopic removes the key of the given topic hash
@@ -308,19 +297,41 @@ func (c *client) RemoveTopic(topichash []byte) error {
 	if err := e4crypto.ValidateTopicHash(topichash); err != nil {
 		return fmt.Errorf("invalid topic hash: %v", err)
 	}
-	delete(c.TopicKeys, string(topichash))
+
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	delete(c.TopicKeys, hex.EncodeToString(topichash))
 
 	return c.save()
 }
 
 // ResetTopics removes all topic keys
 func (c *client) ResetTopics() error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	c.TopicKeys = make(map[string]keys.TopicKey)
 	return c.save()
 }
 
+func (c *client) GetPubKeys() (map[string][]byte, error) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	pkStore, ok := c.Key.(keys.PubKeyStore)
+	if !ok {
+		return nil, ErrUnsupportedOperation
+	}
+
+	return pkStore.GetPubKeys(), nil
+}
+
 // SetPubKey adds a key to the given topic hash, erasing any previous entry
 func (c *client) SetPubKey(key, clientid []byte) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	pkStore, ok := c.Key.(keys.PubKeyStore)
 	if !ok {
 		return ErrUnsupportedOperation
@@ -330,13 +341,17 @@ func (c *client) SetPubKey(key, clientid []byte) error {
 		return fmt.Errorf("invalid client ID: %v", err)
 	}
 
-	pkStore.AddPubKey(string(clientid), key)
+	// TODO: validate pubKeys ?
+	pkStore.AddPubKey(clientid, key)
 
 	return c.save()
 }
 
 // RemovePubKey removes the pubkey of the given client id
 func (c *client) RemovePubKey(clientid []byte) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	pkStore, ok := c.Key.(keys.PubKeyStore)
 	if !ok {
 		return ErrUnsupportedOperation
@@ -346,7 +361,7 @@ func (c *client) RemovePubKey(clientid []byte) error {
 		return fmt.Errorf("invalid client ID: %v", err)
 	}
 
-	err := pkStore.RemovePubKey(string(clientid))
+	err := pkStore.RemovePubKey(clientid)
 	if err != nil {
 		return err
 	}
@@ -356,6 +371,9 @@ func (c *client) RemovePubKey(clientid []byte) error {
 
 // ResetPubKeys removes all public keys
 func (c *client) ResetPubKeys() error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	pkStore, ok := c.Key.(keys.PubKeyStore)
 	if !ok {
 		return ErrUnsupportedOperation
@@ -368,16 +386,13 @@ func (c *client) ResetPubKeys() error {
 
 // SetIDKey replaces the current ID key with a new one
 func (c *client) SetIDKey(key []byte) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	if err := c.Key.SetKey(key); err != nil {
 		return err
 	}
 
-	return c.save()
-}
-
-// SetTopicKey adds a key to the given topic hash, erasing any previous entry
-func (c *client) SetTopicKey(key, topichash []byte) error {
-	c.TopicKeys[string(topichash)] = key
 	return c.save()
 }
 

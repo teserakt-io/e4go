@@ -26,7 +26,9 @@ type ClientKey interface {
 
 // PubKeyStore interface defines methods to interact with a public key storage
 type PubKeyStore interface {
-	AddPubKey(id string, key []byte) error
-	RemovePubKey(id string) error
+	AddPubKey(id []byte, key []byte) error
+	GetPubKey(id []byte) ([]byte, error)
+	GetPubKeys() map[string][]byte
+	RemovePubKey(id []byte) error
 	ResetPubKeys()
 }

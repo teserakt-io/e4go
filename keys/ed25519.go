@@ -2,6 +2,7 @@ package keys
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -42,6 +43,8 @@ func NewEd25519Key(signerID []byte, privateKey ed25519.PrivateKey, c2PublicKey [
 	if err := e4crypto.ValidEd25519PrivKey(privateKey); err != nil {
 		return nil, err
 	}
+
+	// TODO: validate C2Key ?
 
 	e := &ed25519Key{
 		C2PublicKey: c2PublicKey,
@@ -112,13 +115,13 @@ func (k *ed25519Key) UnprotectMessage(protected []byte, topicKey TopicKey) ([]by
 	}
 
 	// then check signature
-	signerID := string(protected[e4crypto.TimestampLen : e4crypto.TimestampLen+e4crypto.IDLen])
+	signerID := protected[e4crypto.TimestampLen : e4crypto.TimestampLen+e4crypto.IDLen]
 	signed := protected[:len(protected)-ed25519.SignatureSize]
 	sig := protected[len(protected)-ed25519.SignatureSize:]
 
-	pubkey, ok := k.PubKeys[signerID]
-	if !ok {
-		return nil, ErrPubKeyNotFound
+	pubkey, err := k.GetPubKey(signerID)
+	if err != nil {
+		return nil, err
 	}
 
 	if !ed25519.Verify(ed25519.PublicKey(pubkey), signed, sig) {
@@ -153,7 +156,7 @@ func (k *ed25519Key) UnprotectCommand(protected []byte) ([]byte, error) {
 
 // AddPubKey store the given id and key in internal storage.
 // It is safe for concurrent access.
-func (k *ed25519Key) AddPubKey(id string, pubKey []byte) error {
+func (k *ed25519Key) AddPubKey(id []byte, pubKey []byte) error {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
 
@@ -162,21 +165,22 @@ func (k *ed25519Key) AddPubKey(id string, pubKey []byte) error {
 		return err
 	}
 
-	k.PubKeys[id] = pubKey
+	k.PubKeys[hex.EncodeToString(id)] = pubKey
 
 	return nil
 }
 
-func (k *ed25519Key) RemovePubKey(id string) error {
+func (k *ed25519Key) RemovePubKey(id []byte) error {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
 
-	_, exists := k.PubKeys[id]
+	sid := hex.EncodeToString(id)
+	_, exists := k.PubKeys[sid]
 	if !exists {
 		return fmt.Errorf("no public key exists for id: %s", id)
 	}
 
-	delete(k.PubKeys, id)
+	delete(k.PubKeys, sid)
 
 	return nil
 }
@@ -186,6 +190,27 @@ func (k *ed25519Key) ResetPubKeys() {
 	defer k.mutex.Unlock()
 
 	k.PubKeys = make(map[string][]byte)
+}
+
+// GetPubKeys return a map of stored pubKeys, indexed by their hex encoded ids.
+func (k *ed25519Key) GetPubKeys() map[string][]byte {
+	k.mutex.RLock()
+	defer k.mutex.RUnlock()
+
+	return k.PubKeys
+}
+
+// GetPubKey return a pubKey associated to given ID, or ErrPubKeyNotFound
+// when it doesn't exists
+func (k *ed25519Key) GetPubKey(id []byte) ([]byte, error) {
+	sid := hex.EncodeToString(id)
+
+	key, ok := k.PubKeys[sid]
+	if !ok {
+		return nil, ErrPubKeyNotFound
+	}
+
+	return key, nil
 }
 
 // SetKey will validate the given key and copy it into the ed25519Key key when valid

@@ -145,7 +145,7 @@ func TestEd25519KeyProtectUnprotectMessage(t *testing.T) {
 		t.Fatal("expected unprotect to fail without the proper public key")
 	}
 
-	k.AddPubKey(string(clientID), pubKey)
+	k.AddPubKey(clientID, pubKey)
 	unprotected, err := k.UnprotectMessage(protected, topicKey)
 	if err != nil {
 		t.Fatalf("expected no error when unprotecting message, got %v", err)
@@ -238,24 +238,24 @@ func TestEd25519KeyPubKeys(t *testing.T) {
 		t.Fatalf("failed to create key: %v", err)
 	}
 
-	tkey, ok := k.(*ed25519Key)
-	if !ok {
-		t.Fatal("failed to cast key")
-	}
-
-	if len(tkey.PubKeys) != 0 {
-		t.Fatalf("expected pubkeys length to be 0, got %d", len(tkey.PubKeys))
+	if c := len(k.GetPubKeys()); c != 0 {
+		t.Fatalf("expected pubkeys length to be 0, got %d", c)
 	}
 
 	pk0, _, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		t.Fatalf("failed to generate public key: %v", err)
 	}
-	if err := tkey.AddPubKey("id1", pk0); err != nil {
+	if err := k.AddPubKey([]byte("id1"), pk0); err != nil {
 		t.Fatalf("expected no error when adding pubkey for id1, got: %v", err)
 	}
-	if bytes.Equal(pk0, tkey.PubKeys["id1"]) == false {
-		t.Fatalf("expected id1 pubkey to be %v, got %v", pk0, tkey.PubKeys["id1"])
+
+	pk, err := k.GetPubKey([]byte("id1"))
+	if err != nil {
+		t.Fatalf("failed to get pubKey: %v", err)
+	}
+	if bytes.Equal(pk0, pk) == false {
+		t.Fatalf("expected id1 pubkey to be %v, got %v", pk0, pk)
 	}
 
 	pk1, _, err := ed25519.GenerateKey(nil)
@@ -263,15 +263,20 @@ func TestEd25519KeyPubKeys(t *testing.T) {
 		t.Fatalf("failed to generate public key: %v", err)
 	}
 
-	if err := tkey.AddPubKey("id1", pk1); err != nil {
+	if err := k.AddPubKey([]byte("id1"), pk1); err != nil {
 		t.Fatalf("expected no error when adding pubkey for id1, got: %v", err)
 	}
 
-	if len(tkey.PubKeys) != 1 {
-		t.Fatalf("expected pubkeys length to be 1, got %d", len(tkey.PubKeys))
+	if c := len(k.GetPubKeys()); c != 1 {
+		t.Fatalf("expected pubkeys length to be 1, got %d", c)
 	}
-	if bytes.Equal(pk1, tkey.PubKeys["id1"]) == false {
-		t.Fatalf("expected id1 pubkey to be %v, got %v", pk1, tkey.PubKeys["id1"])
+
+	pk, err = k.GetPubKey([]byte("id1"))
+	if err != nil {
+		t.Fatalf("failed to get pubKey: %v", err)
+	}
+	if bytes.Equal(pk1, pk) == false {
+		t.Fatalf("expected id1 pubkey to be %v, got %v", pk1, pk)
 	}
 
 	pk2, _, err := ed25519.GenerateKey(nil)
@@ -279,50 +284,65 @@ func TestEd25519KeyPubKeys(t *testing.T) {
 		t.Fatalf("failed to generate public key: %v", err)
 	}
 
-	if err := tkey.AddPubKey("id2", pk2); err != nil {
+	if err := k.AddPubKey([]byte("id2"), pk2); err != nil {
 		t.Fatalf("expected no error when adding pubkey for id2, got: %v", err)
 	}
 
-	if len(tkey.PubKeys) != 2 {
-		t.Fatalf("expected pubkeys length to be 2, got %d", len(tkey.PubKeys))
-	}
-	if bytes.Equal(pk1, tkey.PubKeys["id1"]) == false {
-		t.Fatalf("expected id1 pubkey to be %v, got %v", pk1, tkey.PubKeys["id1"])
-	}
-	if bytes.Equal(pk2, tkey.PubKeys["id2"]) == false {
-		t.Fatalf("expected id2 pubkey to be %v, got %v", pk2, tkey.PubKeys["id2"])
+	if c := len(k.GetPubKeys()); c != 2 {
+		t.Fatalf("expected pubkeys length to be 2, got %d", c)
 	}
 
-	if err := tkey.RemovePubKey("id1"); err != nil {
+	pk, err = k.GetPubKey([]byte("id1"))
+	if err != nil {
+		t.Fatalf("failed to get public key: %v", err)
+	}
+	if bytes.Equal(pk1, pk) == false {
+		t.Fatalf("expected id1 pubkey to be %v, got %v", pk1, pk)
+	}
+
+	pk, err = k.GetPubKey([]byte("id2"))
+	if err != nil {
+		t.Fatalf("failed to get public key: %v", err)
+	}
+	if bytes.Equal(pk2, pk) == false {
+		t.Fatalf("expected id2 pubkey to be %v, got %v", pk2, pk)
+	}
+
+	if err := k.RemovePubKey([]byte("id1")); err != nil {
 		t.Fatalf("failed to remove pubkey for id1: %v", err)
 	}
-	if len(tkey.PubKeys) != 1 {
-		t.Fatalf("expected pubkeys length to be 1, got %d", len(tkey.PubKeys))
+	if c := len(k.GetPubKeys()); c != 1 {
+		t.Fatalf("expected pubkeys length to be 1, got %d", c)
 	}
-	if bytes.Equal(pk2, tkey.PubKeys["id2"]) == false {
-		t.Fatalf("expected id2 pubkey to be %v, got %v", pk2, tkey.PubKeys["id2"])
+
+	pk, err = k.GetPubKey([]byte("id2"))
+	if err != nil {
+		t.Fatalf("failed to get public key: %v", err)
 	}
-	if _, ok := tkey.PubKeys["id1"]; ok {
+	if bytes.Equal(pk2, pk) == false {
+		t.Fatalf("expected id2 pubkey to be %v, got %v", pk2, pk)
+	}
+
+	if _, err := k.GetPubKey([]byte("id1")); err != ErrPubKeyNotFound {
 		t.Fatal("expected pubkey for id1 to be removed")
 	}
 
 	// Double remove must return an error
-	if err := tkey.RemovePubKey("id1"); err == nil {
+	if err := k.RemovePubKey([]byte("id1")); err == nil {
 		t.Fatal("expected an error when removing an inexisting pubKey")
 	}
 
 	// Reset clears all
-	tkey.ResetPubKeys()
-	if len(tkey.PubKeys) != 0 {
-		t.Fatalf("expected reset to have removed all keys, got %d remaining", len(tkey.PubKeys))
+	k.ResetPubKeys()
+	if c := len(k.GetPubKeys()); c != 0 {
+		t.Fatalf("expected reset to have removed all keys, got %d remaining", c)
 	}
-	if _, ok := tkey.PubKeys["id2"]; ok {
+	if _, err := k.GetPubKey([]byte("id2")); err != ErrPubKeyNotFound {
 		t.Fatal("expected pubkey for id2 to be removed")
 	}
 
 	// Adding invalid keys return errors
-
-	if err := tkey.AddPubKey("id1", []byte("not a key")); err == nil {
+	if err := k.AddPubKey([]byte("id1"), []byte("not a key")); err == nil {
 		t.Fatal("expected an error when adding an invalid pubKey")
 	}
 }
@@ -378,7 +398,7 @@ func TestEd25519KeyMarshalJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to generate public key: %v", err)
 	}
-	if err := k.AddPubKey("id1", pk1); err != nil {
+	if err := k.AddPubKey([]byte("id1"), pk1); err != nil {
 		t.Fatalf("expected no error when adding pubkey for id1, got: %v", err)
 	}
 
@@ -386,7 +406,7 @@ func TestEd25519KeyMarshalJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to generate public key: %v", err)
 	}
-	if err := k.AddPubKey("id2", pk2); err != nil {
+	if err := k.AddPubKey([]byte("id2"), pk2); err != nil {
 		t.Fatalf("expected no error when adding pubkey for id2, got: %v", err)
 	}
 
