@@ -239,6 +239,8 @@ func (k *pubKeyMaterial) SetKey(key []byte) error {
 // MarshalJSON  will infer the key type in the marshalled json data
 // to be able to know which key to instantiate when unmarshalling back
 func (k *pubKeyMaterial) MarshalJSON() ([]byte, error) {
+	// we have to use a temporary intermediate struct here as
+	// passing directly k to KeyData would cause an infinite loop of MarshalJSON calls
 	jsonKey := &jsonKey{
 		KeyType: pubKeyMaterialType,
 		KeyData: struct {
