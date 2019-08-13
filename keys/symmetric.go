@@ -14,7 +14,7 @@ type SymKeyMaterial interface {
 
 // symKeyMaterial implements SymKeyMaterial
 type symKeyMaterial struct {
-	Key []byte
+	Key []byte `json:"key,omitempty"`
 }
 
 var _ SymKeyMaterial = (*symKeyMaterial)(nil)

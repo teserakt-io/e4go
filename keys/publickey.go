@@ -24,10 +24,10 @@ type PubKeyMaterial interface {
 // pubKeyMaterial implements PubKeyMaterial to work with public e4 client key
 // and PubKeyStore to holds public key needed to verify message signatures
 type pubKeyMaterial struct {
-	PrivateKey ed25519.PrivateKey
-	SignerID   []byte
-	C2PubKey   []byte
-	PubKeys    map[string][]byte
+	PrivateKey ed25519.PrivateKey `json:"privateKey,omitempty"`
+	SignerID   []byte             `json:"signerID,omitempty"`
+	C2PubKey   []byte             `json:"c2PubKey,omitempty"`
+	PubKeys    map[string][]byte  `json:"pubKeys,omitempty"`
 
 	mutex sync.RWMutex
 }
