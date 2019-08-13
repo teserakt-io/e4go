@@ -214,7 +214,7 @@ func TestProtectUnprotectSymKey(t *testing.T) {
 	timestamp := make([]byte, TimestampLen)
 
 	// Replace timestamp in cipher by a too old timestamp
-	pastTs := now.Add(time.Duration(-MaxSecondsDelay) * time.Second)
+	pastTs := now.Add(time.Duration(-MaxSecondsDelay))
 	binary.LittleEndian.PutUint64(timestamp, uint64(pastTs.Unix()))
 	tooOldProtected := append(timestamp, protected[TimestampLen:]...)
 	_, err = UnprotectSymKey(tooOldProtected, key)
@@ -227,8 +227,8 @@ func TestProtectUnprotectSymKey(t *testing.T) {
 	binary.LittleEndian.PutUint64(timestamp, uint64(futurTs.Unix()))
 	futurProtected := append(timestamp, protected[TimestampLen:]...)
 	_, err = UnprotectSymKey(futurProtected, key)
-	if err != ErrTimestampInFutur {
-		t.Fatalf("Expected %v, got %v", ErrTimestampInFutur, err)
+	if err != ErrTimestampInFuture {
+		t.Fatalf("Expected %v, got %v", ErrTimestampInFuture, err)
 	}
 
 	// Too short cipher are not allowed

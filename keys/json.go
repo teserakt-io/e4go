@@ -8,8 +8,8 @@ import (
 type keyType int
 
 const (
-	symKeyType keyType = iota
-	pubKeyMaterialKeyType
+	symKeyMaterialType keyType = iota
+	pubKeyMaterialType
 )
 
 type jsonKey struct {
@@ -18,7 +18,7 @@ type jsonKey struct {
 }
 
 // FromRawJSON allows to unmarshal a json encoded client key from a json RawMessage
-func FromRawJSON(raw json.RawMessage) (ClientKey, error) {
+func FromRawJSON(raw json.RawMessage) (KeyMaterial, error) {
 	m := make(map[string]json.RawMessage)
 	err := json.Unmarshal(raw, &m)
 	if err != nil {
@@ -37,12 +37,12 @@ func FromRawJSON(raw json.RawMessage) (ClientKey, error) {
 		return nil, err
 	}
 
-	var clientKey ClientKey
+	var clientKey KeyMaterial
 	switch t {
-	case symKeyType:
-		clientKey = &symKey{}
-	case pubKeyMaterialKeyType:
-		clientKey = &pubKeyMaterialKey{}
+	case symKeyMaterialType:
+		clientKey = &symKeyMaterial{}
+	case pubKeyMaterialType:
+		clientKey = &pubKeyMaterial{}
 	default:
 		return nil, fmt.Errorf("unsupported json key type: %v", t)
 	}

@@ -5,9 +5,9 @@ import (
 )
 
 var (
-	// ErrInvalidSignature occurs when a signature verification fails.
+	// ErrInvalidSignature occurs when a signature verification fails
 	ErrInvalidSignature = errors.New("invalid signature")
-	// ErrPubKeyNotFound occurs when a public key is missing when verifying a signature.
+	// ErrPubKeyNotFound occurs when a public key is missing when verifying a signature
 	ErrPubKeyNotFound = errors.New("signer public key not found")
 )
 
@@ -15,8 +15,8 @@ var (
 // with other keys on the ProtectMessage and UnprotectMessage functions
 type TopicKey []byte
 
-// ClientKey defines an interface for E4 client key implementations
-type ClientKey interface {
+// KeyMaterial defines an interface for E4 client key implementations
+type KeyMaterial interface {
 	ProtectMessage(payload []byte, topicKey TopicKey) ([]byte, error)
 	UnprotectMessage(protected []byte, topicKey TopicKey) ([]byte, error)
 	UnprotectCommand(protected []byte) ([]byte, error)

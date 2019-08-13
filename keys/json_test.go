@@ -12,10 +12,10 @@ func TestFromRawJSON(t *testing.T) {
 	t.Run("FromRawJSON properly decode json ed25519 keys", func(t *testing.T) {
 		privateKey := []byte("privateKey")
 		signerID := []byte("signerID")
-		c2PublicKey := [32]byte{}
-		c2PublicKeyStr, err := json.Marshal(c2PublicKey)
+		c2PubKey := []byte{}
+		c2PubKeyStr, err := json.Marshal(c2PubKey)
 		if err != nil {
-			t.Fatalf("failed to encode c2PublicKey to string: %v", err)
+			t.Fatalf("failed to encode c2PubKey to string: %v", err)
 		}
 
 		pubKeyID := "pubKeyID1"
@@ -26,16 +26,16 @@ func TestFromRawJSON(t *testing.T) {
 				"keyData":{
 					"PrivateKey":"%s",
 					"SignerID":"%s",
-					"C2PublicKey":%s,
+					"C2PubKey":%s,
 					"PubKeys":{
 						"%s": "%s"
 					}
 				}
 			}`,
-			pubKeyMaterialKeyType,
+			pubKeyMaterialType,
 			base64.StdEncoding.EncodeToString(privateKey),
 			base64.StdEncoding.EncodeToString(signerID),
-			c2PublicKeyStr,
+			c2PubKeyStr,
 			pubKeyID,
 			base64.StdEncoding.EncodeToString(pubKeyKey),
 		))
@@ -45,9 +45,9 @@ func TestFromRawJSON(t *testing.T) {
 			t.Fatalf("expected no error when unmarshalling json key, got %v", err)
 		}
 
-		tkey, ok := k.(*pubKeyMaterialKey)
+		tkey, ok := k.(*pubKeyMaterial)
 		if !ok {
-			t.Fatalf("expected key to be a pubKeyMaterialKey, got %T", k)
+			t.Fatalf("expected key to be a pubKeyMaterial, got %T", k)
 		}
 
 		if bytes.Equal(tkey.PrivateKey, privateKey) == false {
@@ -58,8 +58,8 @@ func TestFromRawJSON(t *testing.T) {
 			t.Fatalf("expected signerID to be %v, got %v", signerID, tkey.SignerID)
 		}
 
-		if tkey.C2PublicKey != c2PublicKey {
-			t.Fatalf("expected C2PublicKey to be %v, got %v", c2PublicKey, tkey.C2PublicKey)
+		if bytes.Equal(tkey.C2PubKey, c2PubKey) == false {
+			t.Fatalf("expected C2PubKey to be %v, got %v", c2PubKey, tkey.C2PubKey)
 		}
 
 		if len(tkey.PubKeys) != 1 {
@@ -85,7 +85,7 @@ func TestFromRawJSON(t *testing.T) {
 					"Key":"%s"
 				}
 			}`,
-			symKeyType,
+			symKeyMaterialType,
 			base64.StdEncoding.EncodeToString(privateKey),
 		))
 
@@ -94,9 +94,9 @@ func TestFromRawJSON(t *testing.T) {
 			t.Fatalf("expected no error when unmarshalling json key, got %v", err)
 		}
 
-		tkey, ok := k.(*symKey)
+		tkey, ok := k.(*symKeyMaterial)
 		if !ok {
-			t.Fatalf("expected key to be a symKey, got %T", k)
+			t.Fatalf("expected key to be a symKeyMaterial, got %T", k)
 		}
 
 		if bytes.Equal(tkey.Key, privateKey) == false {
@@ -107,11 +107,11 @@ func TestFromRawJSON(t *testing.T) {
 	t.Run("FromRawJSON properly errors on invalid json input", func(t *testing.T) {
 		invalidJSONKeys := []string{
 			`{}`,
-			fmt.Sprintf(`{"keyType": %d}`, symKeyType),
+			fmt.Sprintf(`{"keyType": %d}`, symKeyMaterialType),
 			`{"keyData": {}}`,
 			fmt.Sprintf(`{"keyType": %d, "keyData": {}}`, -1),
 			`{"keyType": "nope", "keyData": {}}`,
-			fmt.Sprintf(`{"keyType": %d, "keyData": ""}`, symKeyType),
+			fmt.Sprintf(`{"keyType": %d, "keyData": ""}`, symKeyMaterialType),
 			"[]",
 		}
 

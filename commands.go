@@ -7,15 +7,15 @@ import (
 	"golang.org/x/crypto/ed25519"
 )
 
-// Command is a command sent by C2 to a client.
+// Command is a command sent by C2 to a client
 type Command int
 
-// ...
+// List of supported commands
 const (
 	RemoveTopic Command = iota
 	ResetTopics
 	SetIDKey
-	SetTopicKey //
+	SetTopicKey
 	RemovePubKey
 	ResetPubKeys
 	SetPubKey
@@ -46,7 +46,7 @@ func (c Command) ToByte() byte {
 }
 
 // processCommand will attempt to parse given command
-// and extract arguments to call expected Client method.
+// and extract arguments to call expected Client method
 func processCommand(client Client, command []byte) error {
 	switch Command(command[0]) {
 	case RemoveTopic:

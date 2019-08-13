@@ -220,7 +220,7 @@ func TestValidateTimestamp(t *testing.T) {
 	}
 
 	pastTimestamp := make([]byte, TimestampLen)
-	binary.LittleEndian.PutUint64(pastTimestamp, uint64(time.Now().Add(-(MaxSecondsDelay+1)*time.Second).Unix()))
+	binary.LittleEndian.PutUint64(pastTimestamp, uint64(time.Now().Add(-(MaxSecondsDelay + 1)).Unix()))
 	if err := ValidateTimestamp(pastTimestamp); err == nil {
 		t.Fatalf("expected timestamp too far in past to not be valid")
 	}
@@ -230,4 +230,73 @@ func TestValidateTimestamp(t *testing.T) {
 	if err := ValidateTimestamp(validTimestamp); err != nil {
 		t.Fatalf("expected timestamp to be valid, got error: %v", err)
 	}
+}
+
+func TestValidateCurve25519PubKey(t *testing.T) {
+	t.Run("Invalid public keys return an error", func(t *testing.T) {
+		allZeroKey := make([]byte, 32)
+
+		tooLongKey := make([]byte, 33)
+		rand.Read(tooLongKey)
+
+		tooShortKey := make([]byte, 31)
+		rand.Read(tooShortKey)
+
+		invalidKeys := [][]byte{
+			allZeroKey,
+			tooLongKey,
+			tooShortKey,
+		}
+
+		for _, invalidKey := range invalidKeys {
+			if err := ValidateCurve25519PubKey(invalidKey); err == nil {
+				t.Fatalf("Expected key '%v' validation to return an error", invalidKey)
+			}
+		}
+	})
+
+	t.Run("Valid public keys return no error", func(t *testing.T) {
+		validKey := make([]byte, 32)
+		rand.Read(validKey)
+
+		validKeys := [][]byte{
+			validKey,
+		}
+
+		for _, validKey := range validKeys {
+			if err := ValidateCurve25519PubKey(validKey); err != nil {
+				t.Fatalf("Expected key '%v' validation to return no error, got %v", validKey, err)
+			}
+		}
+	})
+}
+
+func TestValidatePassword(t *testing.T) {
+	t.Run("Invalid passwords return errors", func(t *testing.T) {
+		invalidPasswords := []string{
+			"",
+			string([]byte{0xfe}),
+			string([]byte{0xff}),
+			string([]byte{0xf8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80}),
+			strings.Repeat("a", MinPasswordLength-1),
+		}
+		for _, invalidPassword := range invalidPasswords {
+			if err := ValidatePassword(invalidPassword); err == nil {
+				t.Fatalf("Expected password '%s' validation to return an error", invalidPassword)
+			}
+		}
+	})
+
+	t.Run("Valid passwords return no error", func(t *testing.T) {
+		validPasswords := []string{
+			strings.Repeat("a", MinPasswordLength),
+			"исследованиеание",
+			"研究研究研究研究",
+		}
+		for _, validPassword := range validPasswords {
+			if err := ValidatePassword(validPassword); err != nil {
+				t.Fatalf("Expected name '%s' validation to return no error, got %v", validPassword, err)
+			}
+		}
+	})
 }

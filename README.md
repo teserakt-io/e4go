@@ -47,15 +47,15 @@ then you can load your client from disk using the LoadClient helper:
     ...
 ```
 
-#### With a PubKeyMaterial key
+#### With a PubKeyMaterial
 
 Same as for the symmetric key client, 2 constructors are available:
 ```go
-NewPubKeyClient(id []byte, key ed25519.PrivateKey, filePath string, c2PublicKey [32]byte) (Client, error)
-NewPubKeyClientPretty(name string, password string, filePath string, c2PublicKey [32]byte) (Client, error)
+NewPubKeyClient(id []byte, key ed25519.PrivateKey, filePath string, c2PubKey []byte) (Client, error)
+NewPubKeyClientPretty(name string, password string, filePath string, c2PubKey []byte) (Client, error)
 ```
 
-accepting the same kind of arguments than the Symmetric Key Client, with the addition of a c2PublicKey one.
+accepting the same kind of arguments than the Symmetric Key Client, with the addition of a c2PubKey one.
 
 Remember that in order to unprotect message, the client need to be sent the emitters public keys first.
 The password is required to be over 16 characters if used.
@@ -66,7 +66,7 @@ You should receive messages over MQTT or Kafka using your chosen library the
 usual way. Having instantiated an instance of the client, imagine that you
 now also have:
 
-    var topic String
+    var topic string
     var message []byte
 
 You can then unprotect the message as follows:
@@ -96,7 +96,7 @@ not returned to users as this may induce security vulnerabilities.
 
 If you wish to transmit a message on a topic, suppose say that you have:
 
-    var topic String
+    var topic string
     var message []byte
 
 Then you may simply use the `Protect` function from the client library as

@@ -20,13 +20,13 @@ const (
 )
 
 var (
-	// ErrTopicKeyNotFound occurs when a topic key is missing when encryption/decrypting.
+	// ErrTopicKeyNotFound occurs when a topic key is missing when encryption/decrypting
 	ErrTopicKeyNotFound = errors.New("topic key not found")
 	// ErrUnsupportedOperation occurs when trying to manipulate client public keys with a ClientKey not supporting it
 	ErrUnsupportedOperation = errors.New("this operation is not supported")
 )
 
-// Client defines interface for protecting and unprotecting E4 messages and commands.
+// Client defines interface for protecting and unprotecting E4 messages and commands
 type Client interface {
 	SetIDKey(key []byte) error
 
@@ -43,15 +43,15 @@ type Client interface {
 	ResetTopics() error
 }
 
-// client implements Client interface.
-// It holds the client state and is saved to disk for persistent storage.
+// client implements Client interface
+// It holds the client state and is saved to disk for persistent storage
 type client struct {
 	ID []byte
 	// TopicKeys maps a topic hash to a key
 	// (slices []byte can't be map keys, converting to strings)
 	TopicKeys map[string]keys.TopicKey
 
-	Key keys.ClientKey
+	Key keys.KeyMaterial
 
 	FilePath       string
 	ReceivingTopic string
@@ -71,16 +71,16 @@ func NewSymKeyClient(id []byte, key []byte, filePath string) (Client, error) {
 		copy(newID, id)
 	}
 
-	symKey, err := keys.NewSymKey(key)
+	symKeyMaterial, err := keys.NewSymKeyMaterial(key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to created symkey from key: %v", err)
 	}
 
-	return newClient(newID, symKey, filePath)
+	return newClient(newID, symKeyMaterial, filePath)
 }
 
 // NewPubKeyClient creates a new client using a ed25519 private key
-func NewPubKeyClient(id []byte, key ed25519.PrivateKey, filePath string, c2PublicKey [32]byte) (Client, error) {
+func NewPubKeyClient(id []byte, key ed25519.PrivateKey, filePath string, c2PubKey []byte) (Client, error) {
 	var newID []byte
 	if len(id) == 0 {
 		newID = e4crypto.RandomID()
@@ -89,7 +89,7 @@ func NewPubKeyClient(id []byte, key ed25519.PrivateKey, filePath string, c2Publi
 		copy(newID, id)
 	}
 
-	pubKeyMaterialKey, err := keys.NewPubKeyMaterialKey(newID, key, c2PublicKey)
+	pubKeyMaterialKey, err := keys.NewPubKeyMaterial(newID, key, c2PubKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ed25519key from key: %v", err)
 	}
@@ -97,11 +97,11 @@ func NewPubKeyClient(id []byte, key ed25519.PrivateKey, filePath string, c2Publi
 	return newClient(newID, pubKeyMaterialKey, filePath)
 }
 
-// NewSymKeyClientPretty is like NewClient but takes an client name and a password, rather than raw values.
+// NewSymKeyClientPretty is like NewClient but takes an client name and a password, rather than raw values
 func NewSymKeyClientPretty(name string, password string, filePath string) (Client, error) {
 	id := e4crypto.HashIDAlias(name)
 
-	key, err := keys.NewSymKeyFromPassword(password)
+	key, err := keys.NewSymKeyMaterialFromPassword(password)
 	if err != nil {
 		return nil, err
 	}
@@ -109,11 +109,11 @@ func NewSymKeyClientPretty(name string, password string, filePath string) (Clien
 	return newClient(id, key, filePath)
 }
 
-// NewPubKeyClientPretty is like NewClient but takes an client name and a password, rather than raw values.
-func NewPubKeyClientPretty(name string, password string, filePath string, c2PublicKey [32]byte) (Client, error) {
+// NewPubKeyClientPretty is like NewClient but takes an client name and a password, rather than raw values
+func NewPubKeyClientPretty(name string, password string, filePath string, c2PubKey []byte) (Client, error) {
 	id := e4crypto.HashIDAlias(name)
 
-	key, err := keys.NewPubKeyMaterialKeyFromPassword(id, password, c2PublicKey)
+	key, err := keys.NewPubKeyMaterialFromPassword(id, password, c2PubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -121,8 +121,8 @@ func NewPubKeyClientPretty(name string, password string, filePath string, c2Publ
 	return newClient(id, key, filePath)
 }
 
-// newClient creates a new client, generating a random ID if they are empty.
-func newClient(id []byte, clientKey keys.ClientKey, filePath string) (Client, error) {
+// newClient creates a new client, generating a random ID if they are empty
+func newClient(id []byte, clientKey keys.KeyMaterial, filePath string) (Client, error) {
 	if len(id) == 0 {
 		return nil, errors.New("client id must not be empty")
 	}
@@ -142,7 +142,7 @@ func newClient(id []byte, clientKey keys.ClientKey, filePath string) (Client, er
 	return c, nil
 }
 
-// LoadClient loads a client state from the file system.
+// LoadClient loads a client state from the file system
 func LoadClient(filePath string) (Client, error) {
 	c := &client{}
 	err := readJSON(filePath, c)
@@ -228,7 +228,7 @@ func (c *client) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// ProtectMessage ..
+// ProtectMessage will return protected version of the payload, for the given topic
 func (c *client) ProtectMessage(payload []byte, topic string) ([]byte, error) {
 	topichash := hex.EncodeToString(e4crypto.HashTopic(topic))
 
@@ -341,7 +341,6 @@ func (c *client) SetPubKey(key, clientid []byte) error {
 		return fmt.Errorf("invalid client ID: %v", err)
 	}
 
-	// TODO: validate pubKeys ?
 	pkStore.AddPubKey(clientid, key)
 
 	return c.save()
@@ -396,7 +395,7 @@ func (c *client) SetIDKey(key []byte) error {
 	return c.save()
 }
 
-// topicForID generate the MQTT topic that a client should subscribe to in order to receive commands.
+// topicForID generate the MQTT topic that a client should subscribe to in order to receive commands
 func topicForID(id []byte) string {
 	return idTopicPrefix + hex.EncodeToString(id)
 }

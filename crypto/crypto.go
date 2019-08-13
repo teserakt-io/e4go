@@ -15,23 +15,18 @@ import (
 	miscreant "github.com/miscreant/miscreant/go"
 )
 
-const (
-	// MinPasswordLength defines the minimum size accepted for a password
-	MinPasswordLength = 16
-)
-
 var (
-	// ErrInvalidProtectedLen occurs when the protected message is  not of the expected length.
+	// ErrInvalidProtectedLen occurs when the protected message is  not of the expected length
 	ErrInvalidProtectedLen = errors.New("invalid length of protected message")
 	// ErrTooShortCipher occurs when trying to unprotect a cipher shorter than TimestampLen
 	ErrTooShortCipher = errors.New("ciphertext too short")
-	// ErrTimestampInFutur occurs when the cipher timestamp is in the future
-	ErrTimestampInFutur = errors.New("timestamp received is in the future")
+	// ErrTimestampInFuture occurs when the cipher timestamp is in the future
+	ErrTimestampInFuture = errors.New("timestamp received is in the future")
 	// ErrTimestampTooOld occurs when the cipher timestamp is older than MaxSecondsDelay from now
 	ErrTimestampTooOld = errors.New("timestamp too old")
 )
 
-// Encrypt creates an authenticated ciphertext.
+// Encrypt creates an authenticated ciphertext
 func Encrypt(key []byte, ad []byte, pt []byte) ([]byte, error) {
 	if err := ValidateSymKey(key); err != nil {
 		return nil, err
@@ -49,7 +44,7 @@ func Encrypt(key []byte, ad []byte, pt []byte) ([]byte, error) {
 	return c.Seal(nil, pt, ads...)
 }
 
-// Decrypt decrypts and verifies an authenticated ciphertext.
+// Decrypt decrypts and verifies an authenticated ciphertext
 func Decrypt(key []byte, ad []byte, ct []byte) ([]byte, error) {
 	if err := ValidateSymKey(key); err != nil {
 		return nil, err
@@ -80,11 +75,11 @@ func ProtectCommandPubKey(command []byte, clientpk, c2sk *[32]byte) ([]byte, err
 	return ProtectSymKey(command, key)
 }
 
-// DeriveSymKey derives a symmetric key from a password using Argon2.
+// DeriveSymKey derives a symmetric key from a password using Argon2
 // (Replaces HashPwd)
 func DeriveSymKey(pwd string) ([]byte, error) {
-	if len(pwd) < MinPasswordLength {
-		return nil, fmt.Errorf("password must be at least %d characters", MinPasswordLength)
+	if err := ValidatePassword(pwd); err != nil {
+		return nil, fmt.Errorf("invalid password: %v", err)
 	}
 
 	return argon2.Key([]byte(pwd), nil, 1, 64*1024, 4, KeyLen), nil
@@ -130,14 +125,14 @@ func UnprotectSymKey(protected []byte, key []byte) ([]byte, error) {
 	return pt, nil
 }
 
-// RandomKey generates a random 64-byte key usable by Encrypt and Decrypt.
+// RandomKey generates a random KeyLen-byte key usable by Encrypt and Decrypt
 func RandomKey() []byte {
 	key := make([]byte, KeyLen)
 	rand.Read(key)
 	return key
 }
 
-// RandomID generates a random 32-byte ID.
+// RandomID generates a random IDLen-byte ID
 func RandomID() []byte {
 	id := make([]byte, IDLen)
 	rand.Read(id)
@@ -145,7 +140,7 @@ func RandomID() []byte {
 }
 
 // GetRDelta produces a random 16-bit integer to allow us to
-// vary key sizes, plaintext sizes etc.
+// vary key sizes, plaintext sizes etc
 func GetRDelta() uint16 {
 	randadjust := make([]byte, 2)
 	rand.Read(randadjust)
@@ -154,9 +149,10 @@ func GetRDelta() uint16 {
 
 // Ed25519PrivateKeyFromPassword creates a ed25519.PrivateKey from a password
 func Ed25519PrivateKeyFromPassword(password string) (ed25519.PrivateKey, error) {
-	if len(password) < MinPasswordLength {
-		return nil, fmt.Errorf("password must be at least %d characters", MinPasswordLength)
+	if err := ValidatePassword(password); err != nil {
+		return nil, fmt.Errorf("invalid password: %v", err)
 	}
+
 	seed := argon2.Key([]byte(password), nil, 1, 64*1024, 4, ed25519.SeedSize)
 	return ed25519.NewKeyFromSeed(seed), nil
 }

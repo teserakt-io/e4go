@@ -13,17 +13,18 @@ func TestNewSymKeyFromPassword(t *testing.T) {
 	password := "test password random"
 	expectedKey, err := e4crypto.DeriveSymKey(password)
 	if err != nil {
-		t.Fatalf("failed to derive symkey: %v", err)
+		t.Fatalf("failed to derive symKeyMaterialMaterial: %v", err)
 	}
 
-	k, err := NewSymKeyFromPassword(password)
+	k, err := NewSymKeyMaterialFromPassword(password)
 	if err != nil {
-		t.Fatalf("failed to create symKey: %v", err)
+		t.Fatalf("failed to create symKeyMaterial: %v", err)
+
 	}
 
-	tk, ok := k.(*symKey)
+	tk, ok := k.(*symKeyMaterial)
 	if !ok {
-		t.Fatal("failed to cast symKey")
+		t.Fatal("failed to cast symKeyMaterial")
 	}
 
 	if bytes.Equal(tk.Key, expectedKey) == false {
@@ -32,20 +33,20 @@ func TestNewSymKeyFromPassword(t *testing.T) {
 }
 
 func TestNewSymKey(t *testing.T) {
-	t.Run("symKey creates key properly", func(t *testing.T) {
+	t.Run("symKeyMaterial creates key properly", func(t *testing.T) {
 		expectedKey, err := e4crypto.DeriveSymKey("test password random")
 		if err != nil {
-			t.Fatalf("failed to derive symkey: %v", err)
+			t.Fatalf("failed to derive symKeyMaterialMaterial: %v", err)
 		}
 
-		k, err := NewSymKey(expectedKey)
+		k, err := NewSymKeyMaterial(expectedKey)
 		if err != nil {
-			t.Fatalf("failed to create symKey: %v", err)
+			t.Fatalf("failed to create symKeyMaterial: %v", err)
 		}
 
-		tk, ok := k.(*symKey)
+		tk, ok := k.(*symKeyMaterial)
 		if !ok {
-			t.Fatal("failed to cast symKey")
+			t.Fatal("failed to cast symKeyMaterial")
 		}
 
 		if bytes.Equal(tk.Key, expectedKey) == false {
@@ -53,7 +54,7 @@ func TestNewSymKey(t *testing.T) {
 		}
 	})
 
-	t.Run("creating symKey with bad keys returns errors", func(t *testing.T) {
+	t.Run("creating symKeyMaterial with bad keys returns errors", func(t *testing.T) {
 		zeroKey := make([]byte, e4crypto.KeyLen)
 		tooShortKey := make([]byte, e4crypto.KeyLen-1)
 		tooLongKey := make([]byte, e4crypto.KeyLen+1)
@@ -69,22 +70,22 @@ func TestNewSymKey(t *testing.T) {
 		}
 
 		for _, badKey := range badKeys {
-			if _, err := NewSymKey(badKey); err == nil {
-				t.Fatalf("expected an error when trying to create a symKey with key %v", badKey)
+			if _, err := NewSymKeyMaterial(badKey); err == nil {
+				t.Fatalf("expected an error when trying to create a symKeyMaterial with key %v", badKey)
 			}
 		}
 	})
 }
 
 func TestNewRandomSymKey(t *testing.T) {
-	k, err := NewRandomSymKey()
+	k, err := NewRandomSymKeyMaterial()
 	if err != nil {
-		t.Fatalf("failed to create new random symKey: %v", err)
+		t.Fatalf("failed to create new random symKeyMaterial: %v", err)
 	}
 
-	tk, ok := k.(*symKey)
+	tk, ok := k.(*symKeyMaterial)
 	if !ok {
-		t.Fatal("failed to cast symKey")
+		t.Fatal("failed to cast symKeyMaterial")
 	}
 
 	if len(tk.Key) <= 0 {
@@ -95,20 +96,20 @@ func TestNewRandomSymKey(t *testing.T) {
 func TestSymKeyProtectUnprotectMessage(t *testing.T) {
 	key := e4crypto.RandomKey()
 
-	symKey, err := NewSymKey(key)
+	symKeyMaterial, err := NewSymKeyMaterial(key)
 	if err != nil {
-		t.Fatalf("failed to create symKey: %v", err)
+		t.Fatalf("failed to create symKeyMaterial: %v", err)
 	}
 
 	topicKey := e4crypto.RandomKey()
 	expectedMessage := []byte("some test message")
 
-	protected, err := symKey.ProtectMessage(expectedMessage, topicKey)
+	protected, err := symKeyMaterial.ProtectMessage(expectedMessage, topicKey)
 	if err != nil {
 		t.Fatalf("failed to protect message: %v", err)
 	}
 
-	unprotected, err := symKey.UnprotectMessage(protected, topicKey)
+	unprotected, err := symKeyMaterial.UnprotectMessage(protected, topicKey)
 	if err != nil {
 		t.Fatalf("failed to unprotect message: %v", err)
 	}
@@ -117,7 +118,7 @@ func TestSymKeyProtectUnprotectMessage(t *testing.T) {
 		t.Fatalf("expected unprotected message to be %v, got %v", expectedMessage, unprotected)
 	}
 
-	if _, err := symKey.ProtectMessage([]byte("message"), []byte("not a key")); err == nil {
+	if _, err := symKeyMaterial.ProtectMessage([]byte("message"), []byte("not a key")); err == nil {
 		t.Fatalf("expected protectMessage to fail when given an invalid topic key")
 	}
 }
@@ -126,9 +127,9 @@ func TestSymKeyUnprotectCommand(t *testing.T) {
 	command := []byte{0x01, 0x02, 0x03, 0x04}
 	key := e4crypto.RandomKey()
 
-	symKey, err := NewSymKey(key)
+	symKeyMaterial, err := NewSymKeyMaterial(key)
 	if err != nil {
-		t.Fatalf("failed to create symKey: %v", err)
+		t.Fatalf("failed to create symKeyMaterial: %v", err)
 	}
 
 	protectedCommand, err := e4crypto.ProtectSymKey(command, key)
@@ -136,7 +137,7 @@ func TestSymKeyUnprotectCommand(t *testing.T) {
 		t.Fatalf("failed to protect command: %v", err)
 	}
 
-	unprotectedCommand, err := symKey.UnprotectCommand(protectedCommand)
+	unprotectedCommand, err := symKeyMaterial.UnprotectCommand(protectedCommand)
 	if err != nil {
 		t.Fatalf("failed to unprotected command: %v", err)
 	}
@@ -149,14 +150,14 @@ func TestSymKeyUnprotectCommand(t *testing.T) {
 func TestSymKeySetKey(t *testing.T) {
 	key := e4crypto.RandomKey()
 
-	k, err := NewRandomSymKey()
+	k, err := NewRandomSymKeyMaterial()
 	if err != nil {
-		t.Fatalf("failed to create symKey: %v", err)
+		t.Fatalf("failed to create symKeyMaterial: %v", err)
 	}
 
-	tk, ok := k.(*symKey)
+	tk, ok := k.(*symKeyMaterial)
 	if !ok {
-		t.Fatal("failed to cast symKey")
+		t.Fatal("failed to cast symKeyMaterial")
 	}
 
 	if bytes.Equal(tk.Key, key) == true {
@@ -183,7 +184,7 @@ func TestSymKeySetKey(t *testing.T) {
 
 func TestSymKeyMarshalJSON(t *testing.T) {
 	expectedKey := e4crypto.RandomKey()
-	k, err := NewSymKey(expectedKey)
+	k, err := NewSymKeyMaterial(expectedKey)
 	if err != nil {
 		t.Fatalf("failed to generate key: %v", err)
 	}

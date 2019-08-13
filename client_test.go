@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"reflect"
 	"testing"
+	"time"
 
 	"gitlab.com/teserakt/e4common/keys"
 
@@ -51,7 +52,7 @@ func TestNewClientSymKey(t *testing.T) {
 		t.Fatalf("topickeys initialized to non-empty array")
 	}
 
-	if _, ok := c1.Key.(keys.SymKey); !ok {
+	if _, ok := c1.Key.(keys.SymKeyMaterial); !ok {
 		t.Fatalf("expected client to hold a SymKey, got %T", c1.Key)
 	}
 }
@@ -68,14 +69,13 @@ func TestProtectUnprotectMessageSymKey(t *testing.T) {
 
 func TestProtectUnprotectMessagePubKey(t *testing.T) {
 	clientID := e4crypto.RandomID()
-	var c2Key [32]byte
 
 	_, privateKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		t.Fatalf("Failed to generate ed25519 key: %v", err)
 	}
 
-	client, err := NewPubKeyClient(clientID, privateKey, "./test/data/clienttestprotectPubKey", c2Key)
+	client, err := NewPubKeyClient(clientID, privateKey, "./test/data/clienttestprotectPubKey", generateCurve25519PubKey(t))
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
@@ -115,7 +115,7 @@ func testProtectUnprotectMessage(t *testing.T, c Client, protectedConstLength in
 			t.Fatalf("protected message has invalid length: %v instead of %v", len(protected), protectedlen)
 		}
 
-		// happy case.
+		// happy case
 		unprotected, err := c.Unprotect(protected, topic)
 		if err != nil {
 			t.Fatalf("unprotect failed: %s", err)
@@ -138,13 +138,13 @@ func testProtectUnprotectMessage(t *testing.T, c Client, protectedConstLength in
 
 		// future timestamp and past timestamp
 		timestamporig := protected[:e4crypto.TimestampLen]
-		ts := binary.LittleEndian.Uint64(timestamporig)
-		tsf := ts + 1000000
-		tsp := ts - (e4crypto.MaxSecondsDelay + 1)
+		ts := time.Unix(int64(binary.LittleEndian.Uint64(timestamporig)), 0)
+		tsf := ts.Add(1000000 * time.Second)
+		tsp := ts.Add(-(e4crypto.MaxSecondsDelay + 1))
 		tsfuture := make([]byte, 8)
 		tspast := make([]byte, 8)
-		binary.LittleEndian.PutUint64(tsfuture, tsf)
-		binary.LittleEndian.PutUint64(tspast, tsp)
+		binary.LittleEndian.PutUint64(tsfuture, uint64(tsf.Unix()))
+		binary.LittleEndian.PutUint64(tspast, uint64(tsp.Unix()))
 
 		futureinvalidprotect := make([]byte, protectedlen)
 		pastinvalidprotect := make([]byte, protectedlen)
@@ -248,7 +248,7 @@ func TestProtectUnprotectCommandsPubKey(t *testing.T) {
 	}
 
 	clientID := e4crypto.RandomID()
-	gc, err := NewPubKeyClient(clientID, clientEdSk, "./test/data/clienttestcommand", c2pk)
+	gc, err := NewPubKeyClient(clientID, clientEdSk, "./test/data/clienttestcommand", c2pk[:])
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
@@ -272,8 +272,7 @@ func TestClientPubKeys(t *testing.T) {
 	t.Run("pubKey client properly add / remove / reset pubKeys", func(t *testing.T) {
 		clientFilePath := "./test/data/pubclienttestpubkeys"
 
-		var c2Key [32]byte
-		c, err := NewPubKeyClientPretty("testClient", "passwordTestRandom", clientFilePath, c2Key)
+		c, err := NewPubKeyClientPretty("testClient", "passwordTestRandom", clientFilePath, generateCurve25519PubKey(t))
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
@@ -354,8 +353,7 @@ func TestClientPubKeys(t *testing.T) {
 	t.Run("pubKey client return errors on pubKey operations with invalid ids", func(t *testing.T) {
 		clientFilePath := "./test/data/pubclienttestpubkeys"
 
-		var c2Key [32]byte
-		c, err := NewPubKeyClientPretty("testClient", "passwordTestRandom", clientFilePath, c2Key)
+		c, err := NewPubKeyClientPretty("testClient", "passwordTestRandom", clientFilePath, generateCurve25519PubKey(t))
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
@@ -740,4 +738,20 @@ func assertSavedClientPubKeysEquals(t *testing.T, filepath string, c Client) {
 	if reflect.DeepEqual(savedPk, cPk) == false {
 		t.Fatalf("expected savedClient pubKeys to be %#v, got %#v", cPk, savedPk)
 	}
+}
+
+func generateCurve25519PubKey(t *testing.T) []byte {
+	var c2PubKey [32]byte
+
+	c2EdPubKey, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate c2 public key: %v", err)
+	}
+
+	var c2EdPk [32]byte
+	copy(c2EdPk[:], c2EdPubKey)
+
+	extra25519.PublicKeyToCurve25519(&c2PubKey, &c2EdPk)
+
+	return c2PubKey[:]
 }

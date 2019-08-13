@@ -8,12 +8,12 @@ func Sha3Sum256(data []byte) []byte {
 	return h[:]
 }
 
-// HashTopic creates a topic hash from a topic string.
+// HashTopic creates a topic hash from a topic string
 func HashTopic(topic string) []byte {
 	return Sha3Sum256([]byte(topic))[:HashLen]
 }
 
-// HashIDAlias creates an ID from an ID alias string.
+// HashIDAlias creates an ID from an ID alias string
 func HashIDAlias(idalias string) []byte {
 	return Sha3Sum256([]byte(idalias))[:IDLen]
 }
