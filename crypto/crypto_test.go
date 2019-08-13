@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/binary"
+	"strings"
 	"testing"
 	"time"
 )
@@ -255,9 +256,33 @@ func TestEd25519PrivateKeyFromPassword(t *testing.T) {
 		0x67, 0x82, 0xf2, 0xd5, 0x29, 0x73, 0x58,
 	}
 
-	key := Ed25519PrivateKeyFromPassword(password)
+	key, err := Ed25519PrivateKeyFromPassword(password)
+	if err != nil {
+		t.Fatalf("failed to create private key from password: %v", err)
+	}
 
 	if bytes.Equal(expectedKey, key) == false {
 		t.Fatalf("expected key to be %#v, got %#v", expectedKey, key)
+	}
+
+	_, err = Ed25519PrivateKeyFromPassword(strings.Repeat("a", MinPasswordLength-1))
+	if err == nil {
+		t.Fatal("expected an error with a too short password")
+	}
+}
+
+func TestDeriveSymKey(t *testing.T) {
+	_, err := DeriveSymKey(strings.Repeat("a", MinPasswordLength-1))
+	if err == nil {
+		t.Fatal("expected an error with too short password")
+	}
+
+	k, err := DeriveSymKey("testPasswordRandom")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(k) != KeyLen {
+		t.Fatalf("expected key size to be %d, got %d", KeyLen, len(k))
 	}
 }

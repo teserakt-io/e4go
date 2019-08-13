@@ -9,7 +9,7 @@ type keyType int
 
 const (
 	symKeyType keyType = iota
-	ed25519KeyType
+	pubKeyMaterialKeyType
 )
 
 type jsonKey struct {
@@ -41,8 +41,8 @@ func FromRawJSON(raw json.RawMessage) (ClientKey, error) {
 	switch t {
 	case symKeyType:
 		clientKey = &symKey{}
-	case ed25519KeyType:
-		clientKey = &ed25519Key{}
+	case pubKeyMaterialKeyType:
+		clientKey = &pubKeyMaterialKey{}
 	default:
 		return nil, fmt.Errorf("unsupported json key type: %v", t)
 	}

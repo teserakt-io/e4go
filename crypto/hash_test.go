@@ -14,8 +14,13 @@ func TestHash(t *testing.T) {
 		t.Fatalf("hash of ID alias incorrect, expected %s, got %s", expected, h)
 	}
 
-	h = hex.EncodeToString(DeriveSymKey("abc"))
-	expected = "fe8062b1208c8c97637810bdc2c668a3a8224f5e30fbeb13cb1508c4a4a7269a"
+	k, err := DeriveSymKey("testRandomPassword")
+	if err != nil {
+		t.Fatalf("failed to derive symkey: %v", err)
+	}
+
+	h = hex.EncodeToString(k)
+	expected = "ae153aa9dad7a10b0aed6d5bcfb407c77066acfbb2eaa702a6a88b6cf1b88c33"
 	if h != expected {
 		t.Fatalf("hash of password incorrect, expected %s, got %s", expected, h)
 	}

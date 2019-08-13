@@ -32,7 +32,7 @@ func TestFromRawJSON(t *testing.T) {
 					}
 				}
 			}`,
-			ed25519KeyType,
+			pubKeyMaterialKeyType,
 			base64.StdEncoding.EncodeToString(privateKey),
 			base64.StdEncoding.EncodeToString(signerID),
 			c2PublicKeyStr,
@@ -45,9 +45,9 @@ func TestFromRawJSON(t *testing.T) {
 			t.Fatalf("expected no error when unmarshalling json key, got %v", err)
 		}
 
-		tkey, ok := k.(*ed25519Key)
+		tkey, ok := k.(*pubKeyMaterialKey)
 		if !ok {
-			t.Fatalf("expected key to be a ed25519Key, got %T", k)
+			t.Fatalf("expected key to be a pubKeyMaterialKey, got %T", k)
 		}
 
 		if bytes.Equal(tkey.PrivateKey, privateKey) == false {

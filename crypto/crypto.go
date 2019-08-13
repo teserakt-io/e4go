@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"time"
 
 	"golang.org/x/crypto/ed25519"
@@ -12,6 +13,11 @@ import (
 	"golang.org/x/crypto/curve25519"
 
 	miscreant "github.com/miscreant/miscreant/go"
+)
+
+const (
+	// MinPasswordLength defines the minimum size accepted for a password
+	MinPasswordLength = 16
 )
 
 var (
@@ -76,8 +82,12 @@ func ProtectCommandPubKey(command []byte, clientpk, c2sk *[32]byte) ([]byte, err
 
 // DeriveSymKey derives a symmetric key from a password using Argon2.
 // (Replaces HashPwd)
-func DeriveSymKey(pwd string) []byte {
-	return argon2.Key([]byte(pwd), nil, 1, 64*1024, 4, KeyLen)
+func DeriveSymKey(pwd string) ([]byte, error) {
+	if len(pwd) < MinPasswordLength {
+		return nil, fmt.Errorf("password must be at least %d characters", MinPasswordLength)
+	}
+
+	return argon2.Key([]byte(pwd), nil, 1, 64*1024, 4, KeyLen), nil
 }
 
 // ProtectSymKey attempt to encrypt payload using given symmetric key
@@ -101,8 +111,7 @@ func ProtectSymKey(payload []byte, key []byte) ([]byte, error) {
 
 // UnprotectSymKey attempt to decrypt protected bytes, using given symmetric key
 func UnprotectSymKey(protected []byte, key []byte) ([]byte, error) {
-	// TODO min lenght must be TimestampLen + TagLen ?
-	if len(protected) <= TimestampLen {
+	if len(protected) <= TimestampLen+TagLen {
 		return nil, ErrTooShortCipher
 	}
 
@@ -144,7 +153,10 @@ func GetRDelta() uint16 {
 }
 
 // Ed25519PrivateKeyFromPassword creates a ed25519.PrivateKey from a password
-func Ed25519PrivateKeyFromPassword(password string) ed25519.PrivateKey {
+func Ed25519PrivateKeyFromPassword(password string) (ed25519.PrivateKey, error) {
+	if len(password) < MinPasswordLength {
+		return nil, fmt.Errorf("password must be at least %d characters", MinPasswordLength)
+	}
 	seed := argon2.Key([]byte(password), nil, 1, 64*1024, 4, ed25519.SeedSize)
-	return ed25519.NewKeyFromSeed(seed)
+	return ed25519.NewKeyFromSeed(seed), nil
 }

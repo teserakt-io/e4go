@@ -68,7 +68,7 @@ func TestValidateID(t *testing.T) {
 	})
 }
 
-func TestValidEd25519PrivKey(t *testing.T) {
+func TestValidateEd25519PrivKey(t *testing.T) {
 	t.Run("Invalid private keys return an error", func(t *testing.T) {
 		allZeroKey := make(ed25519.PrivateKey, ed25519.PrivateKeySize)
 
@@ -86,7 +86,7 @@ func TestValidEd25519PrivKey(t *testing.T) {
 		}
 
 		for _, invalidKey := range invalidKeys {
-			if err := ValidEd25519PrivKey(invalidKey); err == nil {
+			if err := ValidateEd25519PrivKey(invalidKey); err == nil {
 				t.Fatalf("Expected key '%v' validation to return an error", invalidKey)
 			}
 		}
@@ -101,7 +101,7 @@ func TestValidEd25519PrivKey(t *testing.T) {
 		}
 
 		for _, validKey := range validKeys {
-			if err := ValidEd25519PrivKey(validKey); err != nil {
+			if err := ValidateEd25519PrivKey(validKey); err != nil {
 				t.Fatalf("Expected key '%v' validation to return no error, got %v", validKey, err)
 			}
 		}

@@ -28,13 +28,13 @@ If you know your id and key already; alternatively you might do:
     import e4 "gitlab.com/teserakt/e4common"
 
     name := "some client name"
-    pwd := "some password"
+    pwd := "some random password"
     /* get id and key from somewhere */
     client := e4.NewSymKeyClientPretty(name, password, "/path/to/e4storage.file")
 ```
 
 If you have a human-readable client name and are deriving your encryption
-key from a password.
+key from a password. The password length must be over 16 characters.
 
 If the client has already been persisted by running:
 ```go
@@ -47,7 +47,7 @@ then you can load your client from disk using the LoadClient helper:
     ...
 ```
 
-#### With Ed25519 key
+#### With a PubKeyMaterial key
 
 Same as for the symmetric key client, 2 constructors are available:
 ```go
@@ -58,6 +58,7 @@ NewPubKeyClientPretty(name string, password string, filePath string, c2PublicKey
 accepting the same kind of arguments than the Symmetric Key Client, with the addition of a c2PublicKey one.
 
 Remember that in order to unprotect message, the client need to be sent the emitters public keys first.
+The password is required to be over 16 characters if used.
 
 ### Processing E4 messages
 

@@ -35,8 +35,8 @@ func ValidateSymKey(key []byte) error {
 	return nil
 }
 
-// ValidEd25519PrivKey checks that a key is of the expected length and not all zero.
-func ValidEd25519PrivKey(key []byte) error {
+// ValidateEd25519PrivKey checks that a key is of the expected length and not all zero.
+func ValidateEd25519PrivKey(key []byte) error {
 	if g, w := len(key), ed25519.PrivateKeySize; g != w {
 		return fmt.Errorf("invalid private key length, expected %d, got %d", g, w)
 	}

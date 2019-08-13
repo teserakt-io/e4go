@@ -21,7 +21,12 @@ var _ SymKey = (*symKey)(nil)
 
 // NewSymKeyFromPassword creates a SymKey from a given password
 func NewSymKeyFromPassword(pwd string) (SymKey, error) {
-	return NewSymKey(e4crypto.DeriveSymKey(pwd))
+	key, err := e4crypto.DeriveSymKey(pwd)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSymKey(key)
 }
 
 // NewSymKey creates a new SymKey

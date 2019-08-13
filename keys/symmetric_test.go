@@ -10,8 +10,11 @@ import (
 )
 
 func TestNewSymKeyFromPassword(t *testing.T) {
-	password := "test password"
-	expectedKey := e4crypto.DeriveSymKey(password)
+	password := "test password random"
+	expectedKey, err := e4crypto.DeriveSymKey(password)
+	if err != nil {
+		t.Fatalf("failed to derive symkey: %v", err)
+	}
 
 	k, err := NewSymKeyFromPassword(password)
 	if err != nil {
@@ -30,8 +33,10 @@ func TestNewSymKeyFromPassword(t *testing.T) {
 
 func TestNewSymKey(t *testing.T) {
 	t.Run("symKey creates key properly", func(t *testing.T) {
-
-		expectedKey := e4crypto.DeriveSymKey("test password")
+		expectedKey, err := e4crypto.DeriveSymKey("test password random")
+		if err != nil {
+			t.Fatalf("failed to derive symkey: %v", err)
+		}
 
 		k, err := NewSymKey(expectedKey)
 		if err != nil {

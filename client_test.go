@@ -273,7 +273,7 @@ func TestClientPubKeys(t *testing.T) {
 		clientFilePath := "./test/data/pubclienttestpubkeys"
 
 		var c2Key [32]byte
-		c, err := NewPubKeyClientPretty("testClient", "passwordTest", clientFilePath, c2Key)
+		c, err := NewPubKeyClientPretty("testClient", "passwordTestRandom", clientFilePath, c2Key)
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
@@ -355,7 +355,7 @@ func TestClientPubKeys(t *testing.T) {
 		clientFilePath := "./test/data/pubclienttestpubkeys"
 
 		var c2Key [32]byte
-		c, err := NewPubKeyClientPretty("testClient", "passwordTest", clientFilePath, c2Key)
+		c, err := NewPubKeyClientPretty("testClient", "passwordTestRandom", clientFilePath, c2Key)
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
@@ -375,7 +375,7 @@ func TestClientPubKeys(t *testing.T) {
 	})
 
 	t.Run("symClient must return unsupported operations on pubKey methods", func(t *testing.T) {
-		symClient, err := NewSymKeyClientPretty("testClient", "testPassword", "./symclienttestpubkeys")
+		symClient, err := NewSymKeyClientPretty("testClient", "passwordTestRandom", "./symclienttestpubkeys")
 		if err != nil {
 			t.Fatalf("failed to create symClient: %v", err)
 		}
@@ -400,7 +400,7 @@ func TestClientPubKeys(t *testing.T) {
 
 func TestClientTopics(t *testing.T) {
 	t.Run("topic key operations properly update client state", func(t *testing.T) {
-		symClient, err := NewSymKeyClientPretty("clientID", "clientPwd", "./test/data/testclienttopics")
+		symClient, err := NewSymKeyClientPretty("clientID", "passwordTestRandom", "./test/data/testclienttopics")
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}
@@ -452,7 +452,7 @@ func TestClientTopics(t *testing.T) {
 	})
 
 	t.Run("topic key operations returns errors when invoked with bad topic hashes", func(t *testing.T) {
-		symClient, err := NewSymKeyClientPretty("clientID", "clientPwd", "./test/data/testclienttopics")
+		symClient, err := NewSymKeyClientPretty("clientID", "passwordTestRandom", "./test/data/testclienttopics")
 		if err != nil {
 			t.Fatalf("failed to create client: %v", err)
 		}

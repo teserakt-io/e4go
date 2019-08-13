@@ -89,12 +89,12 @@ func NewPubKeyClient(id []byte, key ed25519.PrivateKey, filePath string, c2Publi
 		copy(newID, id)
 	}
 
-	ed25519Key, err := keys.NewEd25519Key(newID, key, c2PublicKey)
+	pubKeyMaterialKey, err := keys.NewPubKeyMaterialKey(newID, key, c2PublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ed25519key from key: %v", err)
 	}
 
-	return newClient(newID, ed25519Key, filePath)
+	return newClient(newID, pubKeyMaterialKey, filePath)
 }
 
 // NewSymKeyClientPretty is like NewClient but takes an client name and a password, rather than raw values.
@@ -113,7 +113,7 @@ func NewSymKeyClientPretty(name string, password string, filePath string) (Clien
 func NewPubKeyClientPretty(name string, password string, filePath string, c2PublicKey [32]byte) (Client, error) {
 	id := e4crypto.HashIDAlias(name)
 
-	key, err := keys.NewEd25519KeyFromPassword(id, password, c2PublicKey)
+	key, err := keys.NewPubKeyMaterialKeyFromPassword(id, password, c2PublicKey)
 	if err != nil {
 		return nil, err
 	}

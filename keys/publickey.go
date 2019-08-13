@@ -15,15 +15,15 @@ import (
 	"golang.org/x/crypto/ed25519"
 )
 
-// Ed25519Key extends the ClientKey and PubKeyStore interfaces for Ed25519 key implementations
-type Ed25519Key interface {
+// PubKeyMaterialKey extends the ClientKey and PubKeyStore interfaces for public key implementations
+type PubKeyMaterialKey interface {
 	ClientKey
 	PubKeyStore
 }
 
-// Ed25519Key implements ClientKey for a Ed25519 private key
+// pubKeyMaterialKey implements ClientKey for a Ed25519 private key
 // and PubKeyStore to holds public key needed to verify message signatures
-type ed25519Key struct {
+type pubKeyMaterialKey struct {
 	PrivateKey  ed25519.PrivateKey
 	SignerID    []byte
 	C2PublicKey [32]byte
@@ -32,21 +32,21 @@ type ed25519Key struct {
 	mutex sync.RWMutex
 }
 
-var _ Ed25519Key = (*ed25519Key)(nil)
+var _ PubKeyMaterialKey = (*pubKeyMaterialKey)(nil)
 
-// NewEd25519Key creates a new Ed25519 e4 client key
-func NewEd25519Key(signerID []byte, privateKey ed25519.PrivateKey, c2PublicKey [32]byte) (Ed25519Key, error) {
+// NewPubKeyMaterialKey creates a new PublicKeyMaterialKey e4 client key
+func NewPubKeyMaterialKey(signerID []byte, privateKey ed25519.PrivateKey, c2PublicKey [32]byte) (PubKeyMaterialKey, error) {
 	if len(signerID) != e4crypto.IDLen {
 		return nil, fmt.Errorf("invalid signerID len, expected %d, got %d", e4crypto.IDLen, len(signerID))
 	}
 
-	if err := e4crypto.ValidEd25519PrivKey(privateKey); err != nil {
+	if err := e4crypto.ValidateEd25519PrivKey(privateKey); err != nil {
 		return nil, err
 	}
 
 	// TODO: validate C2Key ?
 
-	e := &ed25519Key{
+	e := &pubKeyMaterialKey{
 		C2PublicKey: c2PublicKey,
 		PubKeys:     make(map[string][]byte),
 	}
@@ -60,23 +60,28 @@ func NewEd25519Key(signerID []byte, privateKey ed25519.PrivateKey, c2PublicKey [
 	return e, nil
 }
 
-// NewEd25519KeyFromPassword creates a new ed25519 e4 client key from given password
-func NewEd25519KeyFromPassword(signerID []byte, pwd string, c2Key [32]byte) (Ed25519Key, error) {
-	return NewEd25519Key(signerID, e4crypto.Ed25519PrivateKeyFromPassword(pwd), c2Key)
+// NewPubKeyMaterialKeyFromPassword creates a new PublicKeyMaterialKey e4 client key from given password
+func NewPubKeyMaterialKeyFromPassword(signerID []byte, pwd string, c2Key [32]byte) (PubKeyMaterialKey, error) {
+	key, err := e4crypto.Ed25519PrivateKeyFromPassword(pwd)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewPubKeyMaterialKey(signerID, key, c2Key)
 }
 
-// NewRandomEd25519Key creates a new Ed25519 key from a random value
-func NewRandomEd25519Key(signerID []byte, c2Key [32]byte) (Ed25519Key, error) {
+// NewRandomPubKeyMaterialKey creates a new PublicKeyMaterialKey key from a random ed25519 key
+func NewRandomPubKeyMaterialKey(signerID []byte, c2Key [32]byte) (PubKeyMaterialKey, error) {
 	_, privateKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewEd25519Key(signerID, privateKey, c2Key)
+	return NewPubKeyMaterialKey(signerID, privateKey, c2Key)
 }
 
 // Protect will encrypt and sign the payload with the private key and returns it, or an error if it fail.
-func (k *ed25519Key) ProtectMessage(payload []byte, topicKey TopicKey) ([]byte, error) {
+func (k *pubKeyMaterialKey) ProtectMessage(payload []byte, topicKey TopicKey) ([]byte, error) {
 	timestamp := make([]byte, e4crypto.TimestampLen)
 	binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
 
@@ -103,7 +108,7 @@ func (k *ed25519Key) ProtectMessage(payload []byte, topicKey TopicKey) ([]byte, 
 	return protected, nil
 }
 
-func (k *ed25519Key) UnprotectMessage(protected []byte, topicKey TopicKey) ([]byte, error) {
+func (k *pubKeyMaterialKey) UnprotectMessage(protected []byte, topicKey TopicKey) ([]byte, error) {
 	if len(protected) <= e4crypto.TimestampLen+ed25519.SignatureSize {
 		return nil, e4crypto.ErrInvalidProtectedLen
 	}
@@ -139,7 +144,7 @@ func (k *ed25519Key) UnprotectMessage(protected []byte, topicKey TopicKey) ([]by
 	return pt, nil
 }
 
-func (k *ed25519Key) UnprotectCommand(protected []byte) ([]byte, error) {
+func (k *pubKeyMaterialKey) UnprotectCommand(protected []byte) ([]byte, error) {
 	// convert ed key to curve key
 	var curvekey [32]byte
 	var edkey [64]byte
@@ -156,7 +161,7 @@ func (k *ed25519Key) UnprotectCommand(protected []byte) ([]byte, error) {
 
 // AddPubKey store the given id and key in internal storage.
 // It is safe for concurrent access.
-func (k *ed25519Key) AddPubKey(id []byte, pubKey []byte) error {
+func (k *pubKeyMaterialKey) AddPubKey(id []byte, pubKey []byte) error {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
 
@@ -170,7 +175,7 @@ func (k *ed25519Key) AddPubKey(id []byte, pubKey []byte) error {
 	return nil
 }
 
-func (k *ed25519Key) RemovePubKey(id []byte) error {
+func (k *pubKeyMaterialKey) RemovePubKey(id []byte) error {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
 
@@ -185,7 +190,7 @@ func (k *ed25519Key) RemovePubKey(id []byte) error {
 	return nil
 }
 
-func (k *ed25519Key) ResetPubKeys() {
+func (k *pubKeyMaterialKey) ResetPubKeys() {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
 
@@ -193,7 +198,7 @@ func (k *ed25519Key) ResetPubKeys() {
 }
 
 // GetPubKeys return a map of stored pubKeys, indexed by their hex encoded ids.
-func (k *ed25519Key) GetPubKeys() map[string][]byte {
+func (k *pubKeyMaterialKey) GetPubKeys() map[string][]byte {
 	k.mutex.RLock()
 	defer k.mutex.RUnlock()
 
@@ -202,7 +207,7 @@ func (k *ed25519Key) GetPubKeys() map[string][]byte {
 
 // GetPubKey return a pubKey associated to given ID, or ErrPubKeyNotFound
 // when it doesn't exists
-func (k *ed25519Key) GetPubKey(id []byte) ([]byte, error) {
+func (k *pubKeyMaterialKey) GetPubKey(id []byte) ([]byte, error) {
 	sid := hex.EncodeToString(id)
 
 	key, ok := k.PubKeys[sid]
@@ -213,9 +218,9 @@ func (k *ed25519Key) GetPubKey(id []byte) ([]byte, error) {
 	return key, nil
 }
 
-// SetKey will validate the given key and copy it into the ed25519Key key when valid
-func (k *ed25519Key) SetKey(key []byte) error {
-	if err := e4crypto.ValidEd25519PrivKey(key); err != nil {
+// SetKey will validate the given key and copy it into the pubKeyMaterialKey key when valid
+func (k *pubKeyMaterialKey) SetKey(key []byte) error {
+	if err := e4crypto.ValidateEd25519PrivKey(key); err != nil {
 		return err
 	}
 
@@ -229,9 +234,9 @@ func (k *ed25519Key) SetKey(key []byte) error {
 
 // MarshalJSON  will infer the key type in the marshalled json data
 // to be able to know which key to instanciate when unmarshalling back.
-func (k *ed25519Key) MarshalJSON() ([]byte, error) {
+func (k *pubKeyMaterialKey) MarshalJSON() ([]byte, error) {
 	jsonKey := &jsonKey{
-		KeyType: ed25519KeyType,
+		KeyType: pubKeyMaterialKeyType,
 		KeyData: struct {
 			PrivateKey  ed25519.PrivateKey
 			SignerID    []byte

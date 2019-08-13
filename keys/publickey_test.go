@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/ed25519"
 )
 
-func TestNewEd25519Key(t *testing.T) {
+func TestNewPubKeyMaterialKey(t *testing.T) {
 	expectedSignerID := e4crypto.HashIDAlias("test")
 	_, expectedPrivateKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
@@ -22,49 +22,53 @@ func TestNewEd25519Key(t *testing.T) {
 
 	expectedC2PubKey := getTestC2PublicKey(t)
 
-	key, err := NewEd25519Key(expectedSignerID, expectedPrivateKey, expectedC2PubKey)
+	key, err := NewPubKeyMaterialKey(expectedSignerID, expectedPrivateKey, expectedC2PubKey)
 	if err != nil {
 		t.Fatalf("expected no error creating a key, got %v", err)
 	}
 
-	assertEd25519KeyContains(t, key, expectedSignerID, expectedPrivateKey, expectedC2PubKey)
+	assertPubKeyMaterialKeyContains(t, key, expectedSignerID, expectedPrivateKey, expectedC2PubKey)
 
 	invalidSignerID := make([]byte, e4crypto.IDLen-1)
-	_, err = NewEd25519Key(invalidSignerID, expectedPrivateKey, expectedC2PubKey)
+	_, err = NewPubKeyMaterialKey(invalidSignerID, expectedPrivateKey, expectedC2PubKey)
 	if err == nil {
 		t.Fatal("expected invalid signerID to produce an error")
 	}
 
 	invalidPrivateKey := make([]byte, len(expectedPrivateKey))
-	_, err = NewEd25519Key(expectedSignerID, invalidPrivateKey, expectedC2PubKey)
+	_, err = NewPubKeyMaterialKey(expectedSignerID, invalidPrivateKey, expectedC2PubKey)
 	if err == nil {
 		t.Fatal("expected invalid private key to produce an error")
 	}
 }
 
-func TestNewEd25519KeyFromPassword(t *testing.T) {
-	password := "test-password"
+func TestNewPubKeyMaterialKeyFromPassword(t *testing.T) {
+	password := "test-password-random"
 
 	expectedSignerID := e4crypto.HashIDAlias("test")
 	expectedC2PubKey := getTestC2PublicKey(t)
 
-	key, err := NewEd25519KeyFromPassword(expectedSignerID, password, expectedC2PubKey)
+	key, err := NewPubKeyMaterialKeyFromPassword(expectedSignerID, password, expectedC2PubKey)
 	if err != nil {
 		t.Fatalf("expected no error creating a key, got %v", err)
 	}
 
-	expectedPrivateKey := e4crypto.Ed25519PrivateKeyFromPassword(password)
-	assertEd25519KeyContains(t, key, expectedSignerID, expectedPrivateKey, expectedC2PubKey)
+	expectedPrivateKey, err := e4crypto.Ed25519PrivateKeyFromPassword(password)
+	if err != nil {
+		t.Fatalf("failed to create key from password: %v", err)
+	}
+
+	assertPubKeyMaterialKeyContains(t, key, expectedSignerID, expectedPrivateKey, expectedC2PubKey)
 }
 
-func assertEd25519KeyContains(
+func assertPubKeyMaterialKeyContains(
 	t *testing.T,
-	key Ed25519Key,
+	key PubKeyMaterialKey,
 	expectedSignerID []byte,
 	expectedPrivateKey ed25519.PrivateKey,
 	expectedC2PubKey [32]byte,
 ) {
-	tkey, ok := key.(*ed25519Key)
+	tkey, ok := key.(*pubKeyMaterialKey)
 	if !ok {
 		t.Fatal("failed to cast key")
 	}
@@ -93,16 +97,16 @@ func getTestC2PublicKey(t *testing.T) [32]byte {
 	return expectedC2PubKey
 }
 
-func TestNewRandomEd25519Key(t *testing.T) {
+func TestNewRandomPubKeyMaterialKey(t *testing.T) {
 	expectedSignerID := e4crypto.HashIDAlias("test")
 	expectedC2PubKey := getTestC2PublicKey(t)
 
-	key, err := NewRandomEd25519Key(expectedSignerID, expectedC2PubKey)
+	key, err := NewRandomPubKeyMaterialKey(expectedSignerID, expectedC2PubKey)
 	if err != nil {
 		t.Fatalf("expected no error creating a key, got %v", err)
 	}
 
-	tkey, ok := key.(*ed25519Key)
+	tkey, ok := key.(*pubKeyMaterialKey)
 	if !ok {
 		t.Fatal("failed to cast key")
 	}
@@ -115,19 +119,19 @@ func TestNewRandomEd25519Key(t *testing.T) {
 		t.Fatalf("expected c2PublicKey to be %v, got %v", expectedC2PubKey, tkey.C2PublicKey)
 	}
 
-	if err := e4crypto.ValidEd25519PrivKey(tkey.PrivateKey); err != nil {
+	if err := e4crypto.ValidateEd25519PrivKey(tkey.PrivateKey); err != nil {
 		t.Fatalf("expected a valid private key to be set: got error: %v", err)
 	}
 }
 
-func TestEd25519KeyProtectUnprotectMessage(t *testing.T) {
+func TestPubKeyMaterialKeyProtectUnprotectMessage(t *testing.T) {
 	clientID := e4crypto.HashIDAlias("test")
 	pubKey, privKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		t.Fatalf("failed to generate ed25519 keys: %v", err)
 	}
 
-	k, err := NewEd25519Key(clientID, privKey, getTestC2PublicKey(t))
+	k, err := NewPubKeyMaterialKey(clientID, privKey, getTestC2PublicKey(t))
 	if err != nil {
 		t.Fatalf("failed to create key: %v", err)
 	}
@@ -181,7 +185,7 @@ func TestEd25519KeyProtectUnprotectMessage(t *testing.T) {
 	}
 }
 
-func TestEd25519KeyUnprotectCommand(t *testing.T) {
+func TestPubKeyMaterialKeyUnprotectCommand(t *testing.T) {
 	clientID := e4crypto.HashIDAlias("test")
 	pubKey, privKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
@@ -203,7 +207,7 @@ func TestEd25519KeyUnprotectCommand(t *testing.T) {
 	extra25519.PublicKeyToCurve25519(&c2Pk, &c2EdPk)
 	extra25519.PrivateKeyToCurve25519(&c2Sk, &c2EdSk)
 
-	k, err := NewEd25519Key(clientID, privKey, c2Pk)
+	k, err := NewPubKeyMaterialKey(clientID, privKey, c2Pk)
 	if err != nil {
 		t.Fatalf("failed to create key: %v", err)
 	}
@@ -230,10 +234,10 @@ func TestEd25519KeyUnprotectCommand(t *testing.T) {
 	}
 }
 
-func TestEd25519KeyPubKeys(t *testing.T) {
+func TestPubKeyMaterialKeyPubKeys(t *testing.T) {
 	clientID := e4crypto.HashIDAlias("test")
 
-	k, err := NewRandomEd25519Key(clientID, getTestC2PublicKey(t))
+	k, err := NewRandomPubKeyMaterialKey(clientID, getTestC2PublicKey(t))
 	if err != nil {
 		t.Fatalf("failed to create key: %v", err)
 	}
@@ -347,16 +351,16 @@ func TestEd25519KeyPubKeys(t *testing.T) {
 	}
 }
 
-func TestEd25519KeySetKey(t *testing.T) {
+func TestPubKeyMaterialKeySetKey(t *testing.T) {
 	_, privateKey, err := ed25519.GenerateKey(nil)
 	clientID := e4crypto.HashIDAlias("test")
 
-	k, err := NewEd25519Key(clientID, privateKey, getTestC2PublicKey(t))
+	k, err := NewPubKeyMaterialKey(clientID, privateKey, getTestC2PublicKey(t))
 	if err != nil {
 		t.Fatalf("failed to create key: %v", err)
 	}
 
-	tkey, ok := k.(*ed25519Key)
+	tkey, ok := k.(*pubKeyMaterialKey)
 	if !ok {
 		t.Fatal("failed to cast key")
 	}
@@ -384,12 +388,12 @@ func TestEd25519KeySetKey(t *testing.T) {
 	}
 }
 
-func TestEd25519KeyMarshalJSON(t *testing.T) {
+func TestPubKeyMaterialKeyMarshalJSON(t *testing.T) {
 	_, privateKey, err := ed25519.GenerateKey(nil)
 	clientID := e4crypto.HashIDAlias("test")
 	c2Pk := getTestC2PublicKey(t)
 
-	k, err := NewEd25519Key(clientID, privateKey, c2Pk)
+	k, err := NewPubKeyMaterialKey(clientID, privateKey, c2Pk)
 	if err != nil {
 		t.Fatalf("failed to create key: %v", err)
 	}
