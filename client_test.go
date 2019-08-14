@@ -81,7 +81,7 @@ func TestProtectUnprotectMessagePubKey(t *testing.T) {
 	}
 
 	pk := privateKey[32:]
-	err = client.SetPubKey(pk, clientID)
+	err = client.setPubKey(pk, clientID)
 	if err != nil {
 		t.Fatalf("SetPubKey failed: %s", err)
 	}
@@ -92,7 +92,7 @@ func TestProtectUnprotectMessagePubKey(t *testing.T) {
 
 func testProtectUnprotectMessage(t *testing.T, c Client, protectedConstLength int) {
 	topic := "topic"
-	err := c.SetTopicKey(e4crypto.RandomKey(), e4crypto.HashTopic(topic))
+	err := c.setTopicKey(e4crypto.RandomKey(), e4crypto.HashTopic(topic))
 	if err != nil {
 		t.Fatalf("SetTopicKey failed: %s", err)
 	}
@@ -186,12 +186,12 @@ func TestClientWriteRead(t *testing.T) {
 		t.Fatal("failed to cast Client interface to client implementation")
 	}
 
-	err = c.SetTopicKey(e4crypto.RandomKey(), e4crypto.HashTopic("topic"))
+	err = c.setTopicKey(e4crypto.RandomKey(), e4crypto.HashTopic("topic"))
 	if err != nil {
 		t.Fatalf("SetTopicKey failed: %s", err)
 	}
 
-	err = c.SetIDKey(e4crypto.RandomKey())
+	err = c.setIDKey(e4crypto.RandomKey())
 	if err != nil {
 		t.Fatalf("SetIDKey failed: %s", err)
 	}
@@ -201,7 +201,7 @@ func TestClientWriteRead(t *testing.T) {
 	}
 
 	// state should be saved here
-	err = c.ResetTopics()
+	err = c.resetTopics()
 	if err != nil {
 		t.Fatalf("save failed: %s", err)
 	}
@@ -277,7 +277,7 @@ func TestClientPubKeys(t *testing.T) {
 			t.Fatalf("failed to create client: %v", err)
 		}
 
-		pks, err := c.GetPubKeys()
+		pks, err := c.getPubKeys()
 		if err != nil {
 			t.Fatalf("failed to retrieve pubkeys: %v", err)
 		}
@@ -292,7 +292,7 @@ func TestClientPubKeys(t *testing.T) {
 			t.Fatalf("failed to generate pubKey: %v", err)
 		}
 
-		if err := c.SetPubKey(pubKey1, id1); err != nil {
+		if err := c.setPubKey(pubKey1, id1); err != nil {
 			t.Fatalf("failed to set pubkey: %v", err)
 		}
 
@@ -305,7 +305,7 @@ func TestClientPubKeys(t *testing.T) {
 			t.Fatalf("failed to generate pubKey: %v", err)
 		}
 
-		if err := c.SetPubKey(pubKey2, id2); err != nil {
+		if err := c.setPubKey(pubKey2, id2); err != nil {
 			t.Fatalf("failed to set pubkey: %v", err)
 		}
 
@@ -314,18 +314,18 @@ func TestClientPubKeys(t *testing.T) {
 		assertSavedClientPubKeysEquals(t, clientFilePath, c)
 
 		id3 := e4crypto.RandomID()
-		if err := c.RemovePubKey(id3); err == nil {
+		if err := c.removePubKey(id3); err == nil {
 			t.Fatal("expected removal of pubKey with unknow ID to produce an error")
 		}
 
-		if err := c.RemovePubKey(id1); err != nil {
+		if err := c.removePubKey(id1); err != nil {
 			t.Fatalf("failed to remove a known pubKey: %v", err)
 		}
 
 		assertContainsPubKey(t, c, id2, pubKey2)
 		assertSavedClientPubKeysEquals(t, clientFilePath, c)
 
-		pks, err = c.GetPubKeys()
+		pks, err = c.getPubKeys()
 		if err != nil {
 			t.Fatalf("failed to retrieve pubkeys: %v", err)
 		}
@@ -334,11 +334,11 @@ func TestClientPubKeys(t *testing.T) {
 			t.Fatal("expected pubKey to have been removed")
 		}
 
-		if err := c.ResetPubKeys(); err != nil {
+		if err := c.resetPubKeys(); err != nil {
 			t.Fatalf("failed to reset pubKeys: %v", err)
 		}
 
-		pks, err = c.GetPubKeys()
+		pks, err = c.getPubKeys()
 		if err != nil {
 			t.Fatalf("failed to retrieve pubkeys: %v", err)
 		}
@@ -363,11 +363,11 @@ func TestClientPubKeys(t *testing.T) {
 			t.Fatalf("failed to generate publicKey: %v", err)
 		}
 
-		if err := c.SetPubKey(pk, []byte("bad id")); err == nil {
+		if err := c.setPubKey(pk, []byte("bad id")); err == nil {
 			t.Fatal("expected an error when setting a pubkey with an invalid id")
 		}
 
-		if err := c.RemovePubKey([]byte("bad id")); err == nil {
+		if err := c.removePubKey([]byte("bad id")); err == nil {
 			t.Fatal("expected an error when setting a pubkey with an invalid id")
 		}
 	})
@@ -378,19 +378,19 @@ func TestClientPubKeys(t *testing.T) {
 			t.Fatalf("failed to create symClient: %v", err)
 		}
 
-		if _, err := symClient.GetPubKeys(); err != ErrUnsupportedOperation {
+		if _, err := symClient.getPubKeys(); err != ErrUnsupportedOperation {
 			t.Fatalf("expected err to be %v, got %v", ErrUnsupportedOperation, err)
 		}
 
-		if err := symClient.SetPubKey([]byte{}, []byte{}); err != ErrUnsupportedOperation {
+		if err := symClient.setPubKey([]byte{}, []byte{}); err != ErrUnsupportedOperation {
 			t.Fatalf("expected err to be %v, got %v", ErrUnsupportedOperation, err)
 		}
 
-		if err := symClient.RemovePubKey([]byte{}); err != ErrUnsupportedOperation {
+		if err := symClient.removePubKey([]byte{}); err != ErrUnsupportedOperation {
 			t.Fatalf("expected err to be %v, got %v", ErrUnsupportedOperation, err)
 		}
 
-		if err := symClient.ResetPubKeys(); err != ErrUnsupportedOperation {
+		if err := symClient.resetPubKeys(); err != ErrUnsupportedOperation {
 			t.Fatalf("expected err to be %v, got %v", ErrUnsupportedOperation, err)
 		}
 	})
@@ -415,7 +415,7 @@ func TestClientTopics(t *testing.T) {
 		topicKey1 := e4crypto.RandomKey()
 		topicHash1 := e4crypto.HashTopic("topic1")
 
-		if err := tSymClient.SetTopicKey(topicKey1, topicHash1); err != nil {
+		if err := tSymClient.setTopicKey(topicKey1, topicHash1); err != nil {
 			t.Fatalf("failed to set topic key: %v", err)
 		}
 		assertClientTopicKey(t, true, tSymClient, topicHash1, topicKey1)
@@ -423,14 +423,14 @@ func TestClientTopics(t *testing.T) {
 		topicKey2 := e4crypto.RandomKey()
 		topicHash2 := e4crypto.HashTopic("topic2")
 
-		if err := tSymClient.SetTopicKey(topicKey2, topicHash2); err != nil {
+		if err := tSymClient.setTopicKey(topicKey2, topicHash2); err != nil {
 			t.Fatalf("failed to set topic key: %v", err)
 		}
 
 		assertClientTopicKey(t, true, tSymClient, topicHash1, topicKey1)
 		assertClientTopicKey(t, true, tSymClient, topicHash2, topicKey2)
 
-		if err := tSymClient.RemoveTopic(topicHash1); err != nil {
+		if err := tSymClient.removeTopic(topicHash1); err != nil {
 			t.Fatalf("failed to remove topic key: %v", err)
 		}
 
@@ -441,7 +441,7 @@ func TestClientTopics(t *testing.T) {
 		assertClientTopicKey(t, false, tSymClient, topicHash1, nil)
 		assertClientTopicKey(t, true, tSymClient, topicHash2, topicKey2)
 
-		if err := tSymClient.ResetTopics(); err != nil {
+		if err := tSymClient.resetTopics(); err != nil {
 			t.Fatalf("failed to reset topics: %v", err)
 		}
 		if c := len(tSymClient.TopicKeys); c != 0 {
@@ -457,11 +457,11 @@ func TestClientTopics(t *testing.T) {
 
 		topicKey := e4crypto.RandomKey()
 
-		if err := symClient.SetTopicKey(topicKey, []byte("bad hash")); err == nil {
+		if err := symClient.setTopicKey(topicKey, []byte("bad hash")); err == nil {
 			t.Fatal("expected setTopicKey to fail with a bad topic hash")
 		}
 
-		if err := symClient.RemoveTopic([]byte("bad hash")); err == nil {
+		if err := symClient.removeTopic([]byte("bad hash")); err == nil {
 			t.Fatal("expected RemoveTopic to fail with a bad topic hash")
 		}
 	})
@@ -707,7 +707,7 @@ func assertClientTopicKey(t *testing.T, exists bool, c Client, topicHash []byte,
 }
 
 func assertContainsPubKey(t *testing.T, c Client, id []byte, key []byte) {
-	pks, err := c.GetPubKeys()
+	pks, err := c.getPubKeys()
 	if err != nil {
 		t.Fatalf("failed to retrieve pubkeys: %v", err)
 	}
@@ -727,11 +727,11 @@ func assertSavedClientPubKeysEquals(t *testing.T, filepath string, c Client) {
 		t.Fatalf("failed to load client: %v", err)
 	}
 
-	savedPk, err := savedClient.GetPubKeys()
+	savedPk, err := savedClient.getPubKeys()
 	if err != nil {
 		t.Fatalf("failed to get savedClient pubKeys: %v", err)
 	}
-	cPk, err := c.GetPubKeys()
+	cPk, err := c.getPubKeys()
 	if err != nil {
 		t.Fatalf("failed to get client pubKeys: %v", err)
 	}

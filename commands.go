@@ -53,43 +53,43 @@ func processCommand(client Client, command []byte) error {
 		if len(command) != e4crypto.HashLen+1 {
 			return errors.New("invalid RemoveTopic length")
 		}
-		return client.RemoveTopic(command[1:])
+		return client.removeTopic(command[1:])
 
 	case ResetTopics:
 		if len(command) != 1 {
 			return errors.New("invalid ResetTopics length")
 		}
-		return client.ResetTopics()
+		return client.resetTopics()
 
 	case SetIDKey:
 		if len(command) != e4crypto.KeyLen+1 {
 			return errors.New("invalid SetIDKey length")
 		}
-		return client.SetIDKey(command[1:])
+		return client.setIDKey(command[1:])
 
 	case SetTopicKey:
 		if len(command) != e4crypto.KeyLen+e4crypto.HashLen+1 {
 			return errors.New("invalid SetTopicKey length")
 		}
-		return client.SetTopicKey(command[1:1+e4crypto.KeyLen], command[1+e4crypto.KeyLen:])
+		return client.setTopicKey(command[1:1+e4crypto.KeyLen], command[1+e4crypto.KeyLen:])
 
 	case RemovePubKey:
 		if len(command) != e4crypto.IDLen+1 {
 			return errors.New("invalid RemovePubKey length")
 		}
-		return client.RemovePubKey(command[1:])
+		return client.removePubKey(command[1:])
 
 	case ResetPubKeys:
 		if len(command) != 1 {
 			return errors.New("invalid ResetPubKeys length")
 		}
-		return client.ResetPubKeys()
+		return client.resetPubKeys()
 
 	case SetPubKey:
 		if len(command) != ed25519.PublicKeySize+e4crypto.IDLen+1 {
 			return errors.New("invalid SetPubKey length")
 		}
-		return client.SetPubKey(command[1:1+ed25519.PublicKeySize], command[1+ed25519.PublicKeySize:])
+		return client.setPubKey(command[1:1+ed25519.PublicKeySize], command[1+ed25519.PublicKeySize:])
 
 	default:
 		return ErrInvalidCommand

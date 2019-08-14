@@ -28,19 +28,19 @@ var (
 
 // Client defines interface for protecting and unprotecting E4 messages and commands
 type Client interface {
-	SetIDKey(key []byte) error
-
 	ProtectMessage(payload []byte, topic string) ([]byte, error)
 	Unprotect(protected []byte, topic string) ([]byte, error)
 
-	SetPubKey(key, clientID []byte) error
-	RemovePubKey(clientID []byte) error
-	ResetPubKeys() error
-	GetPubKeys() (map[string][]byte, error)
+	setIDKey(key []byte) error
 
-	SetTopicKey(key, topichash []byte) error
-	RemoveTopic(topichash []byte) error
-	ResetTopics() error
+	setPubKey(key, clientID []byte) error
+	removePubKey(clientID []byte) error
+	resetPubKeys() error
+	getPubKeys() (map[string][]byte, error)
+
+	setTopicKey(key, topichash []byte) error
+	removeTopic(topichash []byte) error
+	resetTopics() error
 }
 
 // client implements Client interface
@@ -228,7 +228,9 @@ func (c *client) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// ProtectMessage will return protected version of the payload, for the given topic
+// ProtectMessage will protect given payload, given
+// the client holds a key for the given topic, otherwise
+// ErrTopicKeyNotFound will be returned
 func (c *client) ProtectMessage(payload []byte, topic string) ([]byte, error) {
 	topichash := hex.EncodeToString(e4crypto.HashTopic(topic))
 
@@ -247,7 +249,12 @@ func (c *client) ProtectMessage(payload []byte, topic string) ([]byte, error) {
 	return protected, nil
 }
 
-// Unprotect returns (nil, nil) upon successful protected command, (message, nil) upon sucessful message
+// Unprotect will attempt to unprotect the given payload and return the clear message
+// The client holds a key for the given topic, otherwise a ErrTopicKeyNotFound error will be returned
+//
+// In case the protected message is a command (when the topic is identical to the client control topic),
+// Unprotect will also process it, returning errors when it is invalid or missing required
+// arguments. On success, Unprotecting a command will return nil, nil
 func (c *client) Unprotect(protected []byte, topic string) ([]byte, error) {
 	if topic == c.ReceivingTopic {
 		command, err := c.Key.UnprotectCommand(protected)
@@ -279,8 +286,8 @@ func (c *client) Unprotect(protected []byte, topic string) ([]byte, error) {
 	return message, nil
 }
 
-// SetTopicKey adds a key to the given topic hash, erasing any previous entry
-func (c *client) SetTopicKey(key, topichash []byte) error {
+// setTopicKey adds a key to the given topic hash, erasing any previous entry
+func (c *client) setTopicKey(key, topichash []byte) error {
 	if err := e4crypto.ValidateTopicHash(topichash); err != nil {
 		return fmt.Errorf("invalid topic hash: %v", err)
 	}
@@ -292,8 +299,8 @@ func (c *client) SetTopicKey(key, topichash []byte) error {
 	return c.save()
 }
 
-// RemoveTopic removes the key of the given topic hash
-func (c *client) RemoveTopic(topichash []byte) error {
+// removeTopic removes the key of the given topic hash
+func (c *client) removeTopic(topichash []byte) error {
 	if err := e4crypto.ValidateTopicHash(topichash); err != nil {
 		return fmt.Errorf("invalid topic hash: %v", err)
 	}
@@ -306,8 +313,8 @@ func (c *client) RemoveTopic(topichash []byte) error {
 	return c.save()
 }
 
-// ResetTopics removes all topic keys
-func (c *client) ResetTopics() error {
+// resetTopics removes all topic keys
+func (c *client) resetTopics() error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -315,7 +322,8 @@ func (c *client) ResetTopics() error {
 	return c.save()
 }
 
-func (c *client) GetPubKeys() (map[string][]byte, error) {
+// getPubKeys return the list of public keys stored on the client
+func (c *client) getPubKeys() (map[string][]byte, error) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
@@ -327,8 +335,8 @@ func (c *client) GetPubKeys() (map[string][]byte, error) {
 	return pkStore.GetPubKeys(), nil
 }
 
-// SetPubKey adds a key to the given topic hash, erasing any previous entry
-func (c *client) SetPubKey(key, clientid []byte) error {
+// setPubKey adds a key to the given topic hash, erasing any previous entry
+func (c *client) setPubKey(key, clientid []byte) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -346,8 +354,8 @@ func (c *client) SetPubKey(key, clientid []byte) error {
 	return c.save()
 }
 
-// RemovePubKey removes the pubkey of the given client id
-func (c *client) RemovePubKey(clientid []byte) error {
+// removePubKey removes the pubkey of the given client id
+func (c *client) removePubKey(clientid []byte) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -368,8 +376,8 @@ func (c *client) RemovePubKey(clientid []byte) error {
 	return c.save()
 }
 
-// ResetPubKeys removes all public keys
-func (c *client) ResetPubKeys() error {
+// resetPubKeys removes all public keys
+func (c *client) resetPubKeys() error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -383,8 +391,8 @@ func (c *client) ResetPubKeys() error {
 	return c.save()
 }
 
-// SetIDKey replaces the current ID key with a new one
-func (c *client) SetIDKey(key []byte) error {
+// setIDKey replaces the current ID key with a new one
+func (c *client) setIDKey(key []byte) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
