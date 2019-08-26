@@ -3,7 +3,7 @@
 
 Copyright (C) Teserakt AG 2018-2019. All Rights Reserved.
 
-This repository implements E4 in Golang, Teserakt's Secure machine-to-machine
+This repository implements E4 in Go, Teserakt's Secure machine-to-machine
 communication protocol.
 
 ## Client usage
@@ -34,7 +34,7 @@ If you know your id and key already; alternatively you might do:
 ```
 
 If you have a human-readable client name and are deriving your encryption
-key from a password. The password length must be over 16 characters.
+key from a password. The password length must be longer than 16 characters.
 
 If the client has already been persisted by running:
 ```go
@@ -71,17 +71,17 @@ now also have:
 
 You can then unprotect the message as follows:
 
-    plaintext, err := client.Unprotect(message, topic)
+    plainText, err := client.Unprotect(message, topic)
     if err != nil {
         // your error reporting here
     }
 
-If you receive no error, the plaintext may still be nil. This happens when
+If you receive no error, the plainText may still be nil. This happens when
 E4 has processed a control message. In this case you can simply not act on
 the received message - E4 has already processed it. If you want to detect this
 case you can test for
 
-    if plaintext == nil { ... }
+    if len(plainText) == 0 { ... }
 
 or alternatively
 
@@ -102,18 +102,18 @@ If you wish to transmit a message on a topic, suppose say that you have:
 Then you may simply use the `Protect` function from the client library as
 follows:
 
-    ciphertext, err := client.Protect(message, topic)
+    cipherText, err := client.Protect(message, topic)
 
 ### Handling errors
 
-All errors should be reported and you should stop processing any plaintext or
-ciphertext except in one case. If you receive `ErrTopicKeyNotFound` on a given
+All errors should be reported and you should stop processing any plainText or
+cipherText except in one case. If you receive `ErrTopicKeyNotFound` on a given
 topic when encrypting or decrypting, it is because the client does not have
 the key for this topic.
 
 Depending on your application, your "policy" may determine what to do. You
 may wish to not transmit any data, or it may be acceptable to transmit some
-other plaintext message, or the original message in plaintext, depending on
+other plainText message, or the original message in plainText, depending on
 your application.
 
 If you receive this message in testing our solution, please instruct the C2
