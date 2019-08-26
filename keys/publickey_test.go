@@ -3,6 +3,7 @@ package keys
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
@@ -70,18 +71,18 @@ func assertPubKeyMaterialContains(
 ) {
 	tkey, ok := key.(*pubKeyMaterial)
 	if !ok {
-		t.Fatal("failed to cast key")
+		t.Fatalf("Unexpected type: got %T, wanted pubKeyMaterial", key)
 	}
 
-	if bytes.Equal(tkey.SignerID, expectedSignerID) == false {
+	if !bytes.Equal(tkey.SignerID, expectedSignerID) {
 		t.Fatalf("expected signerID to be %v, got %v", expectedSignerID, tkey.SignerID)
 	}
 
-	if bytes.Equal(tkey.C2PubKey, expectedC2PubKey) == false {
+	if !bytes.Equal(tkey.C2PubKey, expectedC2PubKey) {
 		t.Fatalf("expected c2PubKey to be %v, got %v", expectedC2PubKey, tkey.C2PubKey)
 	}
 
-	if bytes.Equal(tkey.PrivateKey, expectedPrivateKey) == false {
+	if !bytes.Equal(tkey.PrivateKey, expectedPrivateKey) {
 		t.Fatalf("expected private key to be %v, got %v", expectedPrivateKey, tkey.PrivateKey)
 	}
 }
@@ -106,14 +107,14 @@ func TestNewRandomPubKeyMaterial(t *testing.T) {
 
 	tkey, ok := key.(*pubKeyMaterial)
 	if !ok {
-		t.Fatal("failed to cast key")
+		t.Fatalf("Unexpected type: got %T, wanted pubKeyMaterial", key)
 	}
 
-	if bytes.Equal(tkey.SignerID, expectedSignerID) == false {
+	if !bytes.Equal(tkey.SignerID, expectedSignerID) {
 		t.Fatalf("expected signerID to be %v, got %v", expectedSignerID, tkey.SignerID)
 	}
 
-	if bytes.Equal(tkey.C2PubKey, expectedC2PubKey) == false {
+	if !bytes.Equal(tkey.C2PubKey, expectedC2PubKey) {
 		t.Fatalf("expected c2PubKey to be %v, got %v", expectedC2PubKey, tkey.C2PubKey)
 	}
 
@@ -153,7 +154,7 @@ func TestPubKeyMaterialProtectUnprotectMessage(t *testing.T) {
 		t.Fatalf("expected no error when unprotecting message, got %v", err)
 	}
 
-	if bytes.Equal(unprotected, payload) == false {
+	if !bytes.Equal(unprotected, payload) {
 		t.Fatalf("expected unprotected message to be %v, got %v", unprotected, payload)
 	}
 
@@ -175,7 +176,7 @@ func TestPubKeyMaterialProtectUnprotectMessage(t *testing.T) {
 	copy(tooOldProtected, protected)
 
 	tooOldTs := make([]byte, e4crypto.TimestampLen)
-	binary.LittleEndian.PutUint64(tooOldTs, uint64(time.Now().Add(-(e4crypto.MaxSecondsDelay + 1)).Unix()))
+	binary.LittleEndian.PutUint64(tooOldTs, uint64(time.Now().Add(-(e4crypto.MaxDelayDuration + 1)).Unix()))
 
 	tooOldProtected = append(tooOldTs, tooOldProtected[e4crypto.TimestampLen:]...)
 	if _, err := k.UnprotectMessage(tooOldProtected, topicKey); err == nil {
@@ -227,7 +228,7 @@ func TestPubKeyMaterialUnprotectCommand(t *testing.T) {
 		t.Fatalf("expected no error when unprotecting command, got %v", err)
 	}
 
-	if bytes.Equal(unprotectedCmd, command) == false {
+	if !bytes.Equal(unprotectedCmd, command) {
 		t.Fatalf("expected unprotected command to be %v, got %v", command, unprotectedCmd)
 	}
 }
@@ -256,7 +257,7 @@ func TestPubKeyMaterialPubKeys(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get pubKey: %v", err)
 	}
-	if bytes.Equal(pk0, pk) == false {
+	if !bytes.Equal(pk0, pk) {
 		t.Fatalf("expected id1 pubkey to be %v, got %v", pk0, pk)
 	}
 
@@ -277,7 +278,7 @@ func TestPubKeyMaterialPubKeys(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get pubKey: %v", err)
 	}
-	if bytes.Equal(pk1, pk) == false {
+	if !bytes.Equal(pk1, pk) {
 		t.Fatalf("expected id1 pubkey to be %v, got %v", pk1, pk)
 	}
 
@@ -298,7 +299,7 @@ func TestPubKeyMaterialPubKeys(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get public key: %v", err)
 	}
-	if bytes.Equal(pk1, pk) == false {
+	if !bytes.Equal(pk1, pk) {
 		t.Fatalf("expected id1 pubkey to be %v, got %v", pk1, pk)
 	}
 
@@ -306,7 +307,7 @@ func TestPubKeyMaterialPubKeys(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get public key: %v", err)
 	}
-	if bytes.Equal(pk2, pk) == false {
+	if !bytes.Equal(pk2, pk) {
 		t.Fatalf("expected id2 pubkey to be %v, got %v", pk2, pk)
 	}
 
@@ -321,7 +322,7 @@ func TestPubKeyMaterialPubKeys(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get public key: %v", err)
 	}
-	if bytes.Equal(pk2, pk) == false {
+	if !bytes.Equal(pk2, pk) {
 		t.Fatalf("expected id2 pubkey to be %v, got %v", pk2, pk)
 	}
 
@@ -360,10 +361,10 @@ func TestPubKeyMaterialSetKey(t *testing.T) {
 
 	tkey, ok := k.(*pubKeyMaterial)
 	if !ok {
-		t.Fatal("failed to cast key")
+		t.Fatalf("Unexpected type: got %T, wanted pubKeyMaterial", k)
 	}
 
-	if bytes.Equal(tkey.PrivateKey, privateKey) == false {
+	if !bytes.Equal(tkey.PrivateKey, privateKey) {
 		t.Fatalf("expected private key to be %v, got %v", privateKey, tkey.PrivateKey)
 	}
 
@@ -372,7 +373,7 @@ func TestPubKeyMaterialSetKey(t *testing.T) {
 		t.Fatalf("failed to set key: %v", err)
 	}
 
-	if bytes.Equal(tkey.PrivateKey, privateKey2) == false {
+	if !bytes.Equal(tkey.PrivateKey, privateKey2) {
 		t.Fatalf("expected private key to be %v, got %v", privateKey2, tkey.PrivateKey)
 	}
 
@@ -381,7 +382,7 @@ func TestPubKeyMaterialSetKey(t *testing.T) {
 	}
 
 	privateKey2[0] = privateKey2[0] + 1
-	if bytes.Equal(tkey.PrivateKey, privateKey2) == true {
+	if bytes.Equal(tkey.PrivateKey, privateKey2) {
 		t.Fatalf("expected private key to have been copied, seems still pointing to same slice")
 	}
 }
@@ -412,7 +413,7 @@ func TestPubKeyMaterialMarshalJSON(t *testing.T) {
 		t.Fatalf("expected no error when adding pubkey for id2, got: %v", err)
 	}
 
-	jsonKey, err := k.MarshalJSON()
+	jsonKey, err := json.Marshal(k)
 	if err != nil {
 		t.Fatalf("failed to marshal key into json: %v", err)
 	}
@@ -422,7 +423,7 @@ func TestPubKeyMaterialMarshalJSON(t *testing.T) {
 		t.Fatalf("failed to unmarshal json key: %v", err)
 	}
 
-	if reflect.DeepEqual(unmarshalledKey, k) == false {
+	if !reflect.DeepEqual(unmarshalledKey, k) {
 		t.Fatalf("expected unmarshalled key to be %#v, got %#v", k, unmarshalledKey)
 	}
 }

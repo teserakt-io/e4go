@@ -6,7 +6,7 @@ go test -timeout 60s -race ./... -coverprofile cover.out.tmp
 # Stop here if test have failed, as coverage below will shift
 # the test failures up and make it easy to miss.
 if [ $? -ne 0 ]; then
-    echo "FAIL - Some test have failed."
+    echo "FAIL - Some tests have failed."
     exit 1
 fi
 

@@ -33,6 +33,7 @@ type pubKeyMaterial struct {
 }
 
 var _ PubKeyMaterial = (*pubKeyMaterial)(nil)
+var _ json.Marshaler = (*pubKeyMaterial)(nil)
 
 // NewPubKeyMaterial creates a new KeyMaterial to work with public e4 client key
 func NewPubKeyMaterial(signerID []byte, privateKey ed25519.PrivateKey, c2PubKey []byte) (PubKeyMaterial, error) {
@@ -198,7 +199,12 @@ func (k *pubKeyMaterial) ResetPubKeys() {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
 
-	k.PubKeys = make(map[string][]byte)
+	// The Go compiler in Go1.12 and above recognizes the map clearing idiom
+	// and makes that very fast, but also it'll alleviate garbage collection pressure.
+	// so instead of k.PubKeys = make(map[string][]byte), use:
+	for key := range k.PubKeys {
+		delete(k.PubKeys, key)
+	}
 }
 
 // GetPubKeys return a map of stored pubKeys, indexed by their hex encoded ids

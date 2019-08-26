@@ -213,14 +213,14 @@ func TestValidateTopicHash(t *testing.T) {
 }
 
 func TestValidateTimestamp(t *testing.T) {
-	futurTimestamp := make([]byte, TimestampLen)
-	binary.LittleEndian.PutUint64(futurTimestamp, uint64(time.Now().Add(1*time.Second).Unix()))
-	if err := ValidateTimestamp(futurTimestamp); err == nil {
-		t.Fatalf("expected timestamp in futur to not be valid")
+	futureTimestamp := make([]byte, TimestampLen)
+	binary.LittleEndian.PutUint64(futureTimestamp, uint64(time.Now().Add(1*time.Second).Unix()))
+	if err := ValidateTimestamp(futureTimestamp); err == nil {
+		t.Fatalf("expected timestamp in future to not be valid")
 	}
 
 	pastTimestamp := make([]byte, TimestampLen)
-	binary.LittleEndian.PutUint64(pastTimestamp, uint64(time.Now().Add(-(MaxSecondsDelay + 1)).Unix()))
+	binary.LittleEndian.PutUint64(pastTimestamp, uint64(time.Now().Add(-(MaxDelayDuration + 1)).Unix()))
 	if err := ValidateTimestamp(pastTimestamp); err == nil {
 		t.Fatalf("expected timestamp too far in past to not be valid")
 	}

@@ -3,6 +3,7 @@ package keys
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/json"
 	"reflect"
 	"testing"
 
@@ -24,10 +25,10 @@ func TestNewSymKeyFromPassword(t *testing.T) {
 
 	tk, ok := k.(*symKeyMaterial)
 	if !ok {
-		t.Fatal("failed to cast symKeyMaterial")
+		t.Fatalf("Unexpected type: got %T, wanted symKeyMaterial", k)
 	}
 
-	if bytes.Equal(tk.Key, expectedKey) == false {
+	if !bytes.Equal(tk.Key, expectedKey) {
 		t.Fatalf("expected key to be %v, got %v", expectedKey, tk.Key)
 	}
 }
@@ -46,10 +47,10 @@ func TestNewSymKey(t *testing.T) {
 
 		tk, ok := k.(*symKeyMaterial)
 		if !ok {
-			t.Fatal("failed to cast symKeyMaterial")
+			t.Fatalf("Unexpected type: got %T, wanted symKeyMaterial", k)
 		}
 
-		if bytes.Equal(tk.Key, expectedKey) == false {
+		if !bytes.Equal(tk.Key, expectedKey) {
 			t.Fatalf("expected key to be %v, got %v", expectedKey, tk.Key)
 		}
 	})
@@ -85,10 +86,10 @@ func TestNewRandomSymKey(t *testing.T) {
 
 	tk, ok := k.(*symKeyMaterial)
 	if !ok {
-		t.Fatal("failed to cast symKeyMaterial")
+		t.Fatalf("Unexpected type: got %T, wanted symKeyMaterial", k)
 	}
 
-	if len(tk.Key) <= 0 {
+	if len(tk.Key) == 0 {
 		t.Fatal("expected key to have been set")
 	}
 }
@@ -114,7 +115,7 @@ func TestSymKeyProtectUnprotectMessage(t *testing.T) {
 		t.Fatalf("failed to unprotect message: %v", err)
 	}
 
-	if bytes.Equal(unprotected, expectedMessage) == false {
+	if !bytes.Equal(unprotected, expectedMessage) {
 		t.Fatalf("expected unprotected message to be %v, got %v", expectedMessage, unprotected)
 	}
 
@@ -142,7 +143,7 @@ func TestSymKeyUnprotectCommand(t *testing.T) {
 		t.Fatalf("failed to unprotected command: %v", err)
 	}
 
-	if bytes.Equal(unprotectedCommand, command) == false {
+	if !bytes.Equal(unprotectedCommand, command) {
 		t.Fatalf("expected unprotected command to be %v, got %v", command, unprotectedCommand)
 	}
 }
@@ -157,10 +158,10 @@ func TestSymKeySetKey(t *testing.T) {
 
 	tk, ok := k.(*symKeyMaterial)
 	if !ok {
-		t.Fatal("failed to cast symKeyMaterial")
+		t.Fatalf("Unexpected type: got %T, wanted symKeyMaterial", k)
 	}
 
-	if bytes.Equal(tk.Key, key) == true {
+	if bytes.Equal(tk.Key, key) {
 		t.Fatal("expected key to be differents")
 	}
 
@@ -168,12 +169,12 @@ func TestSymKeySetKey(t *testing.T) {
 		t.Fatalf("failed to set key: %v", err)
 	}
 
-	if bytes.Equal(tk.Key, key) == false {
+	if !bytes.Equal(tk.Key, key) {
 		t.Fatalf("expected key to be %v, got %v", key, tk.Key)
 	}
 
 	key[0] = key[0] + 1
-	if bytes.Equal(tk.Key, key) == true {
+	if bytes.Equal(tk.Key, key) {
 		t.Fatalf("expected private key to have been copied, seems still pointing to same slice")
 	}
 
@@ -189,7 +190,7 @@ func TestSymKeyMarshalJSON(t *testing.T) {
 		t.Fatalf("failed to generate key: %v", err)
 	}
 
-	jsonKey, err := k.MarshalJSON()
+	jsonKey, err := json.Marshal(k)
 	if err != nil {
 		t.Fatalf("failed to marshal key to json: %v", err)
 	}
@@ -199,7 +200,7 @@ func TestSymKeyMarshalJSON(t *testing.T) {
 		t.Fatalf("failed to unmarshal key from json: %v", err)
 	}
 
-	if reflect.DeepEqual(unmarshalledKey, k) == false {
+	if !reflect.DeepEqual(unmarshalledKey, k) {
 		t.Fatalf("expected unmarshalled key to be %#v, got %#v", k, unmarshalledKey)
 	}
 }

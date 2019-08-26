@@ -50,15 +50,15 @@ func TestFromRawJSON(t *testing.T) {
 			t.Fatalf("expected key to be a pubKeyMaterial, got %T", k)
 		}
 
-		if bytes.Equal(tkey.PrivateKey, privateKey) == false {
+		if !bytes.Equal(tkey.PrivateKey, privateKey) {
 			t.Fatalf("expected private key to be %v, got %v", privateKey, tkey.PrivateKey)
 		}
 
-		if bytes.Equal(tkey.SignerID, signerID) == false {
+		if !bytes.Equal(tkey.SignerID, signerID) {
 			t.Fatalf("expected signerID to be %v, got %v", signerID, tkey.SignerID)
 		}
 
-		if bytes.Equal(tkey.C2PubKey, c2PubKey) == false {
+		if !bytes.Equal(tkey.C2PubKey, c2PubKey) {
 			t.Fatalf("expected C2PubKey to be %v, got %v", c2PubKey, tkey.C2PubKey)
 		}
 
@@ -71,7 +71,7 @@ func TestFromRawJSON(t *testing.T) {
 			t.Fatalf("expected pubkeys to hold a key for id %s", pubKeyID)
 		}
 
-		if bytes.Equal(pk, pubKeyKey) == false {
+		if !bytes.Equal(pk, pubKeyKey) {
 			t.Fatalf("expected pubKey to be %v, got %v", pubKeyKey, pk)
 		}
 	})
@@ -99,7 +99,7 @@ func TestFromRawJSON(t *testing.T) {
 			t.Fatalf("expected key to be a symKeyMaterial, got %T", k)
 		}
 
-		if bytes.Equal(tkey.Key, privateKey) == false {
+		if !bytes.Equal(tkey.Key, privateKey) {
 			t.Fatalf("expected key to be %v, got %v", privateKey, tkey.Key)
 		}
 	})

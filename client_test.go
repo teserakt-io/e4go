@@ -33,7 +33,7 @@ func TestNewClientSymKey(t *testing.T) {
 
 	c1, ok := c.(*client)
 	if !ok {
-		t.Fatal("failed to cast Client interface to client implementation")
+		t.Fatalf("Unexpected type: got %T, wanted client", c)
 	}
 
 	if c1.ReceivingTopic != topicForID(id) {
@@ -98,8 +98,8 @@ func testProtectUnprotectMessage(t *testing.T, c Client, protectedConstLength in
 	}
 
 	for i := 0; i < 2048; i++ {
-		rdelta := e4crypto.GetRDelta()
-		msgLen := 123 + int(rdelta)
+		rDelta := e4crypto.RandomDelta16()
+		msgLen := 123 + int(rDelta)
 
 		msg := make([]byte, msgLen)
 
@@ -140,7 +140,7 @@ func testProtectUnprotectMessage(t *testing.T, c Client, protectedConstLength in
 		timestamporig := protected[:e4crypto.TimestampLen]
 		ts := time.Unix(int64(binary.LittleEndian.Uint64(timestamporig)), 0)
 		tsf := ts.Add(1000000 * time.Second)
-		tsp := ts.Add(-(e4crypto.MaxSecondsDelay + 1))
+		tsp := ts.Add(-(e4crypto.MaxDelayDuration + 1))
 		tsfuture := make([]byte, 8)
 		tspast := make([]byte, 8)
 		binary.LittleEndian.PutUint64(tsfuture, uint64(tsf.Unix()))
@@ -183,7 +183,7 @@ func TestClientWriteRead(t *testing.T) {
 
 	c, ok := gc.(*client)
 	if !ok {
-		t.Fatal("failed to cast Client interface to client implementation")
+		t.Fatalf("Unexpected type: got %T, wanted client", gc)
 	}
 
 	err = c.setTopicKey(e4crypto.RandomKey(), e4crypto.HashTopic("topic"))
@@ -211,7 +211,7 @@ func TestClientWriteRead(t *testing.T) {
 		t.Fatalf("client loading failed: %s", err)
 	}
 
-	if reflect.DeepEqual(gcc, gc) == false {
+	if !reflect.DeepEqual(gcc, gc) {
 		t.Fatalf("expected client to be %#v, got %#v", gc, gcc)
 	}
 }
@@ -255,7 +255,7 @@ func TestProtectUnprotectCommandsPubKey(t *testing.T) {
 
 	c, ok := gc.(*client)
 	if !ok {
-		t.Fatal("failed to cast Client interface to client implementation")
+		t.Fatalf("Unexpected type: got %T, wanted client", gc)
 	}
 
 	res, err := gc.Unprotect(protected, c.ReceivingTopic)
@@ -405,7 +405,7 @@ func TestClientTopics(t *testing.T) {
 
 		tSymClient, ok := symClient.(*client)
 		if !ok {
-			t.Fatal("failed to cast client")
+			t.Fatalf("Unexpected type: got %T, wanted client", symClient)
 		}
 
 		if c := len(tSymClient.TopicKeys); c != 0 {
@@ -689,7 +689,7 @@ func TestCommandsSymClient(t *testing.T) {
 func assertClientTopicKey(t *testing.T, exists bool, c Client, topicHash []byte, topicKey []byte) {
 	tc, ok := c.(*client)
 	if !ok {
-		t.Fatal("failed to cast client")
+		t.Fatalf("Unexpected type: got %T, wanted client", c)
 	}
 
 	k, ok := tc.TopicKeys[hex.EncodeToString(topicHash)]
@@ -700,7 +700,7 @@ func assertClientTopicKey(t *testing.T, exists bool, c Client, topicHash []byte,
 	}
 
 	if exists {
-		if bytes.Equal(k, topicKey) == false {
+		if !bytes.Equal(k, topicKey) {
 			t.Fatalf("expected topic key to be %v, got %v", topicKey, k)
 		}
 	}
@@ -716,7 +716,7 @@ func assertContainsPubKey(t *testing.T, c Client, id []byte, key []byte) {
 	if !ok {
 		t.Fatal("expected pubkey to be set on client")
 	}
-	if bytes.Equal(pk, key) == false {
+	if !bytes.Equal(pk, key) {
 		t.Fatalf("expected pubKey to be %v, got %v", key, pk)
 	}
 }
@@ -735,7 +735,7 @@ func assertSavedClientPubKeysEquals(t *testing.T, filepath string, c Client) {
 	if err != nil {
 		t.Fatalf("failed to get client pubKeys: %v", err)
 	}
-	if reflect.DeepEqual(savedPk, cPk) == false {
+	if !reflect.DeepEqual(savedPk, cPk) {
 		t.Fatalf("expected savedClient pubKeys to be %#v, got %#v", cPk, savedPk)
 	}
 }

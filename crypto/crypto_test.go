@@ -96,9 +96,9 @@ func TestRandomKey(t *testing.T) {
 func TestEncDec(t *testing.T) {
 	for i := 0; i < 2048; i++ {
 
-		rdelta := GetRDelta()
+		rDelta := RandomDelta16()
 
-		ptLen := 1234 + rdelta
+		ptLen := 1234 + rDelta
 
 		key := make([]byte, KeyLen)
 		ad := make([]byte, TimestampLen)
@@ -206,7 +206,7 @@ func TestProtectUnprotectSymKey(t *testing.T) {
 		t.Fatalf("UnprotectSymKey failed: %v", err)
 	}
 
-	if bytes.Equal(unprotected, payload) == false {
+	if !bytes.Equal(unprotected, payload) {
 		t.Fatalf("Expected unprotected payload to be %v, got %v", payload, unprotected)
 	}
 
@@ -214,7 +214,7 @@ func TestProtectUnprotectSymKey(t *testing.T) {
 	timestamp := make([]byte, TimestampLen)
 
 	// Replace timestamp in cipher by a too old timestamp
-	pastTs := now.Add(time.Duration(-MaxSecondsDelay))
+	pastTs := now.Add(time.Duration(-MaxDelayDuration))
 	binary.LittleEndian.PutUint64(timestamp, uint64(pastTs.Unix()))
 	tooOldProtected := append(timestamp, protected[TimestampLen:]...)
 	_, err = UnprotectSymKey(tooOldProtected, key)
@@ -222,11 +222,11 @@ func TestProtectUnprotectSymKey(t *testing.T) {
 		t.Fatalf("Expected %v, got %v", ErrTimestampTooOld, err)
 	}
 
-	// Replace timestamp in cipher by a timestamp in futur
-	futurTs := now.Add(1 * time.Second)
-	binary.LittleEndian.PutUint64(timestamp, uint64(futurTs.Unix()))
-	futurProtected := append(timestamp, protected[TimestampLen:]...)
-	_, err = UnprotectSymKey(futurProtected, key)
+	// Replace timestamp in cipher by a timestamp in future
+	futureTs := now.Add(1 * time.Second)
+	binary.LittleEndian.PutUint64(timestamp, uint64(futureTs.Unix()))
+	futureProtected := append(timestamp, protected[TimestampLen:]...)
+	_, err = UnprotectSymKey(futureProtected, key)
 	if err != ErrTimestampInFuture {
 		t.Fatalf("Expected %v, got %v", ErrTimestampInFuture, err)
 	}
@@ -261,7 +261,7 @@ func TestEd25519PrivateKeyFromPassword(t *testing.T) {
 		t.Fatalf("failed to create private key from password: %v", err)
 	}
 
-	if bytes.Equal(expectedKey, key) == false {
+	if !bytes.Equal(expectedKey, key) {
 		t.Fatalf("expected key to be %#v, got %#v", expectedKey, key)
 	}
 

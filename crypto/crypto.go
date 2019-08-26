@@ -22,12 +22,12 @@ var (
 	ErrTooShortCipher = errors.New("ciphertext too short")
 	// ErrTimestampInFuture occurs when the cipher timestamp is in the future
 	ErrTimestampInFuture = errors.New("timestamp received is in the future")
-	// ErrTimestampTooOld occurs when the cipher timestamp is older than MaxSecondsDelay from now
+	// ErrTimestampTooOld occurs when the cipher timestamp is older than MaxDelayDuration from now
 	ErrTimestampTooOld = errors.New("timestamp too old")
 )
 
 // Encrypt creates an authenticated ciphertext
-func Encrypt(key []byte, ad []byte, pt []byte) ([]byte, error) {
+func Encrypt(key, ad, pt []byte) ([]byte, error) {
 	if err := ValidateSymKey(key); err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func Encrypt(key []byte, ad []byte, pt []byte) ([]byte, error) {
 }
 
 // Decrypt decrypts and verifies an authenticated ciphertext
-func Decrypt(key []byte, ad []byte, ct []byte) ([]byte, error) {
+func Decrypt(key, ad, ct []byte) ([]byte, error) {
 	if err := ValidateSymKey(key); err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func DeriveSymKey(pwd string) ([]byte, error) {
 }
 
 // ProtectSymKey attempt to encrypt payload using given symmetric key
-func ProtectSymKey(payload []byte, key []byte) ([]byte, error) {
+func ProtectSymKey(payload, key []byte) ([]byte, error) {
 	timestamp := make([]byte, TimestampLen)
 	binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
 
@@ -105,7 +105,7 @@ func ProtectSymKey(payload []byte, key []byte) ([]byte, error) {
 }
 
 // UnprotectSymKey attempt to decrypt protected bytes, using given symmetric key
-func UnprotectSymKey(protected []byte, key []byte) ([]byte, error) {
+func UnprotectSymKey(protected, key []byte) ([]byte, error) {
 	if len(protected) <= TimestampLen+TagLen {
 		return nil, ErrTooShortCipher
 	}
@@ -139,12 +139,12 @@ func RandomID() []byte {
 	return id
 }
 
-// GetRDelta produces a random 16-bit integer to allow us to
+// RandomDelta16 produces a random 16-bit integer to allow us to
 // vary key sizes, plaintext sizes etc
-func GetRDelta() uint16 {
-	randadjust := make([]byte, 2)
-	rand.Read(randadjust)
-	return binary.LittleEndian.Uint16(randadjust)
+func RandomDelta16() uint16 {
+	randAdjust := make([]byte, 2)
+	rand.Read(randAdjust)
+	return binary.LittleEndian.Uint16(randAdjust)
 }
 
 // Ed25519PrivateKeyFromPassword creates a ed25519.PrivateKey from a password

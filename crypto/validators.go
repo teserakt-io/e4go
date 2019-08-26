@@ -113,7 +113,7 @@ func ValidateTopic(topic string) error {
 		return fmt.Errorf("topic too long, expected %d chars maximum, got %d", MaxTopicLen, len(topic))
 	}
 
-	if len(topic) <= 0 {
+	if len(topic) == 0 {
 		return errors.New("topic cannot be empty")
 	}
 
@@ -130,11 +130,11 @@ func ValidateTopicHash(topichash []byte) error {
 }
 
 // ValidateTimestamp will check that given timestamp bytes are
-// a valid LittleEndian encoded timestamp, not in the future and not older than MaxSecondsDelay
+// a valid LittleEndian encoded timestamp, not in the future and not older than MaxDelayDuration
 func ValidateTimestamp(timestamp []byte) error {
 	now := time.Now()
 	tsTime := time.Unix(int64(binary.LittleEndian.Uint64(timestamp)), 0)
-	minTime := now.Add(time.Duration(-MaxSecondsDelay))
+	minTime := now.Add(time.Duration(-MaxDelayDuration))
 
 	if tsTime.After(now) {
 		return ErrTimestampInFuture
