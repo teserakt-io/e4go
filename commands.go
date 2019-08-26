@@ -19,6 +19,8 @@ const (
 	RemovePubKey
 	ResetPubKeys
 	SetPubKey
+
+	UnknownCommand
 )
 
 // ErrInvalidCommand is returned when trying to process an unsupported command
@@ -26,70 +28,59 @@ var ErrInvalidCommand = errors.New("invalid command")
 
 // ToByte converts a command into its byte representation
 func (c Command) ToByte() byte {
-	switch c {
-	case RemoveTopic:
-		return 0
-	case ResetTopics:
-		return 1
-	case SetIDKey:
-		return 2
-	case SetTopicKey:
-		return 3
-	case RemovePubKey:
-		return 4
-	case ResetPubKeys:
-		return 5
-	case SetPubKey:
-		return 6
+	if c < RemoveTopic || c >= UnknownCommand {
+		return 255
 	}
-	return 255
+	return byte(c)
 }
 
 // processCommand will attempt to parse given command
 // and extract arguments to call expected Client method
-func processCommand(client Client, command []byte) error {
-	switch Command(command[0]) {
+func processCommand(client Client, payload []byte) error {
+	cmd, blob := payload[0], payload[1:]
+
+	switch Command(cmd) {
 	case RemoveTopic:
-		if len(command) != e4crypto.HashLen+1 {
+		if len(blob) != e4crypto.HashLen {
 			return errors.New("invalid RemoveTopic length")
 		}
-		return client.removeTopic(command[1:])
+		return client.removeTopic(blob)
 
 	case ResetTopics:
-		if len(command) != 1 {
+		if len(blob) != 0 {
 			return errors.New("invalid ResetTopics length")
 		}
 		return client.resetTopics()
 
 	case SetIDKey:
-		if len(command) != e4crypto.KeyLen+1 {
+		if len(blob) != e4crypto.KeyLen {
 			return errors.New("invalid SetIDKey length")
 		}
-		return client.setIDKey(command[1:])
+		return client.setIDKey(blob)
 
 	case SetTopicKey:
-		if len(command) != e4crypto.KeyLen+e4crypto.HashLen+1 {
+		if len(blob) != e4crypto.KeyLen+e4crypto.HashLen {
 			return errors.New("invalid SetTopicKey length")
 		}
-		return client.setTopicKey(command[1:1+e4crypto.KeyLen], command[1+e4crypto.KeyLen:])
+		return client.setTopicKey(blob[:e4crypto.KeyLen], blob[e4crypto.KeyLen:])
 
 	case RemovePubKey:
-		if len(command) != e4crypto.IDLen+1 {
+		if len(blob) != e4crypto.IDLen {
 			return errors.New("invalid RemovePubKey length")
 		}
-		return client.removePubKey(command[1:])
+		return client.removePubKey(blob)
 
 	case ResetPubKeys:
-		if len(command) != 1 {
+		if len(blob) != 0 {
 			return errors.New("invalid ResetPubKeys length")
 		}
 		return client.resetPubKeys()
 
 	case SetPubKey:
-		if len(command) != ed25519.PublicKeySize+e4crypto.IDLen+1 {
+		if len(blob) != ed25519.PublicKeySize+e4crypto.IDLen {
 			return errors.New("invalid SetPubKey length")
 		}
-		return client.setPubKey(command[1:1+ed25519.PublicKeySize], command[1+ed25519.PublicKeySize:])
+		return client.setPubKey(blob[:ed25519.PublicKeySize], blob[ed25519.PublicKeySize:])
 
 	default:
 		return ErrInvalidCommand
