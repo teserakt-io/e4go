@@ -150,9 +150,9 @@ func (k *pubKeyMaterial) UnprotectMessage(protected []byte, topicKey TopicKey) (
 func (k *pubKeyMaterial) UnprotectCommand(protected []byte) ([]byte, error) {
 	// convert ed key to curve key
 	var curvekey [32]byte
-	var edkey [64]byte
-	copy(edkey[:], k.PrivateKey)
-	extra25519.PrivateKeyToCurve25519(&curvekey, &edkey)
+	var edKey [64]byte
+	copy(edKey[:], k.PrivateKey)
+	extra25519.PrivateKeyToCurve25519(&curvekey, &edKey)
 
 	var shared [32]byte
 	var c2PubKey [32]byte

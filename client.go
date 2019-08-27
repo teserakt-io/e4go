@@ -336,7 +336,7 @@ func (c *client) getPubKeys() (map[string][]byte, error) {
 }
 
 // setPubKey adds a key to the given topic hash, erasing any previous entry
-func (c *client) setPubKey(key, clientid []byte) error {
+func (c *client) setPubKey(key, clientID []byte) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -345,17 +345,17 @@ func (c *client) setPubKey(key, clientid []byte) error {
 		return ErrUnsupportedOperation
 	}
 
-	if err := e4crypto.ValidateID(clientid); err != nil {
+	if err := e4crypto.ValidateID(clientID); err != nil {
 		return fmt.Errorf("invalid client ID: %v", err)
 	}
 
-	pkStore.AddPubKey(clientid, key)
+	pkStore.AddPubKey(clientID, key)
 
 	return c.save()
 }
 
 // removePubKey removes the pubkey of the given client id
-func (c *client) removePubKey(clientid []byte) error {
+func (c *client) removePubKey(clientID []byte) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -364,11 +364,11 @@ func (c *client) removePubKey(clientid []byte) error {
 		return ErrUnsupportedOperation
 	}
 
-	if err := e4crypto.ValidateID(clientid); err != nil {
+	if err := e4crypto.ValidateID(clientID); err != nil {
 		return fmt.Errorf("invalid client ID: %v", err)
 	}
 
-	err := pkStore.RemovePubKey(clientid)
+	err := pkStore.RemovePubKey(clientID)
 	if err != nil {
 		return err
 	}

@@ -14,12 +14,12 @@ func TestNewSymKeyFromPassword(t *testing.T) {
 	password := "test password random"
 	expectedKey, err := e4crypto.DeriveSymKey(password)
 	if err != nil {
-		t.Fatalf("failed to derive symKeyMaterialMaterial: %v", err)
+		t.Fatalf("Failed to derive symKeyMaterialMaterial: %v", err)
 	}
 
 	k, err := NewSymKeyMaterialFromPassword(password)
 	if err != nil {
-		t.Fatalf("failed to create symKeyMaterial: %v", err)
+		t.Fatalf("Failed to create symKeyMaterial: %v", err)
 
 	}
 
@@ -29,7 +29,7 @@ func TestNewSymKeyFromPassword(t *testing.T) {
 	}
 
 	if !bytes.Equal(tk.Key, expectedKey) {
-		t.Fatalf("expected key to be %v, got %v", expectedKey, tk.Key)
+		t.Fatalf("Invalid key: got %v, wanted %v", tk.Key, expectedKey)
 	}
 }
 
@@ -37,12 +37,12 @@ func TestNewSymKey(t *testing.T) {
 	t.Run("symKeyMaterial creates key properly", func(t *testing.T) {
 		expectedKey, err := e4crypto.DeriveSymKey("test password random")
 		if err != nil {
-			t.Fatalf("failed to derive symKeyMaterialMaterial: %v", err)
+			t.Fatalf("Failed to derive symKeyMaterialMaterial: %v", err)
 		}
 
 		k, err := NewSymKeyMaterial(expectedKey)
 		if err != nil {
-			t.Fatalf("failed to create symKeyMaterial: %v", err)
+			t.Fatalf("Failed to create symKeyMaterial: %v", err)
 		}
 
 		tk, ok := k.(*symKeyMaterial)
@@ -51,7 +51,7 @@ func TestNewSymKey(t *testing.T) {
 		}
 
 		if !bytes.Equal(tk.Key, expectedKey) {
-			t.Fatalf("expected key to be %v, got %v", expectedKey, tk.Key)
+			t.Fatalf("Invalid key: got %v, wanted %v", tk.Key, expectedKey)
 		}
 	})
 
@@ -72,7 +72,7 @@ func TestNewSymKey(t *testing.T) {
 
 		for _, badKey := range badKeys {
 			if _, err := NewSymKeyMaterial(badKey); err == nil {
-				t.Fatalf("expected an error when trying to create a symKeyMaterial with key %v", badKey)
+				t.Fatalf("Expected an error when trying to create a symKeyMaterial with key %v", badKey)
 			}
 		}
 	})
@@ -81,7 +81,7 @@ func TestNewSymKey(t *testing.T) {
 func TestNewRandomSymKey(t *testing.T) {
 	k, err := NewRandomSymKeyMaterial()
 	if err != nil {
-		t.Fatalf("failed to create new random symKeyMaterial: %v", err)
+		t.Fatalf("Failed to create new random symKeyMaterial: %v", err)
 	}
 
 	tk, ok := k.(*symKeyMaterial)
@@ -90,7 +90,7 @@ func TestNewRandomSymKey(t *testing.T) {
 	}
 
 	if len(tk.Key) == 0 {
-		t.Fatal("expected key to have been set")
+		t.Fatal("Expected key to have been set")
 	}
 }
 
@@ -99,7 +99,7 @@ func TestSymKeyProtectUnprotectMessage(t *testing.T) {
 
 	symKeyMaterial, err := NewSymKeyMaterial(key)
 	if err != nil {
-		t.Fatalf("failed to create symKeyMaterial: %v", err)
+		t.Fatalf("Failed to create symKeyMaterial: %v", err)
 	}
 
 	topicKey := e4crypto.RandomKey()
@@ -107,20 +107,20 @@ func TestSymKeyProtectUnprotectMessage(t *testing.T) {
 
 	protected, err := symKeyMaterial.ProtectMessage(expectedMessage, topicKey)
 	if err != nil {
-		t.Fatalf("failed to protect message: %v", err)
+		t.Fatalf("Failed to protect message: %v", err)
 	}
 
 	unprotected, err := symKeyMaterial.UnprotectMessage(protected, topicKey)
 	if err != nil {
-		t.Fatalf("failed to unprotect message: %v", err)
+		t.Fatalf("Failed to unprotect message: %v", err)
 	}
 
 	if !bytes.Equal(unprotected, expectedMessage) {
-		t.Fatalf("expected unprotected message to be %v, got %v", expectedMessage, unprotected)
+		t.Fatalf("Invalid unprotected message: got %v, wanted %v", unprotected, expectedMessage)
 	}
 
 	if _, err := symKeyMaterial.ProtectMessage([]byte("message"), []byte("not a key")); err == nil {
-		t.Fatalf("expected protectMessage to fail when given an invalid topic key")
+		t.Fatalf("Expected protectMessage to fail when given an invalid topic key")
 	}
 }
 
@@ -130,21 +130,21 @@ func TestSymKeyUnprotectCommand(t *testing.T) {
 
 	symKeyMaterial, err := NewSymKeyMaterial(key)
 	if err != nil {
-		t.Fatalf("failed to create symKeyMaterial: %v", err)
+		t.Fatalf("Failed to create symKeyMaterial: %v", err)
 	}
 
 	protectedCommand, err := e4crypto.ProtectSymKey(command, key)
 	if err != nil {
-		t.Fatalf("failed to protect command: %v", err)
+		t.Fatalf("Failed to protect command: %v", err)
 	}
 
 	unprotectedCommand, err := symKeyMaterial.UnprotectCommand(protectedCommand)
 	if err != nil {
-		t.Fatalf("failed to unprotected command: %v", err)
+		t.Fatalf("Failed to unprotected command: %v", err)
 	}
 
 	if !bytes.Equal(unprotectedCommand, command) {
-		t.Fatalf("expected unprotected command to be %v, got %v", command, unprotectedCommand)
+		t.Fatalf("Invalid unprotected command: got %v, wanted %v", unprotectedCommand, command)
 	}
 }
 
@@ -153,7 +153,7 @@ func TestSymKeySetKey(t *testing.T) {
 
 	k, err := NewRandomSymKeyMaterial()
 	if err != nil {
-		t.Fatalf("failed to create symKeyMaterial: %v", err)
+		t.Fatalf("Failed to create symKeyMaterial: %v", err)
 	}
 
 	tk, ok := k.(*symKeyMaterial)
@@ -162,24 +162,24 @@ func TestSymKeySetKey(t *testing.T) {
 	}
 
 	if bytes.Equal(tk.Key, key) {
-		t.Fatal("expected key to be differents")
+		t.Fatalf("Invalid key: got %v, wanted %v", tk.Key, key)
 	}
 
 	if err := tk.SetKey(key); err != nil {
-		t.Fatalf("failed to set key: %v", err)
+		t.Fatalf("Failed to set key: %v", err)
 	}
 
 	if !bytes.Equal(tk.Key, key) {
-		t.Fatalf("expected key to be %v, got %v", key, tk.Key)
+		t.Fatalf("Invalid key: got %v, wanted %v", tk.Key, key)
 	}
 
 	key[0] = key[0] + 1
 	if bytes.Equal(tk.Key, key) {
-		t.Fatalf("expected private key to have been copied, seems still pointing to same slice")
+		t.Fatal("Expected private key slice to have been copied, but it is still pointing to same slice")
 	}
 
 	if err := tk.SetKey([]byte("not a key")); err == nil {
-		t.Fatal("expected setKey to fail with an invalid key")
+		t.Fatal("Expected setKey to fail with an invalid key")
 	}
 }
 
@@ -187,20 +187,20 @@ func TestSymKeyMarshalJSON(t *testing.T) {
 	expectedKey := e4crypto.RandomKey()
 	k, err := NewSymKeyMaterial(expectedKey)
 	if err != nil {
-		t.Fatalf("failed to generate key: %v", err)
+		t.Fatalf("Failed to generate key: %v", err)
 	}
 
 	jsonKey, err := json.Marshal(k)
 	if err != nil {
-		t.Fatalf("failed to marshal key to json: %v", err)
+		t.Fatalf("Failed to marshal key to json: %v", err)
 	}
 
 	unmarshalledKey, err := FromRawJSON(jsonKey)
 	if err != nil {
-		t.Fatalf("failed to unmarshal key from json: %v", err)
+		t.Fatalf("Failed to unmarshal key from json: %v", err)
 	}
 
 	if !reflect.DeepEqual(unmarshalledKey, k) {
-		t.Fatalf("expected unmarshalled key to be %#v, got %#v", k, unmarshalledKey)
+		t.Fatalf("Invalid unmarshalled key: got %v, wanted %#v", unmarshalledKey, k)
 	}
 }

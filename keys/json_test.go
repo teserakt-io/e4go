@@ -15,7 +15,7 @@ func TestFromRawJSON(t *testing.T) {
 		c2PubKey := []byte{}
 		c2PubKeyStr, err := json.Marshal(c2PubKey)
 		if err != nil {
-			t.Fatalf("failed to encode c2PubKey to string: %v", err)
+			t.Fatalf("Failed to encode c2PubKey to string: %v", err)
 		}
 
 		pubKeyID := "pubKeyID1"
@@ -42,37 +42,37 @@ func TestFromRawJSON(t *testing.T) {
 
 		k, err := FromRawJSON(jsonKey)
 		if err != nil {
-			t.Fatalf("expected no error when unmarshalling json key, got %v", err)
+			t.Fatalf("Got error %v, wanted no error when unmarshalling json key", err)
 		}
 
-		tkey, ok := k.(*pubKeyMaterial)
+		typedKey, ok := k.(*pubKeyMaterial)
 		if !ok {
-			t.Fatalf("expected key to be a pubKeyMaterial, got %T", k)
+			t.Fatalf("Wrong key type: got %T, wanted pubKeyMaterial", k)
 		}
 
-		if !bytes.Equal(tkey.PrivateKey, privateKey) {
-			t.Fatalf("expected private key to be %v, got %v", privateKey, tkey.PrivateKey)
+		if !bytes.Equal(typedKey.PrivateKey, privateKey) {
+			t.Fatalf("Invalid private key: got %v, wanted %v", typedKey.PrivateKey, privateKey)
 		}
 
-		if !bytes.Equal(tkey.SignerID, signerID) {
-			t.Fatalf("expected signerID to be %v, got %v", signerID, tkey.SignerID)
+		if !bytes.Equal(typedKey.SignerID, signerID) {
+			t.Fatalf("Invalid signer ID: got %v, wanted %v", typedKey.SignerID, signerID)
 		}
 
-		if !bytes.Equal(tkey.C2PubKey, c2PubKey) {
-			t.Fatalf("expected C2PubKey to be %v, got %v", c2PubKey, tkey.C2PubKey)
+		if !bytes.Equal(typedKey.C2PubKey, c2PubKey) {
+			t.Fatalf("Invalid C2PubKey: got %v, wanted %v", typedKey.C2PubKey, c2PubKey)
 		}
 
-		if len(tkey.PubKeys) != 1 {
-			t.Fatalf("expected keys to hold 1 pubkey, got %d", len(tkey.PubKeys))
+		if len(typedKey.PubKeys) != 1 {
+			t.Fatalf("Invalid pubKey count: got %d, wanted 1", len(typedKey.PubKeys))
 		}
 
-		pk, ok := tkey.PubKeys[pubKeyID]
+		pk, ok := typedKey.PubKeys[pubKeyID]
 		if !ok {
-			t.Fatalf("expected pubkeys to hold a key for id %s", pubKeyID)
+			t.Fatalf("Expected pubkeys to hold a key for id %s", pubKeyID)
 		}
 
 		if !bytes.Equal(pk, pubKeyKey) {
-			t.Fatalf("expected pubKey to be %v, got %v", pubKeyKey, pk)
+			t.Fatalf("Invalid pubKey: got %v, wanted %v", pk, pubKeyKey)
 		}
 	})
 
@@ -91,16 +91,16 @@ func TestFromRawJSON(t *testing.T) {
 
 		k, err := FromRawJSON(jsonKey)
 		if err != nil {
-			t.Fatalf("expected no error when unmarshalling json key, got %v", err)
+			t.Fatalf("Got error %v when unmarshalling json key, wanted no error", err)
 		}
 
-		tkey, ok := k.(*symKeyMaterial)
+		typedKey, ok := k.(*symKeyMaterial)
 		if !ok {
-			t.Fatalf("expected key to be a symKeyMaterial, got %T", k)
+			t.Fatalf("Invalid key type: got %T, wanted symKeyMaterial", k)
 		}
 
-		if !bytes.Equal(tkey.Key, privateKey) {
-			t.Fatalf("expected key to be %v, got %v", privateKey, tkey.Key)
+		if !bytes.Equal(typedKey.Key, privateKey) {
+			t.Fatalf("Invalid private key: got %v, wanted %v", typedKey.Key, privateKey)
 		}
 	})
 
@@ -118,7 +118,7 @@ func TestFromRawJSON(t *testing.T) {
 		for _, invalidJSON := range invalidJSONKeys {
 			_, err := FromRawJSON([]byte(invalidJSON))
 			if err == nil {
-				t.Fatalf("expected an error when unmarshalling json `%s`", invalidJSON)
+				t.Fatalf("Expected an error when unmarshalling json `%s`", invalidJSON)
 			}
 		}
 	})

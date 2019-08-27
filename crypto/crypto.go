@@ -65,10 +65,11 @@ func Decrypt(key, ad, ct []byte) ([]byte, error) {
 	return c.Open(nil, ct, ads...)
 }
 
-// ProtectCommandPubKey is called by C2, not clients
-func ProtectCommandPubKey(command []byte, clientpk, c2sk *[32]byte) ([]byte, error) {
+// ProtectCommandPubKey is an helper method to protect the given command using a client
+// public key and a secret key
+func ProtectCommandPubKey(command []byte, clientPubKey, secretKey *[32]byte) ([]byte, error) {
 	var shared [32]byte
-	curve25519.ScalarMult(&shared, c2sk, clientpk)
+	curve25519.ScalarMult(&shared, secretKey, clientPubKey)
 
 	key := Sha3Sum256(shared[:])[:KeyLen]
 

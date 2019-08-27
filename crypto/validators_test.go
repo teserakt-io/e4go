@@ -33,7 +33,7 @@ func TestValidateName(t *testing.T) {
 		}
 		for _, validName := range validNames {
 			if err := ValidateName(validName); err != nil {
-				t.Fatalf("Expected name '%s' validation to return no error, got %v", validName, err)
+				t.Fatalf("Got error %v when validating name '%s', wanted no error", err, validName)
 			}
 		}
 	})
@@ -62,7 +62,7 @@ func TestValidateID(t *testing.T) {
 
 		for _, validID := range validIDs {
 			if err := ValidateID(validID); err != nil {
-				t.Fatalf("Expected id '%v' validation to return no error, got %v", validID, err)
+				t.Fatalf("Got validation error %v when validating ID '%v', wanted no error", err, validID)
 			}
 		}
 	})
@@ -102,7 +102,7 @@ func TestValidateEd25519PrivKey(t *testing.T) {
 
 		for _, validKey := range validKeys {
 			if err := ValidateEd25519PrivKey(validKey); err != nil {
-				t.Fatalf("Expected key '%v' validation to return no error, got %v", validKey, err)
+				t.Fatalf("Got error %v when validating key '%v', wanted no error", err, validKey)
 			}
 		}
 	})
@@ -141,7 +141,7 @@ func TestValidEd25519PubKey(t *testing.T) {
 
 		for _, validKey := range validKeys {
 			if err := ValidateEd25519PubKey(validKey); err != nil {
-				t.Fatalf("Expected key '%v' validation to return no error, got %v", validKey, err)
+				t.Fatalf("Got error %v when validating key '%v', wanted no error", err, validKey)
 			}
 		}
 	})
@@ -170,7 +170,7 @@ func TestValidateTopic(t *testing.T) {
 
 		for _, validTopic := range validTopics {
 			if err := ValidateTopic(validTopic); err != nil {
-				t.Fatalf("Expected topic '%v' validation to return no error, got %v", validTopic, err)
+				t.Fatalf("Got error %v when validating topic '%v', wanted no error", err, validTopic)
 			}
 		}
 	})
@@ -206,7 +206,7 @@ func TestValidateTopicHash(t *testing.T) {
 
 		for _, validTopic := range validTopics {
 			if err := ValidateTopicHash(validTopic); err != nil {
-				t.Fatalf("Expected topic hash '%v' validation to return no error, got %v", validTopic, err)
+				t.Fatalf("Got error %v when validating topic hash '%v', wanted no error", err, validTopic)
 			}
 		}
 	})
@@ -216,19 +216,19 @@ func TestValidateTimestamp(t *testing.T) {
 	futureTimestamp := make([]byte, TimestampLen)
 	binary.LittleEndian.PutUint64(futureTimestamp, uint64(time.Now().Add(1*time.Second).Unix()))
 	if err := ValidateTimestamp(futureTimestamp); err == nil {
-		t.Fatalf("expected timestamp in future to not be valid")
+		t.Fatalf("Expected timestamp in future to not be valid")
 	}
 
 	pastTimestamp := make([]byte, TimestampLen)
 	binary.LittleEndian.PutUint64(pastTimestamp, uint64(time.Now().Add(-(MaxDelayDuration + 1)).Unix()))
 	if err := ValidateTimestamp(pastTimestamp); err == nil {
-		t.Fatalf("expected timestamp too far in past to not be valid")
+		t.Fatalf("Expected timestamp too far in past to not be valid")
 	}
 
 	validTimestamp := make([]byte, TimestampLen)
 	binary.LittleEndian.PutUint64(validTimestamp, uint64(time.Now().Unix()))
 	if err := ValidateTimestamp(validTimestamp); err != nil {
-		t.Fatalf("expected timestamp to be valid, got error: %v", err)
+		t.Fatalf("Got error %v when validating timestamp %v, wanted no error", err, validTimestamp)
 	}
 }
 
@@ -265,7 +265,7 @@ func TestValidateCurve25519PubKey(t *testing.T) {
 
 		for _, validKey := range validKeys {
 			if err := ValidateCurve25519PubKey(validKey); err != nil {
-				t.Fatalf("Expected key '%v' validation to return no error, got %v", validKey, err)
+				t.Fatalf("Got error %v when validating key '%v', wanted no error", err, validKey)
 			}
 		}
 	})
@@ -295,7 +295,7 @@ func TestValidatePassword(t *testing.T) {
 		}
 		for _, validPassword := range validPasswords {
 			if err := ValidatePassword(validPassword); err != nil {
-				t.Fatalf("Expected name '%s' validation to return no error, got %v", validPassword, err)
+				t.Fatalf("Got error %v when validating password '%s', wanted no error", err, validPassword)
 			}
 		}
 	})

@@ -10,29 +10,29 @@ import (
 )
 
 func TestRandomID(t *testing.T) {
-	zeroid := make([]byte, IDLen)
+	zeroID := make([]byte, IDLen)
 
 	for i := 0; i < 2048; i++ {
-		randomidx := RandomID()
-		randomidy := RandomID()
+		randomID1 := RandomID()
+		randomID2 := RandomID()
 
-		if len(randomidx) != IDLen {
-			t.Fatalf("expected ID length to be %d, got %d", IDLen, len(randomidx))
+		if len(randomID1) != IDLen {
+			t.Fatalf("Unexpected ID length, got %d, expected %d", len(randomID1), IDLen)
 		}
-		if len(randomidy) != IDLen {
-			t.Fatalf("expected ID length to be %d, got %d", IDLen, len(randomidx))
+		if len(randomID2) != IDLen {
+			t.Fatalf("Unexpected ID length, got %d, expected %d", len(randomID2), IDLen)
 		}
 
-		if bytes.Equal(randomidx, zeroid) || bytes.Equal(randomidy, zeroid) {
-			t.Fatalf("ID is all zeros, not random")
+		if bytes.Equal(randomID1, zeroID) || bytes.Equal(randomID2, zeroID) {
+			t.Fatal("Random ID is all zeros, not random")
 		}
-		if bytes.Equal(randomidx, randomidy) {
-			t.Fatalf("Two random IDs collide; not random")
+		if bytes.Equal(randomID1, randomID2) {
+			t.Fatal("2 random IDs must not be equals")
 		}
 	}
 }
 
-/* Test encrypt tests KATs for the encryption code */
+// Test encrypt tests KATs for the encryption code
 func TestEncrypt(t *testing.T) {
 	ptLen := 64
 	adLen := 8
@@ -53,19 +53,17 @@ func TestEncrypt(t *testing.T) {
 	}
 	ct, err := Encrypt(key, ad, pt)
 	if err != nil {
-		t.Fatalf("encryption failed: %s", err)
+		t.Fatalf("Encryption failed: %s", err)
 	}
-	if string(ct) != string(ctt) {
-		t.Fatal("ciphertext doesn't match")
+	if !bytes.Equal(ct, ctt) {
+		t.Fatalf("Ciphertext doesn't match. Got %v, expected %v", ct, ctt)
 	}
 }
 
-/* TestRandom tests no trivial collisions exist, the correct
-   length of data is generated and that random does not generate
-   a zero key.
-
-   TODO: proper random testing?
-*/
+// TestRandom tests no trivial collisions exist, the correct
+// length of data is generated and that random does not generate
+// a zero key.
+// TODO: proper random testing?
 func TestRandomKey(t *testing.T) {
 	zeroes := make([]byte, KeyLen)
 
@@ -73,27 +71,27 @@ func TestRandomKey(t *testing.T) {
 		k1 := RandomKey()
 		k2 := RandomKey()
 
-		if string(k1) == string(k2) {
-			t.Fatal("RandomKey isn't random")
+		if bytes.Equal(k1, k2) {
+			t.Fatal("2 random keys must not be equals")
 		}
 
 		if len(k1) != KeyLen {
-			t.Fatalf("random key of incorrect length, expected %d, got %d", KeyLen, len(k1))
+			t.Fatalf("Incorrect random key length, got %d, expected %d", len(k1), KeyLen)
 		}
 		if len(k2) != KeyLen {
-			t.Fatalf("random key of incorrect length, expected %d, got %d", KeyLen, len(k1))
+			t.Fatalf("Incorrect random key length, got %d, expected %d", len(k2), KeyLen)
 		}
 
-		if string(k1) == string(zeroes) || string(k2) == string(zeroes) {
-			t.Fatalf("randomness not random")
+		if bytes.Equal(k1, zeroes) || bytes.Equal(k2, zeroes) {
+			t.Fatal("Random key is all zeros, not random")
 		}
 	}
 }
 
-/* TestEncDec tests that we can return the same plaintext as
-   we encrypted. In addition, it tests that modifications to
-  associated data, ciphertext or key produce a failure result. */
-func TestEncDec(t *testing.T) {
+// TestEncryptDecrypt tests that we can return the same plaintext as
+// we encrypted. In addition, it tests that modifications to
+// associated data, ciphertext or key produce a failure result.
+func TestEncryptDecrypt(t *testing.T) {
 	for i := 0; i < 2048; i++ {
 
 		rDelta := RandomDelta16()
@@ -111,70 +109,61 @@ func TestEncDec(t *testing.T) {
 		ct, err := Encrypt(key, ad, pt)
 
 		if err != nil {
-			t.Fatalf("encryption failed: %s", err)
+			t.Fatalf("Encryption failed: %s", err)
 		}
 		if len(ct) != len(pt)+TagLen {
-			t.Fatalf("invalid ciphertext size: %d vs %d", len(ct), len(pt)+TagLen)
+			t.Fatalf("Invalid ciphertext size: got: %d, wanted: %d", len(ct), len(pt)+TagLen)
 		}
 
 		// happy case:
 		ptt, err := Decrypt(key, ad, ct)
 		if err != nil {
-			t.Fatalf("decryption failed: %v", err)
+			t.Fatalf("Decryption failed: %v", err)
 		}
-		if len(pt) != len(ptt) {
-			t.Fatalf("decrypted message has different length than original: %d vs %d", len(ptt), len(pt))
+		if len(ptt) != len(pt) {
+			t.Fatalf("Decrypted message has different length than original: got: %d, wanted: %d", len(ptt), len(pt))
 		}
 
-		if !bytes.Equal(pt, ptt) {
-			t.Fatal("decrypted message different from the original")
+		if !bytes.Equal(ptt, pt) {
+			t.Fatalf("Invalid decrypted message, got %v, wanted %v", ptt, pt)
 		}
 
 		// invalid ad:
-
-		adinvalid := make([]byte, TimestampLen)
-		copy(adinvalid, ad)
-		for i := range adinvalid {
-			adinvalid[i] ^= 0x01
+		adInvalid := make([]byte, TimestampLen)
+		copy(adInvalid, ad)
+		for i := range adInvalid {
+			adInvalid[i] ^= 0x01
 		}
 
-		_, err = Decrypt(key, adinvalid, ct)
+		_, err = Decrypt(key, adInvalid, ct)
 		if err == nil {
-			t.Fatal("invalid ad: decryption did not fail as expected.")
+			t.Fatal("Expected a decryption error with an invalid ad.")
 		}
 
 		// invalid ciphertext
-		ctlen := len(ct)
-		ctinvalid := make([]byte, ctlen)
-		copy(ctinvalid, ct)
-		for i := range ctinvalid {
-			ctinvalid[i] ^= 0x01
+		ctLength := len(ct)
+		ctInvalid := make([]byte, ctLength)
+		copy(ctInvalid, ct)
+		for i := range ctInvalid {
+			ctInvalid[i] ^= 0x01
 		}
-		_, err = Decrypt(key, ad, ctinvalid)
+		_, err = Decrypt(key, ad, ctInvalid)
 		if err == nil {
-			t.Fatal("invalid ct: decryption did not fail as expected.")
+			t.Fatal("Expected a decryption error with an invalid ct.")
 		}
 
 		// invalid key should obviously not work either
-		zerokey := make([]byte, KeyLen)
-		for i := range zerokey {
-			zerokey[i] = 0x00
-		}
-
-		if bytes.Equal(zerokey, key) {
-			t.Fatal("key isn't random (all zeros), probably a failure")
-		}
-
-		_, err = Decrypt(zerokey, ad, ct)
+		zeroKey := make([]byte, KeyLen)
+		_, err = Decrypt(zeroKey, ad, ct)
 		if err == nil {
-			t.Fatal("invalid key: decryption did not fail as expected.")
+			t.Fatal("Expected a decryption error with an invalid key.")
 		}
 
 		// truncated/too short ciphertext
-		truncct := ct[:2]
-		_, err = Decrypt(key, ad, truncct)
+		truncatedCt := ct[:2]
+		_, err = Decrypt(key, ad, truncatedCt)
 		if err == nil {
-			t.Fatal("invalid key: decryption did not fail as expected.")
+			t.Fatal("Expected a decryption error with a truncated ct.")
 		}
 	}
 }
@@ -183,12 +172,12 @@ func TestEncryptInvalidKeys(t *testing.T) {
 	key := make([]byte, KeyLen)
 	_, err := Encrypt(key, nil, nil)
 	if err == nil {
-		t.Fatal("expected an error when calling encrypt with zero key")
+		t.Fatal("Expected an error when calling encrypt with zero key")
 	}
 
 	_, err = Encrypt(key[:len(key)-1], nil, nil)
 	if err == nil {
-		t.Fatal("expected an error when calling encrypt with too short key")
+		t.Fatal("Expected an error when calling encrypt with a too short key")
 	}
 }
 
@@ -207,7 +196,7 @@ func TestProtectUnprotectSymKey(t *testing.T) {
 	}
 
 	if !bytes.Equal(unprotected, payload) {
-		t.Fatalf("Expected unprotected payload to be %v, got %v", payload, unprotected)
+		t.Fatalf("Invalid unprotected payload: got: %v, wanted: %v", unprotected, payload)
 	}
 
 	now := time.Now()
@@ -219,7 +208,7 @@ func TestProtectUnprotectSymKey(t *testing.T) {
 	tooOldProtected := append(timestamp, protected[TimestampLen:]...)
 	_, err = UnprotectSymKey(tooOldProtected, key)
 	if err != ErrTimestampTooOld {
-		t.Fatalf("Expected %v, got %v", ErrTimestampTooOld, err)
+		t.Fatalf("Invalid error, got: %v, wanted: %v", err, ErrTimestampTooOld)
 	}
 
 	// Replace timestamp in cipher by a timestamp in future
@@ -228,22 +217,22 @@ func TestProtectUnprotectSymKey(t *testing.T) {
 	futureProtected := append(timestamp, protected[TimestampLen:]...)
 	_, err = UnprotectSymKey(futureProtected, key)
 	if err != ErrTimestampInFuture {
-		t.Fatalf("Expected %v, got %v", ErrTimestampInFuture, err)
+		t.Fatalf("Invalid error, got: %v, wanted: %v", err, ErrTimestampInFuture)
 	}
 
 	// Too short cipher are not allowed
 	tooShortProtected := make([]byte, TimestampLen)
 	_, err = UnprotectSymKey(tooShortProtected, key)
 	if err != ErrTooShortCipher {
-		t.Fatalf("Expected %v, got %v", ErrTooShortCipher, err)
+		t.Fatalf("Invalid error, got: %v, wanted: %v", err, ErrTooShortCipher)
 	}
 
 	if _, err := UnprotectSymKey(protected, []byte("not a key")); err == nil {
-		t.Fatal("expected unprotectSymKey to fail with an invalid key")
+		t.Fatal("Expected unprotectSymKey to fail with an invalid key")
 	}
 
 	if _, err := ProtectSymKey([]byte("message"), []byte("not a key")); err == nil {
-		t.Fatal("expected protectSymKey to fail with an invalid key")
+		t.Fatal("Expected protectSymKey to fail with an invalid key")
 	}
 }
 
@@ -258,31 +247,31 @@ func TestEd25519PrivateKeyFromPassword(t *testing.T) {
 
 	key, err := Ed25519PrivateKeyFromPassword(password)
 	if err != nil {
-		t.Fatalf("failed to create private key from password: %v", err)
+		t.Fatalf("Failed to create private key from password: %v", err)
 	}
 
 	if !bytes.Equal(expectedKey, key) {
-		t.Fatalf("expected key to be %#v, got %#v", expectedKey, key)
+		t.Fatalf("Invalid key, got: %v, wanted: %v", key, expectedKey)
 	}
 
 	_, err = Ed25519PrivateKeyFromPassword(strings.Repeat("a", MinPasswordLength-1))
 	if err == nil {
-		t.Fatal("expected an error with a too short password")
+		t.Fatal("Expected an error with a too short password")
 	}
 }
 
 func TestDeriveSymKey(t *testing.T) {
 	_, err := DeriveSymKey(strings.Repeat("a", MinPasswordLength-1))
 	if err == nil {
-		t.Fatal("expected an error with too short password")
+		t.Fatal("Expected an error with too short password")
 	}
 
 	k, err := DeriveSymKey("testPasswordRandom")
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Fatalf("DeriveSymKey error, got: %v, wanted nil", err)
 	}
 
 	if len(k) != KeyLen {
-		t.Fatalf("expected key size to be %d, got %d", KeyLen, len(k))
+		t.Fatalf("Invalid key length: got: %d, wanted: %d", len(k), KeyLen)
 	}
 }
