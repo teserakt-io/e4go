@@ -17,10 +17,18 @@ type TopicKey []byte
 
 // KeyMaterial defines an interface for E4 client key implementations
 type KeyMaterial interface {
+	// ProtectMessage encrypt given payload using the topicKey
+	// and returns the protected cipher, or an error
 	ProtectMessage(payload []byte, topicKey TopicKey) ([]byte, error)
+	// UnprotectMessage decrypt the given cipher using the topicKey
+	// and returns the clear payload, or an error
 	UnprotectMessage(protected []byte, topicKey TopicKey) ([]byte, error)
+	// UnprotectCommand decrypt the given protected command using the key material private key
+	// and returns the command, or an error
 	UnprotectCommand(protected []byte) ([]byte, error)
+	// SetKey sets the material private key, or return an error when the key is invalid
 	SetKey(key []byte) error
+	// MarshalJSON marshal the key material into json
 	MarshalJSON() ([]byte, error)
 }
 

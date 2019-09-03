@@ -9,12 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/teserakt/e4common/keys"
-
 	"github.com/agl/ed25519/extra25519"
-	"golang.org/x/crypto/ed25519"
-
 	e4crypto "gitlab.com/teserakt/e4common/crypto"
+	"gitlab.com/teserakt/e4common/keys"
+	"golang.org/x/crypto/ed25519"
 )
 
 func TestNewClientSymKey(t *testing.T) {
@@ -36,8 +34,16 @@ func TestNewClientSymKey(t *testing.T) {
 		t.Fatalf("Unexpected type: got %T, wanted client", c)
 	}
 
-	if c1.ReceivingTopic != topicForID(id) {
+	if c1.GetReceivingTopic() != topicForID(id) {
 		t.Fatalf("Invalid receiving topic: got %s, wanted %s", c1.ReceivingTopic, topicForID(id))
+	}
+
+	if c1.IsReceivingTopic(topicForID(id)) == false {
+		t.Fatalf("Expected topic %s to be a receiving topic", topicForID(id))
+	}
+
+	if c1.IsReceivingTopic("random/topic") == true {
+		t.Fatalf("Expected topic random/topic to not be a receiving topic")
 	}
 
 	if !bytes.Equal(c1.ID, id) {
@@ -465,6 +471,22 @@ func TestClientTopics(t *testing.T) {
 			t.Fatal("Expected RemoveTopic to fail with a bad topic hash")
 		}
 	})
+}
+
+func TestClientSetIDKey(t *testing.T) {
+	clientID := e4crypto.HashIDAlias("client1")
+	validKey := e4crypto.RandomKey()
+	invalidKey := make([]byte, e4crypto.KeyLen)
+
+	c, err := NewSymKeyClient(clientID, validKey, "./test/data/testSetIdKeyClient")
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	if err := c.setIDKey(invalidKey); err == nil {
+		t.Fatal("Expected an error when calling setIDKey with an invalid key")
+	}
+
 }
 
 func TestCommandsSymClient(t *testing.T) {

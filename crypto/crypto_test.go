@@ -254,14 +254,14 @@ func TestEd25519PrivateKeyFromPassword(t *testing.T) {
 		t.Fatalf("Invalid key, got: %v, wanted: %v", key, expectedKey)
 	}
 
-	_, err = Ed25519PrivateKeyFromPassword(strings.Repeat("a", MinPasswordLength-1))
+	_, err = Ed25519PrivateKeyFromPassword(strings.Repeat("a", PasswordMinLength-1))
 	if err == nil {
 		t.Fatal("Expected an error with a too short password")
 	}
 }
 
 func TestDeriveSymKey(t *testing.T) {
-	_, err := DeriveSymKey(strings.Repeat("a", MinPasswordLength-1))
+	_, err := DeriveSymKey(strings.Repeat("a", PasswordMinLength-1))
 	if err == nil {
 		t.Fatal("Expected an error with too short password")
 	}

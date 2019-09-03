@@ -278,7 +278,7 @@ func TestValidatePassword(t *testing.T) {
 			string([]byte{0xfe}),
 			string([]byte{0xff}),
 			string([]byte{0xf8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80}),
-			strings.Repeat("a", MinPasswordLength-1),
+			strings.Repeat("a", PasswordMinLength-1),
 		}
 		for _, invalidPassword := range invalidPasswords {
 			if err := ValidatePassword(invalidPassword); err == nil {
@@ -289,7 +289,7 @@ func TestValidatePassword(t *testing.T) {
 
 	t.Run("Valid passwords return no error", func(t *testing.T) {
 		validPasswords := []string{
-			strings.Repeat("a", MinPasswordLength),
+			strings.Repeat("a", PasswordMinLength),
 			"исследованиеание",
 			"研究研究研究研究",
 		}

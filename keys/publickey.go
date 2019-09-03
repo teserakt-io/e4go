@@ -111,6 +111,7 @@ func (k *pubKeyMaterial) ProtectMessage(payload []byte, topicKey TopicKey) ([]by
 	return protected, nil
 }
 
+// UnprotectMessage attempts to decrypt the given protected cipher using the given topicKey.
 func (k *pubKeyMaterial) UnprotectMessage(protected []byte, topicKey TopicKey) ([]byte, error) {
 	if len(protected) <= e4crypto.TimestampLen+ed25519.SignatureSize {
 		return nil, e4crypto.ErrInvalidProtectedLen
@@ -147,6 +148,8 @@ func (k *pubKeyMaterial) UnprotectMessage(protected []byte, topicKey TopicKey) (
 	return pt, nil
 }
 
+// UnprotectCommand attempt to decrypt a client command from the given protected cipher.
+// It will use the material's private key and the c2 public key to create the required symmetric key
 func (k *pubKeyMaterial) UnprotectCommand(protected []byte) ([]byte, error) {
 	// convert ed key to curve key
 	var curvekey [32]byte
@@ -180,6 +183,8 @@ func (k *pubKeyMaterial) AddPubKey(id []byte, pubKey []byte) error {
 	return nil
 }
 
+// removePubKey removes the key associated to id on the pubKeyMateriel
+// It returns an error if no key can be found with the given id
 func (k *pubKeyMaterial) RemovePubKey(id []byte) error {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
@@ -195,6 +200,7 @@ func (k *pubKeyMaterial) RemovePubKey(id []byte) error {
 	return nil
 }
 
+// ResetPubKeys removes all public keys stored on the pubKeyMaterial
 func (k *pubKeyMaterial) ResetPubKeys() {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()

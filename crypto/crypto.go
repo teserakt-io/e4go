@@ -1,3 +1,4 @@
+// Package crypto defines the cryptographic functions used in E4
 package crypto
 
 import (

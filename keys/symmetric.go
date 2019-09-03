@@ -58,10 +58,14 @@ func (k *symKeyMaterial) ProtectMessage(payload []byte, topicKey TopicKey) ([]by
 	return protected, nil
 }
 
+// UnprotectCommand attempts to decrypt a client command from given protected cipher,
+// using the material's key
 func (k *symKeyMaterial) UnprotectCommand(protected []byte) ([]byte, error) {
 	return e4crypto.UnprotectSymKey(protected, k.Key)
 }
 
+// UnprotectMessage attempts to decrypt a message from given protected cipher,
+// using given topic key
 func (k *symKeyMaterial) UnprotectMessage(protected []byte, topicKey TopicKey) ([]byte, error) {
 	return e4crypto.UnprotectSymKey(protected, topicKey)
 }

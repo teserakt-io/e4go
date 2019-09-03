@@ -12,8 +12,12 @@ import (
 )
 
 const (
-	// MinPasswordLength defines the minimum size accepted for a password
-	MinPasswordLength = 16
+	// PasswordMinLength defines the minimum size accepted for a password
+	PasswordMinLength = 16
+	// NameMinLen is the minimum length of a name
+	NameMinLen = 1
+	// NameMaxLen is the maximum length of a name
+	NameMaxLen = 255
 )
 
 var (
@@ -146,14 +150,14 @@ func ValidateTimestamp(timestamp []byte) error {
 	return nil
 }
 
-// ValidatePassword checks given password is an utf8 string of at least MinPasswordLength characters
+// ValidatePassword checks given password is an utf8 string of at least PasswordMinLength characters
 func ValidatePassword(password string) error {
 	if !utf8.ValidString(password) {
 		return fmt.Errorf("password is not a valid UTF-8 string")
 	}
 
-	if len(password) < MinPasswordLength {
-		return fmt.Errorf("password must be at least %d characters", MinPasswordLength)
+	if len(password) < PasswordMinLength {
+		return fmt.Errorf("password must be at least %d characters", PasswordMinLength)
 	}
 
 	return nil

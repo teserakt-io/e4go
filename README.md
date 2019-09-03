@@ -80,13 +80,13 @@ If you receive no error, the plainText may still be nil. This happens when
 E4 has processed a control message. In this case you can simply not act on
 the received message - E4 has already processed it. If you want to detect this
 case you can test for
-
+```go
     if len(plainText) == 0 { ... }
-
+```
 or alternatively
-
-    if topic == client.ReceivingTopic
-
+```go
+    if client.IsReceivingTopic(topic)
+```
 which indicates a message on E4's control channel.
 
 You should not try to parse E4's messages yourself and they are deliberately
@@ -122,3 +122,11 @@ to deliver a key to the client.
 ## Support
 
 You can receive support for this code by contacting team@teserakt.io.
+
+## Security
+
+See [SECURITY.md](./SECURITY.md)
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md)

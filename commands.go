@@ -20,13 +20,18 @@ const (
 	ResetPubKeys
 	SetPubKey
 
+	// UnknownCommand must stay the last element. It's used to
+	// know if a Command is out of range
 	UnknownCommand
 )
 
-// ErrInvalidCommand is returned when trying to process an unsupported command
-var ErrInvalidCommand = errors.New("invalid command")
+var (
+	// ErrInvalidCommand is returned when trying to process an unsupported command
+	ErrInvalidCommand = errors.New("invalid command")
+)
 
 // ToByte converts a command into its byte representation
+// A value of 255 is returned when the command is out of range
 func (c Command) ToByte() byte {
 	if c < RemoveTopic || c >= UnknownCommand {
 		return 255

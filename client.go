@@ -1,3 +1,33 @@
+//
+// Package e4common provides a e4 client implementation and libraries.
+//
+// It aims to be quick and easy to integrate in IoT devices applications
+// enabling to secure their communications, as well as exposing a way to manage the various keys required.
+//
+// Creating a client
+//
+// the package provides several helpers to instantiate a client using symmetric keys:
+//  client, err := NewSymKeyClient([]byte("clientID"), crypto.RandomKey(), "./symClient.json")
+//  client, err := NewSymKeyClientPretty("clientName", "secretPassword", "./symClient.json")
+// or asymmetric keys:
+//  client, err := NewPubKeyClient([]byte("clientID"), privateKey, "./asymClient.json", sharedPubKey)
+//  client, err := NewPubKeyClientPretty([]byte("clientID"), "secretPassword", "./asymClient.json", sharedPubKey)
+// see provided examples for a more detailed usage.
+//
+// Protecting and unprotecting messages
+//
+// Once created, a client provide methods to protect messages before sending them to the broker:
+//  protectedMessage, err := client.ProtectMessage([]byte("secret message"), topicKey)
+// or unprotecting the messages it receives.
+//  originalMessage, err := client.Unprotect([]byte(protectedMessage, topicKey))
+//
+// ReceivingTopic and client commands
+//
+// A special topic (called ReceivingTopic) is reserved to communicate protected commands to the client.
+// Such commands are used to update the client state, like setting a new key for a topic, or renewing its private key.
+// There is nothing particular to be done when receiving a command, just passing its protected form to the Unprotect() method
+// and the client will automatically unprotect and process it (thus returning no unprotected message).
+// See commands.go for the list of available commands and their respective parameters.
 package e4common
 
 import (
@@ -28,18 +58,43 @@ var (
 
 // Client defines interface for protecting and unprotecting E4 messages and commands
 type Client interface {
+	// ProtectMessage will encrypt the given payload using the key associated to topic.
+	// When the client doesn't have a key for this topic, ErrTopicKeyNotFound will be returned.
+	// When no errors, the protected cipher bytes are returned
 	ProtectMessage(payload []byte, topic string) ([]byte, error)
+	// Unprotect attempts to decrypt the given cipher using the topic key.
+	// When the client doesn't have a key for this topic, ErrTopicKeyNotFound will be returned.
+	// When no errors, the clear payload bytes are returned, unless the protected message was a client command.
+	// Message are client commands when received on the client receiving topic. The command will be processed
+	// when unprotecting it, making a nil,nil response indicating a success
 	Unprotect(protected []byte, topic string) ([]byte, error)
+	// IsReceivingTopic returns true when the given topic is the client receiving topics.
+	// Message received from this topics will be protected commands, meant to update the client state
+	IsReceivingTopic(topic string) bool
+	// GetReceivingTopic returns the receiving topic for this client, which will be used to transmit commands
+	// allowing to update the client state, like setting a new private key or adding a new topic key.
+	GetReceivingTopic() string
 
+	// setIDKey will set the client's key material private key to the given key
 	setIDKey(key []byte) error
-
+	// setPubKey set the public key for the given clientID, if the client key material support it.
+	// otherwise, ErrUnsupportedOperation is returned
 	setPubKey(key, clientID []byte) error
+	// removePubKey remove the public key for the given clientID, if the client key material support it.
+	// otherwise, ErrUnsupportedOperation is returned
 	removePubKey(clientID []byte) error
+	// resetPubKeys remove all pubKeys from the key material, if it support it.
+	// otherwise, ErrUnsupportedOperation is returned
 	resetPubKeys() error
+	// getPubKeys returns the map of public keys having been set on the client, if the client key material support it.
+	// otherwise, ErrUnsupportedOperation is returned
 	getPubKeys() (map[string][]byte, error)
-
+	// setTopicKey set the key for the given topic hash (see crypto.HashTopic to obtain topic hashes).
+	// Setting topic keys is required prior being able to communicate over this topic.
 	setTopicKey(key, topichash []byte) error
+	// removeTopic will remove the topic key from the client for the given topic hash (see crypto.HashTopic to obtain topic hashes).
 	removeTopic(topichash []byte) error
+	// resetTopics will remove all previously set topics from the client.
 	resetTopics() error
 }
 
@@ -284,6 +339,17 @@ func (c *client) Unprotect(protected []byte, topic string) ([]byte, error) {
 	}
 
 	return message, nil
+}
+
+// IsReceivingTopic indicate when the given topic is the receiving topic of the client.
+// This means message received on this topic are client commands
+func (c *client) IsReceivingTopic(topic string) bool {
+	return topic == c.ReceivingTopic
+}
+
+// GetReceivingTopic returns the client receiving topic.
+func (c *client) GetReceivingTopic() string {
+	return c.ReceivingTopic
 }
 
 // setTopicKey adds a key to the given topic hash, erasing any previous entry
