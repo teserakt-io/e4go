@@ -7,17 +7,33 @@ import (
 	"golang.org/x/crypto/ed25519"
 )
 
-// Command is a command sent by C2 to a client
+// Command is a command sent by C2 to a client. This is a sequence of bytes, starting from a Command, followed by the command arguments.
+// Such command message must then be protected using the client key, before being passed to the client's Unprotect() method. The command will
+// then be unprotected, and processed.
 type Command int
 
 // List of supported commands
 const (
+	// RemoveTopic command allows to remove a topic key from the client.
+	// It expects a topic hash as argument
 	RemoveTopic Command = iota
+	// ResetTopics allows to clear out all the topics on a client.
+	// It doesn't have any argument
 	ResetTopics
+	// SetIDKey allows to set the private key of a client.
+	// It expects a key as argument
 	SetIDKey
+	// SetTopicKey allows to add a topic key on the client.
+	// It takes a key, followed by a topic hash as arguments.
 	SetTopicKey
+	// RemovePubKey allows to remove a public key from the client.
+	// It takes the ID to be removed as argument
 	RemovePubKey
+	// ResetPubKeys removes all public keys stored on the client.
+	// It expects no argument
 	ResetPubKeys
+	// SetPubKey allows to set a public key on the client.
+	// It takes a public key, followed by an ID as arguments.
 	SetPubKey
 
 	// UnknownCommand must stay the last element. It's used to

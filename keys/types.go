@@ -1,3 +1,4 @@
+// Package keys holds E4 key material implementations.
 package keys
 
 import (
@@ -16,6 +17,10 @@ var (
 type TopicKey []byte
 
 // KeyMaterial defines an interface for E4 client key implementations
+// It holds the client private key, and allows to defines how messages will be
+// encrypted or decrypted, and how commands will be unprotected.
+// A KeyMaterial must also marshal into a jsonKey, allowing the client to properly
+// store and load the key material
 type KeyMaterial interface {
 	// ProtectMessage encrypt given payload using the topicKey
 	// and returns the protected cipher, or an error
@@ -33,10 +38,21 @@ type KeyMaterial interface {
 }
 
 // PubKeyStore interface defines methods to interact with a public key storage
+// A key material implementing a PubKeyStore enable the client to receive any of the
+// pubKey's commands. When the KeyMaterial doesn't implement it, such commands will return
+// a ErrUnsupportedOperation error.
 type PubKeyStore interface {
+	// AddPubKey allows to add a public key to the store, identified by ID.
+	// If a key already exists with this ID, it will be replaced.
 	AddPubKey(id []byte, key []byte) error
+	// GetPubKey returns the public key associated to the ID.
+	// ErrPubKeyNotFound is returned when it cannot be found.
 	GetPubKey(id []byte) ([]byte, error)
+	// GetPubKeys returns all stored public keys, in a ID indexed map.
 	GetPubKeys() map[string][]byte
+	// RemovePubKey removes a public key from the store by its ID, or returns
+	// an error if it doesn't exists.
 	RemovePubKey(id []byte) error
+	// ResetPubKeys removes all public keys stored.
 	ResetPubKeys()
 }
