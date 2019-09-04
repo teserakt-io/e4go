@@ -34,12 +34,12 @@ func TestNewClientSymKey(t *testing.T) {
 		t.Fatalf("Unexpected type: got %T, wanted client", c)
 	}
 
-	if c1.GetReceivingTopic() != topicForID(id) {
-		t.Fatalf("Invalid receiving topic: got %s, wanted %s", c1.ReceivingTopic, topicForID(id))
+	if c1.GetReceivingTopic() != TopicForID(id) {
+		t.Fatalf("Invalid receiving topic: got %s, wanted %s", c1.ReceivingTopic, TopicForID(id))
 	}
 
-	if c1.IsReceivingTopic(topicForID(id)) == false {
-		t.Fatalf("Expected topic %s to be a receiving topic", topicForID(id))
+	if c1.IsReceivingTopic(TopicForID(id)) == false {
+		t.Fatalf("Expected topic %s to be a receiving topic", TopicForID(id))
 	}
 
 	if c1.IsReceivingTopic("random/topic") == true {
@@ -498,7 +498,7 @@ func TestCommandsSymClient(t *testing.T) {
 		t.Fatalf("Failed to create client: %v", err)
 	}
 
-	receivingTopic := topicForID(clientID)
+	receivingTopic := TopicForID(clientID)
 
 	setTopicCmd := []byte{SetTopicKey.ToByte()}
 	topicKey := e4crypto.RandomKey()

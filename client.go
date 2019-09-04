@@ -186,7 +186,7 @@ func newClient(id []byte, clientKey keys.KeyMaterial, filePath string) (Client, 
 		Key:            clientKey,
 		TopicKeys:      make(map[string]keys.TopicKey),
 		FilePath:       filePath,
-		ReceivingTopic: topicForID(id),
+		ReceivingTopic: TopicForID(id),
 	}
 
 	c.ID = make([]byte, len(id))
@@ -469,7 +469,7 @@ func (c *client) setIDKey(key []byte) error {
 	return c.save()
 }
 
-// topicForID generate the MQTT topic that a client should subscribe to in order to receive commands
-func topicForID(id []byte) string {
+// TopicForID generate the receiving topic that a client should subscribe to in order to receive commands
+func TopicForID(id []byte) string {
 	return idTopicPrefix + hex.EncodeToString(id)
 }
