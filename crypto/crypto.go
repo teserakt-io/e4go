@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/curve25519"
 
-	miscreant "github.com/miscreant/miscreant/go"
+	miscreant "github.com/miscreant/miscreant.go"
 )
 
 var (

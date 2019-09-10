@@ -41,8 +41,8 @@ import (
 
 	"golang.org/x/crypto/ed25519"
 
-	e4crypto "gitlab.com/teserakt/e4common/crypto"
-	"gitlab.com/teserakt/e4common/keys"
+	e4crypto "github.com/teserakt-io/e4common/crypto"
+	"github.com/teserakt-io/e4common/keys"
 )
 
 const (

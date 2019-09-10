@@ -15,7 +15,7 @@ communication protocol.
 Client instances can be created with either the `NewSymKeyClient` or
 `NewSymKeyClientPretty` commands, for example you might call:
 ```go
-    import e4 "gitlab.com/teserakt/e4common"
+    import e4 "github.com/teserakt-io/e4common"
 
     var id []byte
     var key []byte
@@ -25,7 +25,7 @@ Client instances can be created with either the `NewSymKeyClient` or
 
 If you know your id and key already; alternatively you might do:
 ```go
-    import e4 "gitlab.com/teserakt/e4common"
+    import e4 "github.com/teserakt-io/e4common"
 
     name := "some client name"
     pwd := "some random password"
