@@ -1,0 +1,14 @@
+name: "Go Test action"
+description: "Runs `go test`"
+inputs:
+  timeout:
+    description: "time before the test execution get killed"
+    required: false
+    default: 60s
+  race:
+    description: "enabled the race detection"
+    required: false
+    default: true
+runs:
+  using: "docker"
+  image: "Dockerfile"
