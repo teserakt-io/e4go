@@ -1,7 +1,5 @@
 
-# e4common
-
-Copyright (C) Teserakt AG 2018-2019. All Rights Reserved.
+# e4go
 
 This repository implements E4 in Go, Teserakt's Secure machine-to-machine
 communication protocol.
@@ -15,7 +13,7 @@ communication protocol.
 Client instances can be created with either the `NewSymKeyClient` or
 `NewSymKeyClientPretty` commands, for example you might call:
 ```go
-    import e4 "github.com/teserakt-io/e4common"
+    import e4 "github.com/teserakt-io/e4go"
 
     var id []byte
     var key []byte
@@ -25,7 +23,7 @@ Client instances can be created with either the `NewSymKeyClient` or
 
 If you know your id and key already; alternatively you might do:
 ```go
-    import e4 "github.com/teserakt-io/e4common"
+    import e4 "github.com/teserakt-io/e4go"
 
     name := "some client name"
     pwd := "some random password"

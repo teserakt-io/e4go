@@ -4,11 +4,11 @@ Although E4 is an in-house-developed product by Teserakt.io, it is still open-so
 
 ## Bugs, issues, feature requests
 
-Please let us know by creating a [Github issues](https://github.com/Teserakt-io/e4common/issues) if you stumble upon a bug, have an issue or a feature request.
+Please let us know by creating a [Github issues](https://github.com/Teserakt-io/e4go/issues) if you stumble upon a bug, have an issue or a feature request.
 
 ## Development
 
-* We use golang version >= 1.12 for developing e4common.
+* We use golang version >= 1.12 for developing e4go.
 * Makes sure to create new unit tests covering your code additions.
 * Please create pull requests targeting the `develop` branch
 

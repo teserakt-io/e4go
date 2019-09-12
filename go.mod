@@ -1,4 +1,4 @@
-module github.com/teserakt-io/e4common
+module github.com/teserakt-io/e4go
 
 go 1.12
 

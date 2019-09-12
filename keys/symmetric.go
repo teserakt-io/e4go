@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	e4crypto "github.com/teserakt-io/e4common/crypto"
+	e4crypto "github.com/teserakt-io/e4go/crypto"
 )
 
 // SymKeyMaterial extends the KeyMaterial interface for symmetric key implementations

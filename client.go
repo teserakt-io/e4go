@@ -1,5 +1,5 @@
 //
-// Package e4common provides a e4 client implementation and libraries.
+// Package e4go provides a e4 client implementation and libraries.
 //
 // It aims to be quick and easy to integrate in IoT devices applications
 // enabling to secure their communications, as well as exposing a way to manage the various keys required.
@@ -28,7 +28,7 @@
 // There is nothing particular to be done when receiving a command, just passing its protected form to the Unprotect() method
 // and the client will automatically unprotect and process it (thus returning no unprotected message).
 // See commands.go for the list of available commands and their respective parameters.
-package e4common
+package e4go
 
 import (
 	"encoding/hex"
@@ -41,8 +41,8 @@ import (
 
 	"golang.org/x/crypto/ed25519"
 
-	e4crypto "github.com/teserakt-io/e4common/crypto"
-	"github.com/teserakt-io/e4common/keys"
+	e4crypto "github.com/teserakt-io/e4go/crypto"
+	"github.com/teserakt-io/e4go/keys"
 )
 
 const (

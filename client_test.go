@@ -1,4 +1,4 @@
-package e4common
+package e4go
 
 import (
 	"bytes"
@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/agl/ed25519/extra25519"
-	e4crypto "github.com/teserakt-io/e4common/crypto"
-	"github.com/teserakt-io/e4common/keys"
+	e4crypto "github.com/teserakt-io/e4go/crypto"
+	"github.com/teserakt-io/e4go/keys"
 	"golang.org/x/crypto/ed25519"
 )
 
