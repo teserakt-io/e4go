@@ -77,10 +77,11 @@ func ExampleNewPubKeyClientPretty() {
 	copy(c2EdPk[:], c2EdPubKey)
 	extra25519.PublicKeyToCurve25519(&c2PubKey, &c2EdPk)
 
-	client, err := NewPubKeyClientPretty("clientName", "verySecretPassword", "./pubClient.json", c2PubKey[:])
+	client, pubKey, err := NewPubKeyClientPretty("clientName", "verySecretPassword", "./pubClient.json", c2PubKey[:])
 	if err != nil {
 		panic(err)
 	}
+	log.Printf("Client public key: %x", pubKey)
 
 	protectedMessage, err := client.ProtectMessage([]byte("very secret message"), "topic/name")
 	if err != nil {

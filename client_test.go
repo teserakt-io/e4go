@@ -10,9 +10,10 @@ import (
 	"time"
 
 	"github.com/agl/ed25519/extra25519"
+	"golang.org/x/crypto/ed25519"
+
 	e4crypto "github.com/teserakt-io/e4go/crypto"
 	"github.com/teserakt-io/e4go/keys"
-	"golang.org/x/crypto/ed25519"
 )
 
 func TestNewClientSymKey(t *testing.T) {
@@ -278,9 +279,13 @@ func TestClientPubKeys(t *testing.T) {
 	t.Run("pubKey client properly add / remove / reset pubKeys", func(t *testing.T) {
 		clientFilePath := "./test/data/pubclienttestpubkeys"
 
-		c, err := NewPubKeyClientPretty("testClient", "passwordTestRandom", clientFilePath, generateCurve25519PubKey(t))
+		c, pubKey, err := NewPubKeyClientPretty("testClient", "passwordTestRandom", clientFilePath, generateCurve25519PubKey(t))
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
+		}
+
+		if len(pubKey) == 0 {
+			t.Fatal("Empty public key")
 		}
 
 		pks, err := c.getPubKeys()
@@ -359,9 +364,13 @@ func TestClientPubKeys(t *testing.T) {
 	t.Run("pubKey client return errors on pubKey operations with invalid ids", func(t *testing.T) {
 		clientFilePath := "./test/data/pubclienttestpubkeys"
 
-		c, err := NewPubKeyClientPretty("testClient", "passwordTestRandom", clientFilePath, generateCurve25519PubKey(t))
+		c, pubKey, err := NewPubKeyClientPretty("testClient", "passwordTestRandom", clientFilePath, generateCurve25519PubKey(t))
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
+		}
+
+		if len(pubKey) == 0 {
+			t.Fatal("Empty public key")
 		}
 
 		pk, _, err := ed25519.GenerateKey(nil)

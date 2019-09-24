@@ -135,6 +135,7 @@ func NewSymKeyClient(id []byte, key []byte, filePath string) (Client, error) {
 }
 
 // NewPubKeyClient creates a new client using a ed25519 private key
+// The c2PubKey must be the curve25519 public part of the key used to protect client commands
 func NewPubKeyClient(id []byte, key ed25519.PrivateKey, filePath string, c2PubKey []byte) (Client, error) {
 	var newID []byte
 	if len(id) == 0 {
@@ -164,16 +165,22 @@ func NewSymKeyClientPretty(name string, password string, filePath string) (Clien
 	return newClient(id, key, filePath)
 }
 
-// NewPubKeyClientPretty is like NewClient but takes an client name and a password, rather than raw values
-func NewPubKeyClientPretty(name string, password string, filePath string, c2PubKey []byte) (Client, error) {
+// NewPubKeyClientPretty is like NewClient but takes an client name and a password, rather than raw values.
+// The c2PubKey must be the curve25519 public part of the key used to protect client commands
+func NewPubKeyClientPretty(name string, password string, filePath string, c2PubKey []byte) (Client, ed25519.PublicKey, error) {
 	id := e4crypto.HashIDAlias(name)
 
 	key, err := keys.NewPubKeyMaterialFromPassword(id, password, c2PubKey)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return newClient(id, key, filePath)
+	client, err := newClient(id, key, filePath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return client, key.PublicKey(), nil
 }
 
 // newClient creates a new client, generating a random ID if they are empty
