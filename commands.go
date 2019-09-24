@@ -2,6 +2,7 @@ package e4go
 
 import (
 	"errors"
+	"fmt"
 
 	"golang.org/x/crypto/ed25519"
 
@@ -107,4 +108,89 @@ func processCommand(client Client, payload []byte) error {
 	default:
 		return ErrInvalidCommand
 	}
+}
+
+// RemoveTopicCommand creates a command which will remove thetopic key associated to the given topic from the client
+func RemoveTopicCommand(topic string) ([]byte, error) {
+	if len(topic) == 0 {
+		return nil, errors.New("topic must not be empty")
+	}
+
+	cmd := make([]byte, 0, 1+e4crypto.HashLen)
+	cmd = append(cmd, RemoveTopic.ToByte())
+	cmd = append(cmd, e4crypto.HashTopic(topic)...)
+
+	return cmd, nil
+}
+
+// ResetTopicsCommand creates a command which will remove all topic keys stored on the client
+func ResetTopicsCommand() ([]byte, error) {
+	return []byte{ResetTopics.ToByte()}, nil
+}
+
+// SetIDKeyCommand creates a command which will set the client private key to the given key
+func SetIDKeyCommand(key []byte) ([]byte, error) {
+	if keyLen := len(key); keyLen != e4crypto.KeyLen {
+		return nil, fmt.Errorf("invalid key length, got %d, wanted %d", keyLen, e4crypto.KeyLen)
+	}
+
+	cmd := make([]byte, 0, 1+e4crypto.KeyLen)
+	cmd = append(cmd, SetIDKey.ToByte())
+	cmd = append(cmd, key...)
+
+	return cmd, nil
+}
+
+// SetTopicKeyCommand creates a command which will set the given topic / topic key on the client
+func SetTopicKeyCommand(topicKey []byte, topic string) ([]byte, error) {
+	if keyLen := len(topicKey); keyLen != e4crypto.KeyLen {
+		return nil, fmt.Errorf("invalid key length, got %d, wanted %d", keyLen, e4crypto.KeyLen)
+	}
+
+	if len(topic) == 0 {
+		return nil, errors.New("topic must not be empty")
+	}
+
+	cmd := make([]byte, 0, 1+e4crypto.KeyLen+e4crypto.HashLen)
+	cmd = append(cmd, SetTopicKey.ToByte())
+	cmd = append(cmd, topicKey...)
+	cmd = append(cmd, e4crypto.HashTopic(topic)...)
+
+	return cmd, nil
+}
+
+// RemovePubKeyCommand creates a command which will remove the public key identified by given name from the client
+func RemovePubKeyCommand(name string) ([]byte, error) {
+	if len(name) == 0 {
+		return nil, errors.New("name must not be empty")
+	}
+
+	cmd := make([]byte, 0, 1+e4crypto.IDLen)
+	cmd = append(cmd, RemovePubKey.ToByte())
+	cmd = append(cmd, e4crypto.HashIDAlias(name)...)
+
+	return cmd, nil
+}
+
+// ResetPubKeysCommand creates a command which will removes all public keys of the client
+func ResetPubKeysCommand() ([]byte, error) {
+	return []byte{ResetPubKeys.ToByte()}, nil
+}
+
+// SetPubKeyCommand creates a command which will set a given public key, identified by given name on the client
+func SetPubKeyCommand(pubKey ed25519.PublicKey, name string) ([]byte, error) {
+	if keyLen := len(pubKey); keyLen != ed25519.PublicKeySize {
+		return nil, fmt.Errorf("invalid public key length, got %d, wanted %d", keyLen, ed25519.PublicKeySize)
+	}
+
+	if len(name) == 0 {
+		return nil, errors.New("name must not be empty")
+	}
+
+	cmd := make([]byte, 0, 1+ed25519.PublicKeySize+e4crypto.IDLen)
+	cmd = append(cmd, SetPubKey.ToByte())
+	cmd = append(cmd, pubKey...)
+	cmd = append(cmd, e4crypto.HashIDAlias(name)...)
+
+	return cmd, nil
 }
