@@ -1,0 +1,29 @@
+name: Go
+on: [push]
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-go@v1
+        with:
+          go-version: 1.12
+
+      - name: Install dependencies
+        run: |
+          go get honnef.co/go/tools/cmd/staticcheck
+          go get golang.org/x/lint/golint
+
+      - name: Lint
+        run: /home/runner/go/bin/golint -set_exit_status ./...
+
+      - name: Static check
+        run: /home/runner/go/bin/staticcheck ./...
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: teserakt-io/gh-actions/go-test@master

@@ -10,7 +10,7 @@ import (
 
 	"github.com/agl/ed25519/extra25519"
 
-	e4crypto "gitlab.com/teserakt/e4common/crypto"
+	e4crypto "github.com/teserakt-io/e4go/crypto"
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -352,6 +352,10 @@ func TestPubKeyMaterialPubKeys(t *testing.T) {
 
 func TestPubKeyMaterialSetKey(t *testing.T) {
 	_, privateKey, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate key: %v", err)
+	}
+
 	clientID := e4crypto.HashIDAlias("test")
 
 	k, err := NewPubKeyMaterial(clientID, privateKey, getTestC2PubKey(t))
@@ -369,6 +373,10 @@ func TestPubKeyMaterialSetKey(t *testing.T) {
 	}
 
 	_, privateKey2, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate key: %v", err)
+	}
+
 	if err := typedKey.SetKey(privateKey2); err != nil {
 		t.Fatalf("Failed to set key: %v", err)
 	}
@@ -389,6 +397,10 @@ func TestPubKeyMaterialSetKey(t *testing.T) {
 
 func TestPubKeyMaterialMarshalJSON(t *testing.T) {
 	_, privateKey, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate key: %v", err)
+	}
+
 	clientID := e4crypto.HashIDAlias("test")
 	c2Pk := getTestC2PubKey(t)
 

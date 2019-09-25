@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	e4crypto "gitlab.com/teserakt/e4common/crypto"
+	e4crypto "github.com/teserakt-io/e4go/crypto"
 )
 
 func TestNewSymKeyFromPassword(t *testing.T) {

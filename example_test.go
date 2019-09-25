@@ -1,4 +1,4 @@
-package e4common
+package e4go
 
 import (
 	"log"
@@ -6,7 +6,7 @@ import (
 	"github.com/agl/ed25519/extra25519"
 	"golang.org/x/crypto/ed25519"
 
-	"gitlab.com/teserakt/e4common/crypto"
+	"github.com/teserakt-io/e4go/crypto"
 )
 
 func ExampleNewSymKeyClient() {
