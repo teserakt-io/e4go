@@ -1,7 +1,7 @@
 package e4go
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/agl/ed25519/extra25519"
 	"golang.org/x/crypto/ed25519"
@@ -20,7 +20,7 @@ func ExampleNewSymKeyClient() {
 		panic(err)
 	}
 
-	log.Printf("Protected message: %v", protectedMessage)
+	fmt.Printf("Protected message: %v", protectedMessage)
 }
 
 func ExampleNewSymKeyClientPretty() {
@@ -34,7 +34,7 @@ func ExampleNewSymKeyClientPretty() {
 		panic(err)
 	}
 
-	log.Printf("Protected message: %v", protectedMessage)
+	fmt.Printf("Protected message: %v", protectedMessage)
 }
 
 func ExampleNewPubKeyClient() {
@@ -63,7 +63,7 @@ func ExampleNewPubKeyClient() {
 		panic(err)
 	}
 
-	log.Printf("Protected message: %v", protectedMessage)
+	fmt.Printf("Protected message: %v", protectedMessage)
 }
 
 func ExampleNewPubKeyClientPretty() {
@@ -81,12 +81,12 @@ func ExampleNewPubKeyClientPretty() {
 	if err != nil {
 		panic(err)
 	}
-	log.Printf("Client public key: %x", pubKey)
+	fmt.Printf("Client public key: %x", pubKey)
 
 	protectedMessage, err := client.ProtectMessage([]byte("very secret message"), "topic/name")
 	if err != nil {
 		panic(err)
 	}
 
-	log.Printf("Protected message: %v", protectedMessage)
+	fmt.Printf("Protected message: %v", protectedMessage)
 }
