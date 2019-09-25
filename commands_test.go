@@ -27,10 +27,10 @@ var invalidPubKeys = []ed25519.PublicKey{
 	make([]byte, ed25519.PublicKeySize+1),
 }
 
-func TestRemoveTopicCommand(t *testing.T) {
+func TestCmdRemoveTopic(t *testing.T) {
 	t.Run("invalid names produce errors", func(t *testing.T) {
 		for _, name := range invalidNames {
-			_, err := RemoveTopicCommand(name)
+			_, err := CmdRemoveTopic(name)
 			if err == nil {
 				t.Fatalf("got no error with name: %s", name)
 			}
@@ -40,36 +40,31 @@ func TestRemoveTopicCommand(t *testing.T) {
 	t.Run("expected command is created", func(t *testing.T) {
 		topic := "some-topic"
 
-		cmd, err := RemoveTopicCommand(topic)
+		cmd, err := CmdRemoveTopic(topic)
 		if err != nil {
 			t.Fatalf("failed to create command: %v", err)
 		}
 
-		expectedLength := 1 + e4crypto.HashLen
-		if l := len(cmd); l != expectedLength {
-			t.Fatalf("invalid command length, got %d, wanted %d", l, expectedLength)
+		if got, want := len(cmd), 1+e4crypto.HashLen; got != want {
+			t.Fatalf("invalid command length, got %d, wanted %d", got, want)
 		}
 
-		expectedCmd := make([]byte, 0, expectedLength)
-		expectedCmd = append(expectedCmd, RemoveTopic.ToByte())
-		expectedCmd = append(expectedCmd, e4crypto.HashTopic(topic)...)
-
+		expectedCmd := append([]byte{RemoveTopic.ToByte()}, e4crypto.HashTopic(topic)...)
 		if !bytes.Equal(cmd, expectedCmd) {
 			t.Fatalf("invalid command, got %v, wanted %v", cmd, expectedCmd)
 		}
 	})
 }
 
-func TestResetTopicsCommand(t *testing.T) {
+func TestCmdResetTopics(t *testing.T) {
 	t.Run("expected command is created", func(t *testing.T) {
-		cmd, err := ResetTopicsCommand()
+		cmd, err := CmdResetTopics()
 		if err != nil {
 			t.Fatalf("failed to created command: %v", err)
 		}
 
-		expectedLength := 1
-		if l := len(cmd); l != expectedLength {
-			t.Fatalf("invalid command length, got %d, wanted %d", l, expectedLength)
+		if got, want := len(cmd), 1; got != want {
+			t.Fatalf("invalid command length, got %d, wanted %d", got, want)
 		}
 
 		expectedCmd := []byte{ResetTopics.ToByte()}
@@ -79,10 +74,10 @@ func TestResetTopicsCommand(t *testing.T) {
 	})
 }
 
-func TestSetIDKeyCommand(t *testing.T) {
+func TestCmdSetIDKey(t *testing.T) {
 	t.Run("invalid keys return errors", func(t *testing.T) {
 		for _, k := range invalidKeys {
-			_, err := SetIDKeyCommand(k)
+			_, err := CmdSetIDKey(k)
 			if err == nil {
 				t.Fatalf("got no error with key %v", k)
 			}
@@ -91,29 +86,26 @@ func TestSetIDKeyCommand(t *testing.T) {
 
 	t.Run("expected command is created", func(t *testing.T) {
 		expectedKey := e4crypto.RandomKey()
-		cmd, err := SetIDKeyCommand(expectedKey)
+		cmd, err := CmdSetIDKey(expectedKey)
 		if err != nil {
 			t.Fatalf("failed to create command: %v", err)
 		}
 
-		expectedLength := 1 + e4crypto.KeyLen
-		if l := len(cmd); l != expectedLength {
-			t.Fatalf("invalid command length, got %d, wanted %d", l, expectedLength)
+		if got, want := len(cmd), 1+e4crypto.KeyLen; got != want {
+			t.Fatalf("invalid command length, got %d, wanted %d", got, want)
 		}
 
-		expectedCmd := make([]byte, 0, expectedLength)
-		expectedCmd = append(expectedCmd, SetIDKey.ToByte())
-		expectedCmd = append(expectedCmd, expectedKey...)
+		expectedCmd := append([]byte{SetIDKey.ToByte()}, expectedKey...)
 		if !bytes.Equal(cmd, expectedCmd) {
 			t.Fatalf("invalid command, got %v, wanted %v", cmd, expectedCmd)
 		}
 	})
 }
 
-func TestSetTopicKeyCommand(t *testing.T) {
+func TestCmdSetTopicKey(t *testing.T) {
 	t.Run("invalid keys produce errors", func(t *testing.T) {
 		for _, k := range invalidKeys {
-			_, err := SetTopicKeyCommand(k, "some-topic")
+			_, err := CmdSetTopicKey(k, "some-topic")
 			if err == nil {
 				t.Fatalf("got no error with key %v", k)
 			}
@@ -123,7 +115,7 @@ func TestSetTopicKeyCommand(t *testing.T) {
 	t.Run("invalid names produce errors", func(t *testing.T) {
 		validKey := e4crypto.RandomKey()
 		for _, name := range invalidNames {
-			_, err := SetTopicKeyCommand(validKey, name)
+			_, err := CmdSetTopicKey(validKey, name)
 			if err == nil {
 				t.Fatalf("got no error with name: %s", name)
 			}
@@ -133,19 +125,16 @@ func TestSetTopicKeyCommand(t *testing.T) {
 	t.Run("expected command is created", func(t *testing.T) {
 		expectedKey := e4crypto.RandomKey()
 		expectedTopic := "some-topic"
-		cmd, err := SetTopicKeyCommand(expectedKey, expectedTopic)
+		cmd, err := CmdSetTopicKey(expectedKey, expectedTopic)
 		if err != nil {
 			t.Fatalf("failed to create command: %v", err)
 		}
 
-		expectedLength := 1 + e4crypto.KeyLen + e4crypto.HashLen
-		if l := len(cmd); l != expectedLength {
-			t.Fatalf("invalid command length, got %d, wanted %d", l, expectedLength)
+		if got, want := len(cmd), 1+e4crypto.KeyLen+e4crypto.HashLen; got != want {
+			t.Fatalf("invalid command length, got %d, wanted %d", got, want)
 		}
 
-		expectedCmd := make([]byte, 0, expectedLength)
-		expectedCmd = append(expectedCmd, SetTopicKey.ToByte())
-		expectedCmd = append(expectedCmd, expectedKey...)
+		expectedCmd := append([]byte{SetTopicKey.ToByte()}, expectedKey...)
 		expectedCmd = append(expectedCmd, e4crypto.HashTopic(expectedTopic)...)
 		if !bytes.Equal(cmd, expectedCmd) {
 			t.Fatalf("invalid command, got %v, wanted %v", cmd, expectedCmd)
@@ -153,10 +142,10 @@ func TestSetTopicKeyCommand(t *testing.T) {
 	})
 }
 
-func TestRemovePubKeyCommand(t *testing.T) {
+func TestCmdRemovePubKey(t *testing.T) {
 	t.Run("invalid names produce errors", func(t *testing.T) {
 		for _, name := range invalidNames {
-			_, err := RemovePubKeyCommand(name)
+			_, err := CmdRemovePubKey(name)
 			if err == nil {
 				t.Fatalf("got no error with name: %s", name)
 			}
@@ -165,35 +154,31 @@ func TestRemovePubKeyCommand(t *testing.T) {
 
 	t.Run("expected command is created", func(t *testing.T) {
 		expectedName := "some-name"
-		cmd, err := RemovePubKeyCommand(expectedName)
+		cmd, err := CmdRemovePubKey(expectedName)
 		if err != nil {
 			t.Fatalf("failed to create command: %v", err)
 		}
 
-		expectedLength := 1 + e4crypto.IDLen
-		if l := len(cmd); l != expectedLength {
-			t.Fatalf("invalid command length, got %d, wanted %d", l, expectedLength)
+		if got, want := len(cmd), 1+e4crypto.IDLen; got != want {
+			t.Fatalf("invalid command length, got %d, wanted %d", got, want)
 		}
 
-		expectedCmd := make([]byte, 0, expectedLength)
-		expectedCmd = append(expectedCmd, RemovePubKey.ToByte())
-		expectedCmd = append(expectedCmd, e4crypto.HashIDAlias(expectedName)...)
+		expectedCmd := append([]byte{RemovePubKey.ToByte()}, e4crypto.HashIDAlias(expectedName)...)
 		if !bytes.Equal(cmd, expectedCmd) {
 			t.Fatalf("invalid command, got %v, wanted %v", cmd, expectedCmd)
 		}
 	})
 }
 
-func TestResetPubKeysCommand(t *testing.T) {
+func TestCmdResetPubKeys(t *testing.T) {
 	t.Run("expected command is created", func(t *testing.T) {
-		cmd, err := ResetPubKeysCommand()
+		cmd, err := CmdResetPubKeys()
 		if err != nil {
 			t.Fatalf("failed to created command: %v", err)
 		}
 
-		expectedLength := 1
-		if l := len(cmd); l != expectedLength {
-			t.Fatalf("invalid command length, got %d, wanted %d", l, expectedLength)
+		if got, want := len(cmd), 1; got != want {
+			t.Fatalf("invalid command length, got %d, wanted %d", got, want)
 		}
 
 		expectedCmd := []byte{ResetPubKeys.ToByte()}
@@ -203,10 +188,10 @@ func TestResetPubKeysCommand(t *testing.T) {
 	})
 }
 
-func TestSetPubKeyCommand(t *testing.T) {
+func TestCmdSetPubKey(t *testing.T) {
 	t.Run("invalid keys produce errors", func(t *testing.T) {
 		for _, k := range invalidPubKeys {
-			_, err := SetPubKeyCommand(k, "some-name")
+			_, err := CmdSetPubKey(k, "some-name")
 			if err == nil {
 				t.Fatalf("got no error with key %v", k)
 			}
@@ -220,7 +205,7 @@ func TestSetPubKeyCommand(t *testing.T) {
 		}
 
 		for _, name := range invalidNames {
-			_, err := SetPubKeyCommand(validKey, name)
+			_, err := CmdSetPubKey(validKey, name)
 			if err == nil {
 				t.Fatalf("got no error with name: %s", name)
 			}
@@ -234,19 +219,16 @@ func TestSetPubKeyCommand(t *testing.T) {
 		}
 
 		expectedName := "some-name"
-		cmd, err := SetPubKeyCommand(expectedKey, expectedName)
+		cmd, err := CmdSetPubKey(expectedKey, expectedName)
 		if err != nil {
 			t.Fatalf("failed to create command: %v", err)
 		}
 
-		expectedLength := 1 + ed25519.PublicKeySize + e4crypto.IDLen
-		if l := len(cmd); l != expectedLength {
-			t.Fatalf("invalid command length, got %d, wanted %d", l, expectedLength)
+		if got, want := len(cmd), 1+ed25519.PublicKeySize+e4crypto.IDLen; got != want {
+			t.Fatalf("invalid command length, got %d, wanted %d", got, want)
 		}
 
-		expectedCmd := make([]byte, 0, expectedLength)
-		expectedCmd = append(expectedCmd, SetPubKey.ToByte())
-		expectedCmd = append(expectedCmd, expectedKey...)
+		expectedCmd := append([]byte{SetPubKey.ToByte()}, expectedKey...)
 		expectedCmd = append(expectedCmd, e4crypto.HashIDAlias(expectedName)...)
 		if !bytes.Equal(cmd, expectedCmd) {
 			t.Fatalf("invalid command, got %v, wanted %v", cmd, expectedCmd)
