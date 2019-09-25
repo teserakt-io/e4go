@@ -276,9 +276,10 @@ func (k *pubKeyMaterial) MarshalJSON() ([]byte, error) {
 
 // PublicKey returns the public key of the keyMaterial
 func (k *pubKeyMaterial) PublicKey() ed25519.PublicKey {
-	publicKey, ok := k.PrivateKey.Public().(ed25519.PublicKey)
+	publicPart := k.PrivateKey.Public()
+	publicKey, ok := publicPart.(ed25519.PublicKey)
 	if !ok {
-		panic("cannot cast public key to ed25519.PublicKey")
+		panic(fmt.Sprintf("%T is invalid for public key, wanted ed25519.PublicKey", publicPart))
 	}
 
 	return publicKey
