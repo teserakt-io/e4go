@@ -61,9 +61,8 @@ func Decrypt(key, ad, ct []byte) ([]byte, error) {
 	if len(ct) < c.Overhead() {
 		return nil, errors.New("too short ciphertext")
 	}
-	ads := make([][]byte, 1)
-	ads[0] = ad
-	return c.Open(nil, ct, ads...)
+
+	return c.Open(nil, ct, ad)
 }
 
 // ProtectCommandPubKey is an helper method to protect the given command using a client
@@ -130,14 +129,28 @@ func UnprotectSymKey(protected, key []byte) ([]byte, error) {
 // RandomKey generates a random KeyLen-byte key usable by Encrypt and Decrypt
 func RandomKey() []byte {
 	key := make([]byte, KeyLen)
-	rand.Read(key)
+	n, err := rand.Read(key)
+	if err != nil {
+		panic(err)
+	}
+	if n != KeyLen {
+		panic(fmt.Errorf("bytes read mismatch in RandomKey: got %d wanted %d", n, KeyLen))
+	}
+
 	return key
 }
 
 // RandomID generates a random IDLen-byte ID
 func RandomID() []byte {
 	id := make([]byte, IDLen)
-	rand.Read(id)
+	n, err := rand.Read(id)
+	if err != nil {
+		panic(err)
+	}
+	if n != IDLen {
+		panic(fmt.Errorf("bytes read mismatch in RandomID: got %d wanted %d", n, IDLen))
+	}
+
 	return id
 }
 

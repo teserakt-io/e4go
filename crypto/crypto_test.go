@@ -93,7 +93,6 @@ func TestRandomKey(t *testing.T) {
 // associated data, ciphertext or key produce a failure result.
 func TestEncryptDecrypt(t *testing.T) {
 	for i := 0; i < 2048; i++ {
-
 		rDelta := RandomDelta16()
 
 		ptLen := 1234 + rDelta
