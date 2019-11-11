@@ -10,9 +10,10 @@ import (
 	"time"
 
 	"github.com/agl/ed25519/extra25519"
+	"golang.org/x/crypto/ed25519"
+
 	e4crypto "github.com/teserakt-io/e4go/crypto"
 	"github.com/teserakt-io/e4go/keys"
-	"golang.org/x/crypto/ed25519"
 )
 
 func TestNewClientSymKey(t *testing.T) {
@@ -223,32 +224,22 @@ func TestClientWriteRead(t *testing.T) {
 }
 
 func TestProtectUnprotectCommandsPubKey(t *testing.T) {
-	_, clientEdSk, err := ed25519.GenerateKey(rand.Reader)
+	clientEdPk, clientEdSk, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatalf("Failed to generate ed25519 key: %v", err)
 	}
-	_, c2EdSk, err := ed25519.GenerateKey(rand.Reader)
+	c2EdPk, c2EdSk, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatalf("Failed to generate ed25519 key: %v", err)
 	}
 
-	var cEdPk [32]byte
-	var cpk [32]byte
-	copy(cEdPk[:], clientEdSk[32:])
-	extra25519.PublicKeyToCurve25519(&cpk, &cEdPk)
+	cpk := e4crypto.PublicEd25519KeyToCurve25519(clientEdPk)
 
-	var c2EdSk64 [64]byte
-	var c2EdPk64 [32]byte
-	var c2pk [32]byte
-	var c2sk [32]byte
-	copy(c2EdSk64[:], c2EdSk)
-	copy(c2EdPk64[:], c2EdSk[32:])
-	extra25519.PublicKeyToCurve25519(&c2pk, &c2EdPk64)
-	extra25519.PrivateKeyToCurve25519(&c2sk, &c2EdSk64)
+	c2pk := e4crypto.PublicEd25519KeyToCurve25519(c2EdPk)
+	c2sk := e4crypto.PrivateEd25519KeyToCurve25519(c2EdSk)
 
 	command := []byte{0x05}
 	protected, err := e4crypto.ProtectCommandPubKey(command, &cpk, &c2sk)
-
 	if err != nil {
 		t.Fatalf("ProtectCommandPubKey failed: %v", err)
 	}
@@ -278,9 +269,13 @@ func TestClientPubKeys(t *testing.T) {
 	t.Run("pubKey client properly add / remove / reset pubKeys", func(t *testing.T) {
 		clientFilePath := "./test/data/pubclienttestpubkeys"
 
-		c, err := NewPubKeyClientPretty("testClient", "passwordTestRandom", clientFilePath, generateCurve25519PubKey(t))
+		c, pubKey, err := NewPubKeyClientPretty("testClient", "passwordTestRandom", clientFilePath, generateCurve25519PubKey(t))
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
+		}
+
+		if len(pubKey) == 0 {
+			t.Fatal("Empty public key")
 		}
 
 		pks, err := c.getPubKeys()
@@ -359,9 +354,13 @@ func TestClientPubKeys(t *testing.T) {
 	t.Run("pubKey client return errors on pubKey operations with invalid ids", func(t *testing.T) {
 		clientFilePath := "./test/data/pubclienttestpubkeys"
 
-		c, err := NewPubKeyClientPretty("testClient", "passwordTestRandom", clientFilePath, generateCurve25519PubKey(t))
+		c, pubKey, err := NewPubKeyClientPretty("testClient", "passwordTestRandom", clientFilePath, generateCurve25519PubKey(t))
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
+		}
+
+		if len(pubKey) == 0 {
+			t.Fatal("Empty public key")
 		}
 
 		pk, _, err := ed25519.GenerateKey(nil)

@@ -19,6 +19,7 @@ import (
 type PubKeyMaterial interface {
 	KeyMaterial
 	PubKeyStore
+	PublicKey() ed25519.PublicKey
 }
 
 // pubKeyMaterial implements PubKeyMaterial to work with public e4 client key
@@ -50,9 +51,11 @@ func NewPubKeyMaterial(signerID []byte, privateKey ed25519.PrivateKey, c2PubKey 
 	}
 
 	e := &pubKeyMaterial{
-		C2PubKey: c2PubKey,
-		PubKeys:  make(map[string][]byte),
+		PubKeys: make(map[string][]byte),
 	}
+
+	e.C2PubKey = make([]byte, len(c2PubKey))
+	copy(e.C2PubKey, c2PubKey)
 
 	e.PrivateKey = make([]byte, len(privateKey))
 	copy(e.PrivateKey, privateKey)
@@ -269,4 +272,15 @@ func (k *pubKeyMaterial) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(jsonKey)
+}
+
+// PublicKey returns the public key of the keyMaterial
+func (k *pubKeyMaterial) PublicKey() ed25519.PublicKey {
+	publicPart := k.PrivateKey.Public()
+	publicKey, ok := publicPart.(ed25519.PublicKey)
+	if !ok {
+		panic(fmt.Sprintf("%T is invalid for public key, wanted ed25519.PublicKey", publicPart))
+	}
+
+	return publicKey
 }
