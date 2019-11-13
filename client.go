@@ -31,6 +31,7 @@
 package e4go
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -38,6 +39,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/ed25519"
 
@@ -385,10 +387,22 @@ func (c *client) setTopicKey(key, topichash []byte) error {
 		return fmt.Errorf("invalid topic hash: %v", err)
 	}
 
+	topichashstr := hex.EncodeToString(topichash)
+
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	c.TopicKeys[hex.EncodeToString(topichash)] = key
+	// Key transition, if a key already exists for this topic
+	topicKey, ok := c.TopicKeys[topichashstr]
+	if ok {
+		hashHash := hex.EncodeToString(e4crypto.HashTopic(topichashstr))
+		timestamp := make([]byte, e4crypto.TimestampLen)
+		binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
+		topicKey = append(topicKey, timestamp...)
+		c.TopicKeys[hashHash] = topicKey
+	}
+
+	c.TopicKeys[topichashstr] = key
 	return c.save()
 }
 
