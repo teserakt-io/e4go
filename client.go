@@ -43,6 +43,7 @@ import (
 
 	"golang.org/x/crypto/ed25519"
 
+	miscreant "github.com/miscreant/miscreant.go"
 	e4crypto "github.com/teserakt-io/e4go/crypto"
 	"github.com/teserakt-io/e4go/keys"
 )
@@ -363,6 +364,19 @@ func (c *client) Unprotect(protected []byte, topic string) ([]byte, error) {
 	}
 
 	message, err := c.Key.UnprotectMessage(protected, key)
+
+	// If decryption failed, try previous key if exists and not too old
+	if err == miscreant.ErrNotAuthentic {
+		hashHash := hex.EncodeToString(e4crypto.HashTopic(topichash))
+		topicKey, ok := c.TopicKeys[hashHash]
+		if ok {
+			message, err = c.Key.UnprotectMessage(protected, topicKey)
+			if err == nil {
+				return message, nil
+			}
+		}
+	}
+
 	if err != nil {
 		return nil, err
 	}
