@@ -8,12 +8,11 @@ import (
 	"fmt"
 	"time"
 
-	"golang.org/x/crypto/ed25519"
-
+	"github.com/agl/ed25519/extra25519"
+	miscreant "github.com/miscreant/miscreant.go"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/curve25519"
-
-	miscreant "github.com/miscreant/miscreant.go"
+	"golang.org/x/crypto/ed25519"
 )
 
 var (
@@ -170,4 +169,26 @@ func Ed25519PrivateKeyFromPassword(password string) (ed25519.PrivateKey, error) 
 
 	seed := argon2.Key([]byte(password), nil, 1, 64*1024, 4, ed25519.SeedSize)
 	return ed25519.NewKeyFromSeed(seed), nil
+}
+
+// PublicEd25519KeyToCurve25519 convert an ed25519.PublicKey to a curve25519 public key.
+func PublicEd25519KeyToCurve25519(edPubKey ed25519.PublicKey) [32]byte {
+	var edPk [32]byte
+	var curveKey [32]byte
+	copy(edPk[:], edPubKey)
+	if !extra25519.PublicKeyToCurve25519(&curveKey, &edPk) {
+		panic("could not convert ed25519 public key to curve25519")
+	}
+
+	return curveKey
+}
+
+// PrivateEd25519KeyToCurve25519 convert an ed25519.PrivateKey to a curve25519 private key.
+func PrivateEd25519KeyToCurve25519(edPrivKey ed25519.PrivateKey) [32]byte {
+	var edSk [64]byte
+	var curveKey [32]byte
+	copy(edSk[:], edPrivKey)
+	extra25519.PrivateKeyToCurve25519(&curveKey, &edSk)
+
+	return curveKey
 }

@@ -117,7 +117,12 @@ type client struct {
 var _ Client = (*client)(nil)
 
 // NewSymKeyClient creates a new client using a symmetric key
-func NewSymKeyClient(id []byte, key []byte, filePath string) (Client, error) {
+//
+// id is a client identifier, and must contains e4crypto.IDLen bytes.
+// key is the client private key,  and must contains e4crypto.KeyLen bytes.
+// persistStatePath is a file system path to the file to be used to read
+// and persist the client's current state.
+func NewSymKeyClient(id []byte, key []byte, persistStatePath string) (Client, error) {
 	var newID []byte
 	if len(id) == 0 {
 		newID = e4crypto.RandomID()
@@ -131,11 +136,17 @@ func NewSymKeyClient(id []byte, key []byte, filePath string) (Client, error) {
 		return nil, fmt.Errorf("failed to created symkey from key: %v", err)
 	}
 
-	return newClient(newID, symKeyMaterial, filePath)
+	return newClient(newID, symKeyMaterial, persistStatePath)
 }
 
-// NewPubKeyClient creates a new client using a ed25519 private key
-func NewPubKeyClient(id []byte, key ed25519.PrivateKey, filePath string, c2PubKey []byte) (Client, error) {
+// NewPubKeyClient creates a new client using the provided ed25519 private key.
+//
+// id is a client identifier, and must contains e4crypto.IDLen bytes.
+// key is the ed25519 private key.
+// persistStatePath is a file system path to the file to be used to read
+// and persist the client's current state.
+// c2PubKey must be the curve25519 public part of the key that was used to protect client commands.
+func NewPubKeyClient(id []byte, key ed25519.PrivateKey, persistStatePath string, c2PubKey []byte) (Client, error) {
 	var newID []byte
 	if len(id) == 0 {
 		newID = e4crypto.RandomID()
@@ -149,11 +160,16 @@ func NewPubKeyClient(id []byte, key ed25519.PrivateKey, filePath string, c2PubKe
 		return nil, fmt.Errorf("failed to create ed25519key from key: %v", err)
 	}
 
-	return newClient(newID, pubKeyMaterialKey, filePath)
+	return newClient(newID, pubKeyMaterialKey, persistStatePath)
 }
 
-// NewSymKeyClientPretty is like NewClient but takes an client name and a password, rather than raw values
-func NewSymKeyClientPretty(name string, password string, filePath string) (Client, error) {
+// NewSymKeyClientPretty is like NewClient but takes a client name and a password
+//
+// name is a string identifying the client, which will be hashed into an id.
+// password is a string used to derivate the client key, and it must contains at least 16 characters.
+// persistStatePath is a file system path to the file to be used to read
+// and persist the client's current state.
+func NewSymKeyClientPretty(name string, password string, persistStatePath string) (Client, error) {
 	id := e4crypto.HashIDAlias(name)
 
 	key, err := keys.NewSymKeyMaterialFromPassword(password)
@@ -161,23 +177,34 @@ func NewSymKeyClientPretty(name string, password string, filePath string) (Clien
 		return nil, err
 	}
 
-	return newClient(id, key, filePath)
+	return newClient(id, key, persistStatePath)
 }
 
-// NewPubKeyClientPretty is like NewClient but takes an client name and a password, rather than raw values
-func NewPubKeyClientPretty(name string, password string, filePath string, c2PubKey []byte) (Client, error) {
+// NewPubKeyClientPretty is like NewPubKeyClient except that it takes in the client's name and a password.
+//
+// name is a string identifying the client, which will be hashed into an id.
+// password is a string used to derivate the client key, and it must contains at least 16 characters.
+// persistStatePath is a file system path to the file to be used to read
+// and persist the client's current state.
+// c2PubKey must be the curve25519 public part of the key that was used to protect client commands.
+func NewPubKeyClientPretty(name string, password string, persistStatePath string, c2PubKey []byte) (Client, ed25519.PublicKey, error) {
 	id := e4crypto.HashIDAlias(name)
 
 	key, err := keys.NewPubKeyMaterialFromPassword(id, password, c2PubKey)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return newClient(id, key, filePath)
+	client, err := newClient(id, key, persistStatePath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return client, key.PublicKey(), nil
 }
 
 // newClient creates a new client, generating a random ID if they are empty
-func newClient(id []byte, clientKey keys.KeyMaterial, filePath string) (Client, error) {
+func newClient(id []byte, clientKey keys.KeyMaterial, persistStatePath string) (Client, error) {
 	if len(id) == 0 {
 		return nil, errors.New("client id must not be empty")
 	}
@@ -185,7 +212,7 @@ func newClient(id []byte, clientKey keys.KeyMaterial, filePath string) (Client, 
 	c := &client{
 		Key:            clientKey,
 		TopicKeys:      make(map[string]keys.TopicKey),
-		FilePath:       filePath,
+		FilePath:       persistStatePath,
 		ReceivingTopic: TopicForID(id),
 	}
 
@@ -198,9 +225,9 @@ func newClient(id []byte, clientKey keys.KeyMaterial, filePath string) (Client, 
 }
 
 // LoadClient loads a client state from the file system
-func LoadClient(filePath string) (Client, error) {
+func LoadClient(persistStatePath string) (Client, error) {
 	c := &client{}
-	err := readJSON(filePath, c)
+	err := readJSON(persistStatePath, c)
 	if err != nil {
 		return nil, err
 	}

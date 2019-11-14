@@ -7,6 +7,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/agl/ed25519/extra25519"
+	"golang.org/x/crypto/ed25519"
 )
 
 func TestRandomID(t *testing.T) {
@@ -272,5 +275,41 @@ func TestDeriveSymKey(t *testing.T) {
 
 	if len(k) != KeyLen {
 		t.Fatalf("Invalid key length: got: %d, wanted: %d", len(k), KeyLen)
+	}
+}
+
+func TestPublicEd25519KeyToCurve25519(t *testing.T) {
+	pubKey, _, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("Failed to generate ed25519 key: %v", err)
+	}
+
+	var pk [32]byte
+	copy(pk[:], pubKey)
+
+	var expectedCurveKey [32]byte
+	extra25519.PublicKeyToCurve25519(&expectedCurveKey, &pk)
+
+	curveKey := PublicEd25519KeyToCurve25519(pubKey)
+	if curveKey != expectedCurveKey {
+		t.Fatalf("Invalid curveKey, got %x, wanted %x", curveKey, expectedCurveKey)
+	}
+}
+
+func TestPrivateEd25519KeyToCurve25519(t *testing.T) {
+	_, privKey, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("Failed to generate ed25519 key: %v", err)
+	}
+
+	var sk [64]byte
+	copy(sk[:], privKey)
+
+	var expectedCurveKey [32]byte
+	extra25519.PrivateKeyToCurve25519(&expectedCurveKey, &sk)
+
+	curveKey := PrivateEd25519KeyToCurve25519(privKey)
+	if curveKey != expectedCurveKey {
+		t.Fatalf("Invalid curveKey, got %x, wanted %x", curveKey, expectedCurveKey)
 	}
 }

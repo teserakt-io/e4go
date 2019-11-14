@@ -1,7 +1,7 @@
 package e4go
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/agl/ed25519/extra25519"
 	"golang.org/x/crypto/ed25519"
@@ -20,7 +20,7 @@ func ExampleNewSymKeyClient() {
 		panic(err)
 	}
 
-	log.Printf("Protected message: %v", protectedMessage)
+	fmt.Printf("Protected message: %v", protectedMessage)
 }
 
 func ExampleNewSymKeyClientPretty() {
@@ -34,7 +34,7 @@ func ExampleNewSymKeyClientPretty() {
 		panic(err)
 	}
 
-	log.Printf("Protected message: %v", protectedMessage)
+	fmt.Printf("Protected message: %v", protectedMessage)
 }
 
 func ExampleNewPubKeyClient() {
@@ -63,7 +63,7 @@ func ExampleNewPubKeyClient() {
 		panic(err)
 	}
 
-	log.Printf("Protected message: %v", protectedMessage)
+	fmt.Printf("Protected message: %v", protectedMessage)
 }
 
 func ExampleNewPubKeyClientPretty() {
@@ -77,15 +77,16 @@ func ExampleNewPubKeyClientPretty() {
 	copy(c2EdPk[:], c2EdPubKey)
 	extra25519.PublicKeyToCurve25519(&c2PubKey, &c2EdPk)
 
-	client, err := NewPubKeyClientPretty("clientName", "verySecretPassword", "./pubClient.json", c2PubKey[:])
+	client, pubKey, err := NewPubKeyClientPretty("clientName", "verySecretPassword", "./pubClient.json", c2PubKey[:])
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("Client public key: %x", pubKey)
 
 	protectedMessage, err := client.ProtectMessage([]byte("very secret message"), "topic/name")
 	if err != nil {
 		panic(err)
 	}
 
-	log.Printf("Protected message: %v", protectedMessage)
+	fmt.Printf("Protected message: %v", protectedMessage)
 }
