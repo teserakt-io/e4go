@@ -446,7 +446,13 @@ func (c *client) removeTopic(topichash []byte) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	delete(c.TopicKeys, hex.EncodeToString(topichash))
+	topichashstr := hex.EncodeToString(topichash)
+
+	delete(c.TopicKeys, topichashstr)
+
+	// Delete key kept for key transition, if any
+	hashHash := e4crypto.HashTopic(topichashstr)
+	delete(c.TopicKeys, hex.EncodeToString(hashHash))
 
 	return c.save()
 }
