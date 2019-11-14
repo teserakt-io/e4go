@@ -355,9 +355,9 @@ func (c *client) Unprotect(protected []byte, topic string) ([]byte, error) {
 		return nil, nil
 	}
 
-	topichash := hex.EncodeToString(e4crypto.HashTopic(topic))
+	topichash := e4crypto.HashTopic(topic)
 	c.lock.RLock()
-	key, ok := c.TopicKeys[topichash]
+	key, ok := c.TopicKeys[hex.EncodeToString(topichash)]
 	c.lock.RUnlock()
 	if !ok {
 		return nil, ErrTopicKeyNotFound
@@ -367,7 +367,7 @@ func (c *client) Unprotect(protected []byte, topic string) ([]byte, error) {
 
 	// If decryption failed, try previous key if exists and not too old
 	if err == miscreant.ErrNotAuthentic {
-		hashHash := hex.EncodeToString(e4crypto.HashTopic(topichash))
+		hashHash := hex.EncodeToString(e4crypto.HashTopic(string(topichash)))
 		topicKeyts, ok := c.TopicKeys[hashHash]
 		if ok {
 			if len(topicKeyts) != e4crypto.KeyLen+e4crypto.TimestampLen {
@@ -418,22 +418,22 @@ func (c *client) setTopicKey(key, topichash []byte) error {
 		return fmt.Errorf("invalid topic hash: %v", err)
 	}
 
-	topichashstr := hex.EncodeToString(topichash)
-
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
+	topichashhex := hex.EncodeToString(topichash)
+
 	// Key transition, if a key already exists for this topic
-	topicKey, ok := c.TopicKeys[topichashstr]
+	topicKey, ok := c.TopicKeys[topichashhex]
 	if ok {
-		hashHash := hex.EncodeToString(e4crypto.HashTopic(topichashstr))
+		hashHash := e4crypto.HashTopic(string(topichash))
 		timestamp := make([]byte, e4crypto.TimestampLen)
 		binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
 		topicKey = append(topicKey, timestamp...)
-		c.TopicKeys[hashHash] = topicKey
+		c.TopicKeys[hex.EncodeToString(hashHash)] = topicKey
 	}
 
-	c.TopicKeys[topichashstr] = key
+	c.TopicKeys[topichashhex] = key
 	return c.save()
 }
 
@@ -446,12 +446,10 @@ func (c *client) removeTopic(topichash []byte) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	topichashstr := hex.EncodeToString(topichash)
-
-	delete(c.TopicKeys, topichashstr)
+	delete(c.TopicKeys, hex.EncodeToString(topichash))
 
 	// Delete key kept for key transition, if any
-	hashHash := e4crypto.HashTopic(topichashstr)
+	hashHash := e4crypto.HashTopic(string(topichash))
 	delete(c.TopicKeys, hex.EncodeToString(hashHash))
 
 	return c.save()
