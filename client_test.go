@@ -209,7 +209,7 @@ func TestKeyTransition(t *testing.T) {
 	}
 
 	// should succeed, first key is the only one
-	_, err := c.Unprotect(protected, topic)
+	_, err = c.Unprotect(protected, topic)
 	if err != nil {
 		t.Fatalf("Unprotect failed: %s", err)
 	}
@@ -220,7 +220,7 @@ func TestKeyTransition(t *testing.T) {
 	}
 
 	// should succeed, first key still available
-	_, err := c.Unprotect(protected, topic)
+	_, err = c.Unprotect(protected, topic)
 	if err != nil {
 		t.Fatalf("Unprotect failed: %s", err)
 	}
@@ -231,9 +231,9 @@ func TestKeyTransition(t *testing.T) {
 	}
 
 	// should fail, first key no longer available
-	_, err := c.Unprotect(protected, topic)
-	if err != nil {
-		t.Fatalf("Unprotect failed: %s", err)
+	_, err = c.Unprotect(protected, topic)
+	if err == nil {
+		t.Fatalf("Unprotect failed to fail")
 	}
 }
 
