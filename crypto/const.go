@@ -16,8 +16,10 @@ const (
 	TimestampLen = 8
 	// MaxTopicLen is the maximum length of a topic
 	MaxTopicLen = 512
-	// MaxDelayDuration is the maximum validity time of a cipher
+	// MaxDelayDuration is the validity time of a protected message
 	MaxDelayDuration = 10 * time.Minute
+	// MaxDelayKeyTransition is the validity time of an old topic key once updated
+	MaxDelayKeyTransition = 60 * time.Minute
 	// IDLenHex is the length of a hexadecimal encoded ID
 	IDLenHex = IDLen * 2
 	// KeyLenHex is the length of a hexadecimal encoded key
