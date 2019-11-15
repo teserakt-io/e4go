@@ -31,6 +31,7 @@
 package e4go
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
@@ -371,29 +372,21 @@ func (c *client) Unprotect(protected []byte, topic string) ([]byte, error) {
 		topicKeyTs, ok := c.TopicKeys[hashHash]
 		if ok {
 			if len(topicKeyTs) != e4crypto.KeyLen+e4crypto.TimestampLen {
-				return nil, err
+				return nil, errors.New("invalid old topic key length")
 			}
 			topicKey := make([]byte, e4crypto.KeyLen)
 			copy(topicKey, topicKeyTs[:e4crypto.KeyLen])
 			timestamp := topicKeyTs[e4crypto.KeyLen:]
 
-			now := time.Now()
-			tsTime := time.Unix(int64(binary.LittleEndian.Uint64(timestamp)), 0)
-			minTime := now.Add(time.Duration(-e4crypto.MaxDelayKeyTransition))
-
-			if tsTime.After(now) {
-				return nil, keys.ErrKeyTransitionFutureTime
-			}
-			if tsTime.Before(minTime) {
-				return nil, keys.ErrKeyTransitionExpired
+			err := e4crypto.ValidateTimestampKey(timestamp)
+			if err != nil {
+				return nil, err
 			}
 
 			message, err = c.Key.UnprotectMessage(protected, topicKey)
-
 			if err == nil {
 				return message, nil
 			}
-
 		}
 	}
 
@@ -430,7 +423,7 @@ func (c *client) setTopicKey(key, topicHash []byte) error {
 	topicKey, ok := c.TopicKeys[topicHashHex]
 	if ok {
 		// Only do key transition if the key received is distinct from the current one
-		if string(topicKey) != string(key) {
+		if !bytes.Equal(topicKey, key) {
 			hashHash := e4crypto.HashTopic(string(topicHash))
 			timestamp := make([]byte, e4crypto.TimestampLen)
 			binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
@@ -439,7 +432,9 @@ func (c *client) setTopicKey(key, topicHash []byte) error {
 		}
 	}
 
-	c.TopicKeys[topicHashHex] = key
+	newKey := make([]byte, e4crypto.KeyLen)
+	copy(newKey, key)
+	c.TopicKeys[topicHashHex] = newKey
 	return c.save()
 }
 

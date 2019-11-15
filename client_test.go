@@ -559,6 +559,7 @@ func TestClientSetIDKey(t *testing.T) {
 func TestCommandsSymClient(t *testing.T) {
 	clientID := e4crypto.HashIDAlias("client1")
 	clientKey := e4crypto.RandomKey()
+	topic := "topic1"
 
 	c, err := NewSymKeyClient(clientID, clientKey, "./test/data/testcommandsclient")
 	if err != nil {
@@ -566,12 +567,13 @@ func TestCommandsSymClient(t *testing.T) {
 	}
 
 	receivingTopic := TopicForID(clientID)
+	topicHash := e4crypto.HashTopic(topic)
 
-	setTopicCmd := []byte{SetTopicKey.ToByte()}
 	topicKey := e4crypto.RandomKey()
-	setTopicCmd = append(setTopicCmd, topicKey...)
-	topicHash := e4crypto.HashTopic("topic1")
-	setTopicCmd = append(setTopicCmd, topicHash...)
+	setTopicCmd, err := CmdSetTopicKey(topicKey, topic)
+	if err != nil {
+		t.Fatalf("CmdSetTopicKey failed: %v", err)
+	}
 
 	protectedSetTopicCmd, err := e4crypto.ProtectSymKey(setTopicCmd, clientKey)
 	if err != nil {
@@ -636,11 +638,11 @@ func TestCommandsSymClient(t *testing.T) {
 	assertClientTopicKey(t, true, c, topicHash, topicKey)
 
 	// Add a new topic key for the same topic, old one should still be available
-	setTopicCmd = []byte{SetTopicKey.ToByte()}
 	newTopicKey := e4crypto.RandomKey()
-	setTopicCmd = append(setTopicCmd, newTopicKey...)
-	topicHash = e4crypto.HashTopic("topic1")
-	setTopicCmd = append(setTopicCmd, topicHash...)
+	setTopicCmd, err = CmdSetTopicKey(newTopicKey, topic)
+	if err != nil {
+		t.Fatalf("CmdSetTopicKey failed: %v", err)
+	}
 
 	protectedSetTopicCmd, err = e4crypto.ProtectSymKey(setTopicCmd, clientKey)
 	if err != nil {

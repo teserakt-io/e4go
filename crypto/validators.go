@@ -133,9 +133,26 @@ func ValidateTopicHash(topicHash []byte) error {
 	return nil
 }
 
-// ValidateTimestamp will check that given timestamp bytes are
+// ValidateTimestamp checks that given timestamp bytes are
 // a valid LittleEndian encoded timestamp, not in the future and not older than MaxDelayDuration
 func ValidateTimestamp(timestamp []byte) error {
+	now := time.Now()
+	tsTime := time.Unix(int64(binary.LittleEndian.Uint64(timestamp)), 0)
+	minTime := now.Add(time.Duration(-MaxDelayDuration))
+
+	if tsTime.After(now) {
+		return ErrTimestampInFuture
+	}
+	if tsTime.Before(minTime) {
+		return ErrTimestampTooOld
+	}
+
+	return nil
+}
+
+// ValidateTimestampKey checks that given timestamp bytes are
+// a valid LittleEndian encoded timestamp, not in the future and not older than MaxDelayKeyTransition
+func ValidateTimestampKey(timestamp []byte) error {
 	now := time.Now()
 	tsTime := time.Unix(int64(binary.LittleEndian.Uint64(timestamp)), 0)
 	minTime := now.Add(time.Duration(-MaxDelayDuration))
