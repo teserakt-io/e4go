@@ -426,11 +426,14 @@ func (c *client) setTopicKey(key, topicHash []byte) error {
 	// Key transition, if a key already exists for this topic
 	topicKey, ok := c.TopicKeys[topicHashHex]
 	if ok {
-		hashHash := e4crypto.HashTopic(string(topicHash))
-		timestamp := make([]byte, e4crypto.TimestampLen)
-		binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
-		topicKey = append(topicKey, timestamp...)
-		c.TopicKeys[hex.EncodeToString(hashHash)] = topicKey
+		// Only do key transition if the key received is distinct from the current one
+		if string(topicKey) != string(key) {
+			hashHash := e4crypto.HashTopic(string(topicHash))
+			timestamp := make([]byte, e4crypto.TimestampLen)
+			binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
+			topicKey = append(topicKey, timestamp...)
+			c.TopicKeys[hex.EncodeToString(hashHash)] = topicKey
+		}
 	}
 
 	c.TopicKeys[topicHashHex] = key
