@@ -225,6 +225,17 @@ func TestKeyTransition(t *testing.T) {
 		t.Fatalf("Unprotect failed: %s", err)
 	}
 
+	err = c.setTopicKey(secondKey, topicHash)
+	if err != nil {
+		t.Fatalf("SetTopicKey failed: %s", err)
+	}
+
+	// should succeed, sending second key again
+	_, err = c.Unprotect(protected, topic)
+	if err != nil {
+		t.Fatalf("Unprotect failed: %s", err)
+	}
+
 	err = c.setTopicKey(thirdKey, topicHash)
 	if err != nil {
 		t.Fatalf("SetTopicKey failed: %s", err)

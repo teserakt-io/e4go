@@ -10,8 +10,10 @@ var (
 	ErrInvalidSignature = errors.New("invalid signature")
 	// ErrPubKeyNotFound occurs when a public key is missing when verifying a signature
 	ErrPubKeyNotFound = errors.New("signer public key not found")
-	// ErrKeyTransitionTime occurs when old topic key is tried but has invalid timestamp
-	ErrKeyTransitionTime = errors.New("old topic key has invalid timestamp")
+	// ErrKeyTransitionFutureTime occurs when old topic key is tried but has future timestamp
+	ErrKeyTransitionFutureTime = errors.New("old topic key has timestamp in the future")
+	// ErrKeyTransitionExpired occurs when old topic key is tried but has expired timestamp
+	ErrKeyTransitionExpired = errors.New("old topic key has expired timestamp")
 )
 
 // TopicKey defines a custom type for topic keys, avoiding mixing them

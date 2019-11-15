@@ -373,7 +373,8 @@ func (c *client) Unprotect(protected []byte, topic string) ([]byte, error) {
 			if len(topicKeyTs) != e4crypto.KeyLen+e4crypto.TimestampLen {
 				return nil, err
 			}
-			topicKey := topicKeyTs[:e4crypto.KeyLen]
+			topicKey := make([]byte, e4crypto.KeyLen)
+			copy(topicKey, topicKeyTs[:e4crypto.KeyLen])
 			timestamp := topicKeyTs[e4crypto.KeyLen:]
 
 			now := time.Now()
@@ -381,16 +382,18 @@ func (c *client) Unprotect(protected []byte, topic string) ([]byte, error) {
 			minTime := now.Add(time.Duration(-e4crypto.MaxDelayKeyTransition))
 
 			if tsTime.After(now) {
-				return nil, keys.ErrKeyTransitionTime
+				return nil, keys.ErrKeyTransitionFutureTime
 			}
 			if tsTime.Before(minTime) {
-				return nil, keys.ErrKeyTransitionTime
+				return nil, keys.ErrKeyTransitionExpired
 			}
 
 			message, err = c.Key.UnprotectMessage(protected, topicKey)
+
 			if err == nil {
 				return message, nil
 			}
+
 		}
 	}
 
