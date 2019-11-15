@@ -125,9 +125,9 @@ func ValidateTopic(topic string) error {
 }
 
 // ValidateTopicHash checks that a topic hash is of the expected length
-func ValidateTopicHash(topichash []byte) error {
-	if len(topichash) != HashLen {
-		return fmt.Errorf("invalid Topic Hash length, expected %d, got %d", HashLen, len(topichash))
+func ValidateTopicHash(topicHash []byte) error {
+	if len(topicHash) != HashLen {
+		return fmt.Errorf("invalid Topic Hash length, expected %d, got %d", HashLen, len(topicHash))
 	}
 
 	return nil

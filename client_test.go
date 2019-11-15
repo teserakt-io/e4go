@@ -190,12 +190,12 @@ func TestKeyTransition(t *testing.T) {
 		t.Fatalf("Failed to create client: %v", err)
 	}
 
-	topichash := e4crypto.HashTopic(topic)
+	topicHash := e4crypto.HashTopic(topic)
 	firstKey := e4crypto.RandomKey()
 	secondKey := e4crypto.RandomKey()
 	thirdKey := e4crypto.RandomKey()
 
-	err = c.setTopicKey(firstKey, topichash)
+	err = c.setTopicKey(firstKey, topicHash)
 	if err != nil {
 		t.Fatalf("SetTopicKey failed: %s", err)
 	}
@@ -214,7 +214,7 @@ func TestKeyTransition(t *testing.T) {
 		t.Fatalf("Unprotect failed: %s", err)
 	}
 
-	err = c.setTopicKey(secondKey, topichash)
+	err = c.setTopicKey(secondKey, topicHash)
 	if err != nil {
 		t.Fatalf("SetTopicKey failed: %s", err)
 	}
@@ -225,7 +225,7 @@ func TestKeyTransition(t *testing.T) {
 		t.Fatalf("Unprotect failed: %s", err)
 	}
 
-	err = c.setTopicKey(thirdKey, topichash)
+	err = c.setTopicKey(thirdKey, topicHash)
 	if err != nil {
 		t.Fatalf("SetTopicKey failed: %s", err)
 	}
@@ -653,14 +653,13 @@ func TestCommandsSymClient(t *testing.T) {
 
 	k, ok := tc.TopicKeys[hex.EncodeToString(hashHash)]
 	if !ok {
-
-	} else {
-		if len(k) != e4crypto.KeyLen+e4crypto.TimestampLen {
-			t.Fatalf("Invalid transition topic key len: got %v, wanted %v", len(k), e4crypto.KeyLen+e4crypto.TimestampLen)
-		}
-		if !bytes.Equal(k[:e4crypto.KeyLen], topicKey) {
-			t.Fatalf("Invalid topic key: got %v, wanted %v", k, topicKey)
-		}
+		t.Fatalf("Previous key not found")
+	}
+	if len(k) != e4crypto.KeyLen+e4crypto.TimestampLen {
+		t.Fatalf("Invalid transition topic key len: got %v, wanted %v", len(k), e4crypto.KeyLen+e4crypto.TimestampLen)
+	}
+	if !bytes.Equal(k[:e4crypto.KeyLen], topicKey) {
+		t.Fatalf("Invalid topic key: got %v, wanted %v", k, topicKey)
 	}
 
 	// Reset topics
