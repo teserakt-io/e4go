@@ -363,35 +363,31 @@ func (c *client) Unprotect(protected []byte, topic string) ([]byte, error) {
 
 	message, err := c.Key.UnprotectMessage(protected, key)
 
-	// If decryption failed, try previous key if exists and not too old
-	if err == miscreant.ErrNotAuthentic {
-		hashHash := hex.EncodeToString(e4crypto.HashTopic(string(topicHash)))
-		topicKeyTs, ok := c.TopicKeys[hashHash]
-		if ok {
-			if len(topicKeyTs) != e4crypto.KeyLen+e4crypto.TimestampLen {
-				return nil, errors.New("invalid old topic key length")
-			}
-			topicKey := make([]byte, e4crypto.KeyLen)
-			copy(topicKey, topicKeyTs[:e4crypto.KeyLen])
-			timestamp := topicKeyTs[e4crypto.KeyLen:]
-
-			err := e4crypto.ValidateTimestampKey(timestamp)
-			if err != nil {
-				return nil, err
-			}
-
-			message, err = c.Key.UnprotectMessage(protected, topicKey)
-			if err == nil {
-				return message, nil
-			}
-		}
+	if err == nil {
+		return message, nil
 	}
 
-	if err != nil {
+	if err != miscreant.ErrNotAuthentic {
 		return nil, err
 	}
 
-	return message, nil
+	// Since decryption failed, try the previous key if it exists and not too old.
+	hashOfHash := hex.EncodeToString(e4crypto.HashTopic(string(topicHash)))
+	topicKeyTs, ok := c.TopicKeys[hashOfHash]
+	if !ok {
+		return nil, err
+	}
+	if len(topicKeyTs) != e4crypto.KeyLen+e4crypto.TimestampLen {
+		return nil, errors.New("invalid old topic key length")
+	}
+	topicKey := make([]byte, e4crypto.KeyLen)
+	copy(topicKey, topicKeyTs[:e4crypto.KeyLen])
+	timestamp := topicKeyTs[e4crypto.KeyLen:]
+	if err := e4crypto.ValidateTimestampKey(timestamp); err != nil {
+		return nil, err
+	}
+
+	return c.Key.UnprotectMessage(protected, topicKey)
 }
 
 // IsReceivingTopic indicate when the given topic is the receiving topic of the client.
