@@ -122,10 +122,9 @@ var _ Client = (*client)(nil)
 
 // NewSymKeyClient creates a new client using a symmetric key
 //
-// id is a client identifier, and must contains e4crypto.IDLen bytes.
-// key is the client private key,  and must contains e4crypto.KeyLen bytes.
-// persistStatePath is a file system path to the file to be used to read
-// and persist the client's current state.
+// id is a client identifier, and must be of length e4crypto.IDLen bytes.
+// key is the client private key,  and must be of length  e4crypto.KeyLen bytes.
+// persistStatePath is the file system path to the file to read and persist the client's state.
 func NewSymKeyClient(id []byte, key []byte, persistStatePath string) (Client, error) {
 	var newID []byte
 	if len(id) == 0 {
@@ -145,10 +144,9 @@ func NewSymKeyClient(id []byte, key []byte, persistStatePath string) (Client, er
 
 // NewPubKeyClient creates a new client using the provided ed25519 private key.
 //
-// id is a client identifier, and must contains e4crypto.IDLen bytes.
+// id is a client identifier, and must be of length e4crypto.IDLen bytes.
 // key is the ed25519 private key.
-// persistStatePath is a file system path to the file to be used to read
-// and persist the client's current state.
+// persistStatePath is the file system path to the file to read and persist the client's state.
 // c2PubKey must be the curve25519 public part of the key that was used to protect client commands.
 func NewPubKeyClient(id []byte, key ed25519.PrivateKey, persistStatePath string, c2PubKey []byte) (Client, error) {
 	var newID []byte
@@ -169,10 +167,9 @@ func NewPubKeyClient(id []byte, key ed25519.PrivateKey, persistStatePath string,
 
 // NewSymKeyClientPretty is like NewClient but takes a client name and a password
 //
-// name is a string identifying the client, which will be hashed into an id.
-// password is a string used to derivate the client key, and it must contains at least 16 characters.
-// persistStatePath is a file system path to the file to be used to read
-// and persist the client's current state.
+// name is the unique identifier for the client.
+// password will be used to derive the client key. It must be at least 16 characters long.
+// persistStatePath is the file system path to the file to read and persist the client's state.
 func NewSymKeyClientPretty(name string, password string, persistStatePath string) (Client, error) {
 	id := e4crypto.HashIDAlias(name)
 
@@ -186,8 +183,8 @@ func NewSymKeyClientPretty(name string, password string, persistStatePath string
 
 // NewPubKeyClientPretty is like NewPubKeyClient except that it takes in the client's name and a password.
 //
-// name is a string identifying the client, which will be hashed into an id.
-// password is a string used to derivate the client key, and it must contains at least 16 characters.
+// name is the unique identifier for the client.
+// password will be used to derive the client key. It must be at least 16 characters long.
 // persistStatePath is a file system path to the file to be used to read
 // and persist the client's current state.
 // c2PubKey must be the curve25519 public part of the key that was used to protect client commands.

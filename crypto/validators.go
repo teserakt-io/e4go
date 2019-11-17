@@ -126,8 +126,8 @@ func ValidateTopic(topic string) error {
 
 // ValidateTopicHash checks that a topic hash is of the expected length
 func ValidateTopicHash(topicHash []byte) error {
-	if len(topicHash) != HashLen {
-		return fmt.Errorf("invalid Topic Hash length, expected %d, got %d", HashLen, len(topicHash))
+	if g, w := len(topicHash), HashLen; g != w {
+		return fmt.Errorf("invalid Topic Hash length, expected %d, got %d", g, w)
 	}
 
 	return nil
@@ -138,12 +138,13 @@ func ValidateTopicHash(topicHash []byte) error {
 func ValidateTimestamp(timestamp []byte) error {
 	now := time.Now()
 	tsTime := time.Unix(int64(binary.LittleEndian.Uint64(timestamp)), 0)
-	minTime := now.Add(time.Duration(-MaxDelayDuration))
 
-	if tsTime.After(now) {
+	if now.Before(tsTime) {
 		return ErrTimestampInFuture
 	}
-	if tsTime.Before(minTime) {
+
+	leastValidTime := now.Add(time.Duration(-MaxDelayDuration))
+	if leastValidTime.After(tsTime) {
 		return ErrTimestampTooOld
 	}
 
@@ -155,12 +156,12 @@ func ValidateTimestamp(timestamp []byte) error {
 func ValidateTimestampKey(timestamp []byte) error {
 	now := time.Now()
 	tsTime := time.Unix(int64(binary.LittleEndian.Uint64(timestamp)), 0)
-	minTime := now.Add(time.Duration(-MaxDelayDuration))
-
-	if tsTime.After(now) {
+	if now.Before(tsTime) {
 		return ErrTimestampInFuture
 	}
-	if tsTime.Before(minTime) {
+
+	leastValidTime := now.Add(time.Duration(-MaxDelayDuration))
+	if leastValidTime.After(tsTime) {
 		return ErrTimestampTooOld
 	}
 

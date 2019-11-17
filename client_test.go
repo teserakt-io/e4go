@@ -209,42 +209,35 @@ func TestKeyTransition(t *testing.T) {
 	}
 
 	// should succeed, first key is the only one
-	_, err = c.Unprotect(protected, topic)
-	if err != nil {
+	if _, err := c.Unprotect(protected, topic); err != nil {
 		t.Fatalf("Unprotect failed: %s", err)
 	}
 
-	err = c.setTopicKey(secondKey, topicHash)
-	if err != nil {
+	if err := c.setTopicKey(secondKey, topicHash); err != nil {
 		t.Fatalf("SetTopicKey failed: %s", err)
 	}
 
 	// should succeed, first key still available
-	_, err = c.Unprotect(protected, topic)
-	if err != nil {
+	if _, err := c.Unprotect(protected, topic); err != nil {
 		t.Fatalf("Unprotect failed: %s", err)
 	}
 
-	err = c.setTopicKey(secondKey, topicHash)
-	if err != nil {
+	if err := c.setTopicKey(secondKey, topicHash); err != nil {
 		t.Fatalf("SetTopicKey failed: %s", err)
 	}
 
 	// should succeed, sending second key again
-	_, err = c.Unprotect(protected, topic)
-	if err != nil {
+	if _, err := c.Unprotect(protected, topic); err != nil {
 		t.Fatalf("Unprotect failed: %s", err)
 	}
 
-	err = c.setTopicKey(thirdKey, topicHash)
-	if err != nil {
+	if err := c.setTopicKey(thirdKey, topicHash); err != nil {
 		t.Fatalf("SetTopicKey failed: %s", err)
 	}
 
 	// should fail, first key no longer available
-	_, err = c.Unprotect(protected, topic)
-	if err == nil {
-		t.Fatalf("Unprotect failed to fail")
+	if _, err := c.Unprotect(protected, topic); err == nil {
+		t.Fatal("Unprotect unexpectedly passed")
 	}
 }
 
@@ -666,10 +659,10 @@ func TestCommandsSymClient(t *testing.T) {
 
 	k, ok := tc.TopicKeys[hex.EncodeToString(hashHash)]
 	if !ok {
-		t.Fatalf("Previous key not found")
+		t.Fatal("Previous key not found")
 	}
-	if len(k) != e4crypto.KeyLen+e4crypto.TimestampLen {
-		t.Fatalf("Invalid transition topic key len: got %v, wanted %v", len(k), e4crypto.KeyLen+e4crypto.TimestampLen)
+	if g, w := len(k), e4crypto.KeyLen+e4crypto.TimestampLen; g != w {
+		t.Fatalf("Invalid transition topic key lengths: got %d, wanted %d", g, w)
 	}
 	if !bytes.Equal(k[:e4crypto.KeyLen], topicKey) {
 		t.Fatalf("Invalid topic key: got %v, wanted %v", k, topicKey)

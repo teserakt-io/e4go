@@ -15,7 +15,7 @@ import (
 func TestRandomID(t *testing.T) {
 	zeroID := make([]byte, IDLen)
 
-	for i := 0; i < 2048; i++ {
+	for i := 0; i < 256; i++ {
 		randomID1 := RandomID()
 		randomID2 := RandomID()
 
@@ -70,7 +70,7 @@ func TestEncrypt(t *testing.T) {
 func TestRandomKey(t *testing.T) {
 	zeroes := make([]byte, KeyLen)
 
-	for i := 0; i < 2048; i++ {
+	for i := 0; i < 256; i++ {
 		k1 := RandomKey()
 		k2 := RandomKey()
 
@@ -95,7 +95,7 @@ func TestRandomKey(t *testing.T) {
 // we encrypted. In addition, it tests that modifications to
 // associated data, ciphertext or key produce a failure result.
 func TestEncryptDecrypt(t *testing.T) {
-	for i := 0; i < 2048; i++ {
+	for i := 0; i < 256; i++ {
 		rDelta := RandomDelta16()
 
 		ptLen := 1234 + rDelta
