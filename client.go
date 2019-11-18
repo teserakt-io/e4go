@@ -417,11 +417,11 @@ func (c *client) setTopicKey(key, topicHash []byte) error {
 	if ok {
 		// Only do key transition if the key received is distinct from the current one
 		if !bytes.Equal(topicKey, key) {
-			hashHash := e4crypto.HashTopic(string(topicHash))
+			hashOfHash := e4crypto.HashTopic(string(topicHash))
 			timestamp := make([]byte, e4crypto.TimestampLen)
 			binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
 			topicKey = append(topicKey, timestamp...)
-			c.TopicKeys[hex.EncodeToString(hashHash)] = topicKey
+			c.TopicKeys[hex.EncodeToString(hashOfHash)] = topicKey
 		}
 	}
 
@@ -443,8 +443,8 @@ func (c *client) removeTopic(topicHash []byte) error {
 	delete(c.TopicKeys, hex.EncodeToString(topicHash))
 
 	// Delete key kept for key transition, if any
-	hashHash := e4crypto.HashTopic(string(topicHash))
-	delete(c.TopicKeys, hex.EncodeToString(hashHash))
+	hashOfHash := e4crypto.HashTopic(string(topicHash))
+	delete(c.TopicKeys, hex.EncodeToString(hashOfHash))
 
 	return c.save()
 }

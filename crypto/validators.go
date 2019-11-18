@@ -143,7 +143,7 @@ func ValidateTimestamp(timestamp []byte) error {
 		return ErrTimestampInFuture
 	}
 
-	leastValidTime := now.Add(time.Duration(-MaxDelayDuration))
+	leastValidTime := now.Add(-MaxDelayDuration)
 	if leastValidTime.After(tsTime) {
 		return ErrTimestampTooOld
 	}
@@ -160,7 +160,7 @@ func ValidateTimestampKey(timestamp []byte) error {
 		return ErrTimestampInFuture
 	}
 
-	leastValidTime := now.Add(time.Duration(-MaxDelayDuration))
+	leastValidTime := now.Add(-MaxDelayKeyTransition)
 	if leastValidTime.After(tsTime) {
 		return ErrTimestampTooOld
 	}
