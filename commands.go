@@ -141,8 +141,8 @@ func CmdSetIDKey(key []byte) ([]byte, error) {
 // CmdSetTopicKey creates a command to set the given
 // topic key and its corresponding topic, on the client
 func CmdSetTopicKey(topicKey []byte, topic string) ([]byte, error) {
-	if keyLen := len(topicKey); keyLen != e4crypto.KeyLen {
-		return nil, fmt.Errorf("invalid key length, got %d, wanted %d", keyLen, e4crypto.KeyLen)
+	if g, w := len(topicKey), e4crypto.KeyLen; g != w {
+		return nil, fmt.Errorf("invalid key length, got %d, wanted %d", g, w)
 	}
 
 	if len(topic) == 0 {
@@ -174,8 +174,8 @@ func CmdResetPubKeys() ([]byte, error) {
 // CmdSetPubKey creates a command to set a given public key,
 // identified by given name on the client
 func CmdSetPubKey(pubKey ed25519.PublicKey, name string) ([]byte, error) {
-	if keyLen := len(pubKey); keyLen != ed25519.PublicKeySize {
-		return nil, fmt.Errorf("invalid public key length, got %d, wanted %d", keyLen, ed25519.PublicKeySize)
+	if g, w := len(pubKey), ed25519.PublicKeySize; g != w {
+		return nil, fmt.Errorf("invalid public key length, got %d, wanted %d", g, w)
 	}
 
 	if len(name) == 0 {

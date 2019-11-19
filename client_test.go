@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/agl/ed25519/extra25519"
+	miscreant "github.com/miscreant/miscreant.go"
 	"golang.org/x/crypto/ed25519"
 
 	e4crypto "github.com/teserakt-io/e4go/crypto"
@@ -104,7 +105,7 @@ func testProtectUnprotectMessage(t *testing.T, c Client, protectedConstLength in
 		t.Fatalf("SetTopicKey failed: %s", err)
 	}
 
-	for i := 0; i < 2048; i++ {
+	for i := 0; i < 256; i++ {
 		rDelta := e4crypto.RandomDelta16()
 		msgLen := 123 + int(rDelta)
 
@@ -177,6 +178,67 @@ func testProtectUnprotectMessage(t *testing.T, c Client, protectedConstLength in
 
 	if _, err := c.Unprotect([]byte("protected"), "topic-not-existing"); err != ErrTopicKeyNotFound {
 		t.Fatalf("Invalid error from Unprotect for an unknown topic, got %v, wanted %v", err, ErrTopicKeyNotFound)
+	}
+}
+
+func TestKeyTransition(t *testing.T) {
+	clientID := e4crypto.HashIDAlias("client1")
+	clientKey := e4crypto.RandomKey()
+	topic := "topic"
+
+	c, err := NewSymKeyClient(clientID, clientKey, "./test/data/testkeytransition")
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	topicHash := e4crypto.HashTopic(topic)
+	firstKey := e4crypto.RandomKey()
+	secondKey := e4crypto.RandomKey()
+	thirdKey := e4crypto.RandomKey()
+
+	err = c.setTopicKey(firstKey, topicHash)
+	if err != nil {
+		t.Fatalf("SetTopicKey failed: %s", err)
+	}
+
+	msg := make([]byte, 16)
+	rand.Read(msg)
+
+	protected, err := c.ProtectMessage(msg, topic)
+	if err != nil {
+		t.Fatalf("Protect failed: %s", err)
+	}
+
+	// should succeed, first key is the only one
+	if _, err := c.Unprotect(protected, topic); err != nil {
+		t.Fatalf("Unprotect failed: %s", err)
+	}
+
+	if err := c.setTopicKey(secondKey, topicHash); err != nil {
+		t.Fatalf("SetTopicKey failed: %s", err)
+	}
+
+	// should succeed, first key still available
+	if _, err := c.Unprotect(protected, topic); err != nil {
+		t.Fatalf("Unprotect failed: %s", err)
+	}
+
+	if err := c.setTopicKey(secondKey, topicHash); err != nil {
+		t.Fatalf("SetTopicKey failed: %s", err)
+	}
+
+	// should succeed, sending second key again
+	if _, err := c.Unprotect(protected, topic); err != nil {
+		t.Fatalf("Unprotect failed: %s", err)
+	}
+
+	if err := c.setTopicKey(thirdKey, topicHash); err != nil {
+		t.Fatalf("SetTopicKey failed: %s", err)
+	}
+
+	// should fail, first key no longer available
+	if _, err := c.Unprotect(protected, topic); err != miscreant.ErrNotAuthentic {
+		t.Fatalf("Unprotect return unexpected error type: got %v, wanted %v", err, miscreant.ErrNotAuthentic)
 	}
 }
 
@@ -491,6 +553,7 @@ func TestClientSetIDKey(t *testing.T) {
 func TestCommandsSymClient(t *testing.T) {
 	clientID := e4crypto.HashIDAlias("client1")
 	clientKey := e4crypto.RandomKey()
+	topic := "topic1"
 
 	c, err := NewSymKeyClient(clientID, clientKey, "./test/data/testcommandsclient")
 	if err != nil {
@@ -498,12 +561,13 @@ func TestCommandsSymClient(t *testing.T) {
 	}
 
 	receivingTopic := TopicForID(clientID)
+	topicHash := e4crypto.HashTopic(topic)
 
-	setTopicCmd := []byte{SetTopicKey.ToByte()}
 	topicKey := e4crypto.RandomKey()
-	setTopicCmd = append(setTopicCmd, topicKey...)
-	topicHash := e4crypto.HashTopic("topic1")
-	setTopicCmd = append(setTopicCmd, topicHash...)
+	setTopicCmd, err := CmdSetTopicKey(topicKey, topic)
+	if err != nil {
+		t.Fatalf("CmdSetTopicKey failed: %v", err)
+	}
 
 	protectedSetTopicCmd, err := e4crypto.ProtectSymKey(setTopicCmd, clientKey)
 	if err != nil {
@@ -566,6 +630,44 @@ func TestCommandsSymClient(t *testing.T) {
 	}
 
 	assertClientTopicKey(t, true, c, topicHash, topicKey)
+
+	// Add a new topic key for the same topic, old one should still be available
+	newTopicKey := e4crypto.RandomKey()
+	setTopicCmd, err = CmdSetTopicKey(newTopicKey, topic)
+	if err != nil {
+		t.Fatalf("CmdSetTopicKey failed: %v", err)
+	}
+
+	protectedSetTopicCmd, err = e4crypto.ProtectSymKey(setTopicCmd, clientKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+
+	d, err = c.Unprotect(protectedSetTopicCmd, receivingTopic)
+	if err != nil {
+		t.Fatalf("Failed to unprotect command: %v", err)
+	}
+	if d != nil {
+		t.Fatalf("Invalid unprotect command response, got %v, wanted nil", d)
+	}
+
+	hashHash := e4crypto.HashTopic(string(topicHash))
+
+	tc, ok := c.(*client)
+	if !ok {
+		t.Fatalf("Unexpected type: got %T, wanted client", c)
+	}
+
+	k, ok := tc.TopicKeys[hex.EncodeToString(hashHash)]
+	if !ok {
+		t.Fatal("Previous key not found")
+	}
+	if g, w := len(k), e4crypto.KeyLen+e4crypto.TimestampLen; g != w {
+		t.Fatalf("Invalid transition topic key lengths: got %d, wanted %d", g, w)
+	}
+	if !bytes.Equal(k[:e4crypto.KeyLen], topicKey) {
+		t.Fatalf("Invalid topic key: got %v, wanted %v", k, topicKey)
+	}
 
 	// Reset topics
 	resetTopicCmd := []byte{ResetTopics.ToByte()}

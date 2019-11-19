@@ -125,25 +125,43 @@ func ValidateTopic(topic string) error {
 }
 
 // ValidateTopicHash checks that a topic hash is of the expected length
-func ValidateTopicHash(topichash []byte) error {
-	if len(topichash) != HashLen {
-		return fmt.Errorf("invalid Topic Hash length, expected %d, got %d", HashLen, len(topichash))
+func ValidateTopicHash(topicHash []byte) error {
+	if g, w := len(topicHash), HashLen; g != w {
+		return fmt.Errorf("invalid Topic Hash length, expected %d, got %d", g, w)
 	}
 
 	return nil
 }
 
-// ValidateTimestamp will check that given timestamp bytes are
+// ValidateTimestamp checks that given timestamp bytes are
 // a valid LittleEndian encoded timestamp, not in the future and not older than MaxDelayDuration
 func ValidateTimestamp(timestamp []byte) error {
 	now := time.Now()
 	tsTime := time.Unix(int64(binary.LittleEndian.Uint64(timestamp)), 0)
-	minTime := now.Add(time.Duration(-MaxDelayDuration))
 
-	if tsTime.After(now) {
+	if now.Before(tsTime) {
 		return ErrTimestampInFuture
 	}
-	if tsTime.Before(minTime) {
+
+	leastValidTime := now.Add(-MaxDelayDuration)
+	if leastValidTime.After(tsTime) {
+		return ErrTimestampTooOld
+	}
+
+	return nil
+}
+
+// ValidateTimestampKey checks that given timestamp bytes are
+// a valid LittleEndian encoded timestamp, not in the future and not older than MaxDelayKeyTransition
+func ValidateTimestampKey(timestamp []byte) error {
+	now := time.Now()
+	tsTime := time.Unix(int64(binary.LittleEndian.Uint64(timestamp)), 0)
+	if now.Before(tsTime) {
+		return ErrTimestampInFuture
+	}
+
+	leastValidTime := now.Add(-MaxDelayKeyTransition)
+	if leastValidTime.After(tsTime) {
 		return ErrTimestampTooOld
 	}
 

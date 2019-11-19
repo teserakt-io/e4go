@@ -31,6 +31,8 @@
 package e4go
 
 import (
+	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -38,9 +40,11 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/ed25519"
 
+	miscreant "github.com/miscreant/miscreant.go"
 	e4crypto "github.com/teserakt-io/e4go/crypto"
 	"github.com/teserakt-io/e4go/keys"
 )
@@ -91,9 +95,9 @@ type Client interface {
 	getPubKeys() (map[string][]byte, error)
 	// setTopicKey set the key for the given topic hash (see crypto.HashTopic to obtain topic hashes).
 	// Setting topic keys is required prior being able to communicate over this topic.
-	setTopicKey(key, topichash []byte) error
+	setTopicKey(key, topicHash []byte) error
 	// removeTopic will remove the topic key from the client for the given topic hash (see crypto.HashTopic to obtain topic hashes).
-	removeTopic(topichash []byte) error
+	removeTopic(topicHash []byte) error
 	// resetTopics will remove all previously set topics from the client.
 	resetTopics() error
 }
@@ -118,10 +122,9 @@ var _ Client = (*client)(nil)
 
 // NewSymKeyClient creates a new client using a symmetric key
 //
-// id is a client identifier, and must contains e4crypto.IDLen bytes.
-// key is the client private key,  and must contains e4crypto.KeyLen bytes.
-// persistStatePath is a file system path to the file to be used to read
-// and persist the client's current state.
+// id is a client identifier, and must be of length e4crypto.IDLen bytes.
+// key is the client private key,  and must be of length  e4crypto.KeyLen bytes.
+// persistStatePath is the file system path to the file to read and persist the client's state.
 func NewSymKeyClient(id []byte, key []byte, persistStatePath string) (Client, error) {
 	var newID []byte
 	if len(id) == 0 {
@@ -141,10 +144,9 @@ func NewSymKeyClient(id []byte, key []byte, persistStatePath string) (Client, er
 
 // NewPubKeyClient creates a new client using the provided ed25519 private key.
 //
-// id is a client identifier, and must contains e4crypto.IDLen bytes.
+// id is a client identifier, and must be of length e4crypto.IDLen bytes.
 // key is the ed25519 private key.
-// persistStatePath is a file system path to the file to be used to read
-// and persist the client's current state.
+// persistStatePath is the file system path to the file to read and persist the client's state.
 // c2PubKey must be the curve25519 public part of the key that was used to protect client commands.
 func NewPubKeyClient(id []byte, key ed25519.PrivateKey, persistStatePath string, c2PubKey []byte) (Client, error) {
 	var newID []byte
@@ -165,10 +167,9 @@ func NewPubKeyClient(id []byte, key ed25519.PrivateKey, persistStatePath string,
 
 // NewSymKeyClientPretty is like NewClient but takes a client name and a password
 //
-// name is a string identifying the client, which will be hashed into an id.
-// password is a string used to derivate the client key, and it must contains at least 16 characters.
-// persistStatePath is a file system path to the file to be used to read
-// and persist the client's current state.
+// name is the unique identifier for the client.
+// password will be used to derive the client key. It must be at least 16 characters long.
+// persistStatePath is the file system path to the file to read and persist the client's state.
 func NewSymKeyClientPretty(name string, password string, persistStatePath string) (Client, error) {
 	id := e4crypto.HashIDAlias(name)
 
@@ -182,8 +183,8 @@ func NewSymKeyClientPretty(name string, password string, persistStatePath string
 
 // NewPubKeyClientPretty is like NewPubKeyClient except that it takes in the client's name and a password.
 //
-// name is a string identifying the client, which will be hashed into an id.
-// password is a string used to derivate the client key, and it must contains at least 16 characters.
+// name is the unique identifier for the client.
+// password will be used to derive the client key. It must be at least 16 characters long.
 // persistStatePath is a file system path to the file to be used to read
 // and persist the client's current state.
 // c2PubKey must be the curve25519 public part of the key that was used to protect client commands.
@@ -314,10 +315,10 @@ func (c *client) UnmarshalJSON(data []byte) error {
 // the client holds a key for the given topic, otherwise
 // ErrTopicKeyNotFound will be returned
 func (c *client) ProtectMessage(payload []byte, topic string) ([]byte, error) {
-	topichash := hex.EncodeToString(e4crypto.HashTopic(topic))
+	topicHash := hex.EncodeToString(e4crypto.HashTopic(topic))
 
 	c.lock.RLock()
-	topicKey, ok := c.TopicKeys[topichash]
+	topicKey, ok := c.TopicKeys[topicHash]
 	c.lock.RUnlock()
 	if !ok {
 		return nil, ErrTopicKeyNotFound
@@ -352,20 +353,41 @@ func (c *client) Unprotect(protected []byte, topic string) ([]byte, error) {
 		return nil, nil
 	}
 
-	topichash := hex.EncodeToString(e4crypto.HashTopic(topic))
+	topicHash := e4crypto.HashTopic(topic)
 	c.lock.RLock()
-	key, ok := c.TopicKeys[topichash]
+	key, ok := c.TopicKeys[hex.EncodeToString(topicHash)]
 	c.lock.RUnlock()
 	if !ok {
 		return nil, ErrTopicKeyNotFound
 	}
 
 	message, err := c.Key.UnprotectMessage(protected, key)
-	if err != nil {
+
+	if err == nil {
+		return message, nil
+	}
+
+	if err != miscreant.ErrNotAuthentic {
 		return nil, err
 	}
 
-	return message, nil
+	// Since decryption failed, try the previous key if it exists and not too old.
+	hashOfHash := hex.EncodeToString(e4crypto.HashTopic(string(topicHash)))
+	topicKeyTs, ok := c.TopicKeys[hashOfHash]
+	if !ok {
+		return nil, miscreant.ErrNotAuthentic
+	}
+	if len(topicKeyTs) != e4crypto.KeyLen+e4crypto.TimestampLen {
+		return nil, errors.New("invalid old topic key length")
+	}
+	topicKey := make([]byte, e4crypto.KeyLen)
+	copy(topicKey, topicKeyTs[:e4crypto.KeyLen])
+	timestamp := topicKeyTs[e4crypto.KeyLen:]
+	if err := e4crypto.ValidateTimestampKey(timestamp); err != nil {
+		return nil, err
+	}
+
+	return c.Key.UnprotectMessage(protected, topicKey)
 }
 
 // IsReceivingTopic indicate when the given topic is the receiving topic of the client.
@@ -380,28 +402,49 @@ func (c *client) GetReceivingTopic() string {
 }
 
 // setTopicKey adds a key to the given topic hash, erasing any previous entry
-func (c *client) setTopicKey(key, topichash []byte) error {
-	if err := e4crypto.ValidateTopicHash(topichash); err != nil {
+func (c *client) setTopicKey(key, topicHash []byte) error {
+	if err := e4crypto.ValidateTopicHash(topicHash); err != nil {
 		return fmt.Errorf("invalid topic hash: %v", err)
 	}
 
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	c.TopicKeys[hex.EncodeToString(topichash)] = key
+	topicHashHex := hex.EncodeToString(topicHash)
+
+	// Key transition, if a key already exists for this topic
+	topicKey, ok := c.TopicKeys[topicHashHex]
+	if ok {
+		// Only do key transition if the key received is distinct from the current one
+		if !bytes.Equal(topicKey, key) {
+			hashOfHash := e4crypto.HashTopic(string(topicHash))
+			timestamp := make([]byte, e4crypto.TimestampLen)
+			binary.LittleEndian.PutUint64(timestamp, uint64(time.Now().Unix()))
+			topicKey = append(topicKey, timestamp...)
+			c.TopicKeys[hex.EncodeToString(hashOfHash)] = topicKey
+		}
+	}
+
+	newKey := make([]byte, e4crypto.KeyLen)
+	copy(newKey, key)
+	c.TopicKeys[topicHashHex] = newKey
 	return c.save()
 }
 
 // removeTopic removes the key of the given topic hash
-func (c *client) removeTopic(topichash []byte) error {
-	if err := e4crypto.ValidateTopicHash(topichash); err != nil {
+func (c *client) removeTopic(topicHash []byte) error {
+	if err := e4crypto.ValidateTopicHash(topicHash); err != nil {
 		return fmt.Errorf("invalid topic hash: %v", err)
 	}
 
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	delete(c.TopicKeys, hex.EncodeToString(topichash))
+	delete(c.TopicKeys, hex.EncodeToString(topicHash))
+
+	// Delete key kept for key transition, if any
+	hashOfHash := e4crypto.HashTopic(string(topicHash))
+	delete(c.TopicKeys, hex.EncodeToString(hashOfHash))
 
 	return c.save()
 }
