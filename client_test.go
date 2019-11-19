@@ -237,11 +237,8 @@ func TestKeyTransition(t *testing.T) {
 	}
 
 	// should fail, first key no longer available
-	if _, err := c.Unprotect(protected, topic); err == nil {
-		t.Fatal("Unprotect unexpectedly passed")
-		if err != miscreant.ErrNotAuthentic {
-			t.Fatalf("Unprotect return unexpected error type: got %v, wanted %v", err, miscreant.ErrNotAuthentic)
-		}
+	if _, err := c.Unprotect(protected, topic); err != miscreant.ErrNotAuthentic {
+		t.Fatalf("Unprotect return unexpected error type: got %v, wanted %v", err, miscreant.ErrNotAuthentic)
 	}
 }
 
