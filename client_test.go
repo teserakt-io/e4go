@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/agl/ed25519/extra25519"
+	miscreant "github.com/miscreant/miscreant.go"
 	"golang.org/x/crypto/ed25519"
 
 	e4crypto "github.com/teserakt-io/e4go/crypto"
@@ -238,6 +239,9 @@ func TestKeyTransition(t *testing.T) {
 	// should fail, first key no longer available
 	if _, err := c.Unprotect(protected, topic); err == nil {
 		t.Fatal("Unprotect unexpectedly passed")
+		if err != miscreant.ErrNotAuthentic {
+			t.Fatalf("Unprotect return unexpected error type: got %v, wanted %v", err, miscreant.ErrNotAuthentic)
+		}
 	}
 }
 

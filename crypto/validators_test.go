@@ -232,6 +232,26 @@ func TestValidateTimestamp(t *testing.T) {
 	}
 }
 
+func TestValidateTimestampKey(t *testing.T) {
+	futureTimestamp := make([]byte, TimestampLen)
+	binary.LittleEndian.PutUint64(futureTimestamp, uint64(time.Now().Add(1*time.Second).Unix()))
+	if err := ValidateTimestamp(futureTimestamp); err == nil {
+		t.Fatalf("Expected timestamp in future to not be valid")
+	}
+
+	pastTimestamp := make([]byte, TimestampLen)
+	binary.LittleEndian.PutUint64(pastTimestamp, uint64(time.Now().Add(-(MaxDelayKeyTransition + 1)).Unix()))
+	if err := ValidateTimestamp(pastTimestamp); err == nil {
+		t.Fatalf("Expected timestamp too far in past to not be valid")
+	}
+
+	validTimestamp := make([]byte, TimestampLen)
+	binary.LittleEndian.PutUint64(validTimestamp, uint64(time.Now().Unix()))
+	if err := ValidateTimestamp(validTimestamp); err != nil {
+		t.Fatalf("Got error %v when validating timestamp %v, wanted no error", err, validTimestamp)
+	}
+}
+
 func TestValidateCurve25519PubKey(t *testing.T) {
 	t.Run("Invalid public keys return an error", func(t *testing.T) {
 		allZeroKey := make([]byte, 32)

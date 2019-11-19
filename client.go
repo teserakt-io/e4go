@@ -375,7 +375,7 @@ func (c *client) Unprotect(protected []byte, topic string) ([]byte, error) {
 	hashOfHash := hex.EncodeToString(e4crypto.HashTopic(string(topicHash)))
 	topicKeyTs, ok := c.TopicKeys[hashOfHash]
 	if !ok {
-		return nil, err
+		return nil, miscreant.ErrNotAuthentic
 	}
 	if len(topicKeyTs) != e4crypto.KeyLen+e4crypto.TimestampLen {
 		return nil, errors.New("invalid old topic key length")
