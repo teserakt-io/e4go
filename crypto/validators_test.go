@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/crypto/ed25519"
+	"crypto/ed25519"
 )
 
 func TestValidateName(t *testing.T) {

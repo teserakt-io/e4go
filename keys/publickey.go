@@ -10,9 +10,9 @@ import (
 
 	e4crypto "github.com/teserakt-io/e4go/crypto"
 
+	"crypto/ed25519"
 	"github.com/agl/ed25519/extra25519"
 	"golang.org/x/crypto/curve25519"
-	"golang.org/x/crypto/ed25519"
 )
 
 // PubKeyMaterial extends the ClientKey and PubKeyStore interfaces for public key implementations

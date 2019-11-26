@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"golang.org/x/crypto/ed25519"
+	"crypto/ed25519"
 
 	e4crypto "github.com/teserakt-io/e4go/crypto"
 )

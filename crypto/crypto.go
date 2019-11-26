@@ -10,9 +10,9 @@ import (
 
 	"github.com/agl/ed25519/extra25519"
 	miscreant "github.com/miscreant/miscreant.go"
+	"crypto/ed25519"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/curve25519"
-	"golang.org/x/crypto/ed25519"
 )
 
 var (
