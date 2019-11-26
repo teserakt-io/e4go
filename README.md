@@ -1,53 +1,34 @@
-
 # e4go
 
-This repository implements E4 in Go, Teserakt's Secure machine-to-machine
-communication protocol.
+This Go  library provides the functions necessary to support Teserakt's E4 secure communication protocol in a client system.
 
 ## Client usage
 
-### Instantiating a Client
+The following examples assume that your program imports `e4go` as follows:
 
-#### With symmetric key
-
-Client instances can be created with either the `NewSymKeyClient` or
-`NewSymKeyClientPretty` commands, for example you might call:
 ```go
     import e4 "github.com/teserakt-io/e4go"
-
-    var id []byte
-    var key []byte
-    /* get id and key from somewhere */
-    client := e4.NewSymKeyClient(id, key, "/path/to/e4storage.file")
 ```
 
-If you know your id and key already; alternatively you might do:
-```go
-    import e4 "github.com/teserakt-io/e4go"
+### Instantiating a client in symmetric key mode
 
-    name := "some client name"
-    pwd := "some random password"
-    /* get id and key from somewhere */
-    client := e4.NewSymKeyClientPretty(name, password, "/path/to/e4storage.file")
-```
-
-If you have a human-readable client name and are deriving your encryption
-key from a password. The password length must be longer than 16 characters.
-
-If the client has already been persisted by running:
-```go
-    client.save()
-```
-then you can load your client from disk using the LoadClient helper:
+A new client instance can be created from a 16-byte identifier (type `[]byte`), a 32-byte key (type `[]byte`), and an absolute path (type `string`) to a file on the local file system, which will persistently store the client's  state:
 
 ```go
-    client, err := e4.LoadClient("/path/to/e4storage.file")
-    ...
+    client := e4.NewSymKeyClient(id, key, path)
 ```
 
-#### With a PubKeyMaterial
+A new client instance can also be created from a name (`string` or arbitrary length) and a password (`string` of a least 16 characters), instead of an identifier and a key:
+
+```go
+    client := e4.NewSymKeyClientPretty(name, password, path)
+```
+
+
+### Instantiating a client in public-key mode
 
 Same as for the symmetric key client, 2 constructors are available:
+
 ```go
 NewPubKeyClient(id []byte, key ed25519.PrivateKey, filePath string, c2PubKey []byte) (Client, error)
 NewPubKeyClientPretty(name string, password string, filePath string, c2PubKey []byte) (Client, error)
@@ -57,6 +38,22 @@ accepting the same kind of arguments than the Symmetric Key Client, with the add
 
 Remember that in order to unprotect message, the client need to be sent the emitters public keys first.
 The password is required to be over 16 characters if used.
+
+### Saving and restoring a client
+
+A client's state can be saved to the file system at any time by doing:
+
+```go
+    client.save()
+```
+
+(This save operation is automatically performed by the library when the state changes, you should not have to do it manually.)
+
+A client instance can then be recovered from its persistent state, using the `LoadClient()` helper:
+
+```go
+    client, err := e4.LoadClient(path)
+```
 
 ### Processing E4 messages
 
@@ -125,6 +122,8 @@ You can receive support for this code by contacting team@teserakt.io.
 
 See [SECURITY.md](./SECURITY.md)
 
+
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md)
+
