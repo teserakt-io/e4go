@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"crypto/ed25519"
 	"github.com/agl/ed25519/extra25519"
 	miscreant "github.com/miscreant/miscreant.go"
-	"crypto/ed25519"
 
 	e4crypto "github.com/teserakt-io/e4go/crypto"
 	"github.com/teserakt-io/e4go/keys"
