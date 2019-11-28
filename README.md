@@ -1,129 +1,172 @@
 # e4go
 
-This Go  library provides the functions necessary to support Teserakt's E4 secure communication protocol in a client system.
+e4go is a Go library that implements E4, Teserakt's secure communication and key management framework for MQTT and other publish-subscribe protocols.
 
-## Client usage
+e4go defines a `Client` object that has a minimal interface, making its integration straightforward via the following methods:
 
-The following examples assume that your program imports `e4go` as follows:
+* `ProtectMessage(payload []byte, topic string)` takes a cleartext payload to protect and the associated topic, and returns a `[]byte` that is the payload encrypted and authenticated with the topic's key.
+
+* `Unprotect(protected []byte, topic string)` takes a protected payload and attempts to decrypt and verify it. If `topic` is the special topic reserved for control messages, then the control message is processed and the client's state updated accordingly.
+
+We talk of message *protection* instead of just *encryption* because the protection operation includes also authentication and replay defense.
+
+**NOTE:** 
+E4's server (C2) is necessary to send control messages and manage a fleet of clients through GUIs, APIs, and automation components.
+The server can for example deploy key rotation policies, grant and revoke rights, and enable forward secrecy.
+Please [contact us](mailto:contact@teserakt.io) to use your private instance of the server, or test the limited public version.
+Without the server, e4go can be used to protect messages using static keys.
+
+## Creating a client
+
+The following instructions assume that your program imports `e4go` as follows:
 
 ```go
     import e4 "github.com/teserakt-io/e4go"
 ```
 
-### Instantiating a client in symmetric key mode
+E4 supports both symmetric key and public-key mode.
+Depending on the mode, different functions should be used to instantiate a client:
 
-A new client instance can be created from a 16-byte identifier (type `[]byte`), a 32-byte key (type `[]byte`), and an absolute path (type `string`) to a file on the local file system, which will persistently store the client's  state:
+### Symmetric-key client
 
-```go
-    client := e4.NewSymKeyClient(id, key, path)
-```
-
-A new client instance can also be created from a name (`string` or arbitrary length) and a password (`string` of a least 16 characters), instead of an identifier and a key:
+A symmetric-key client can be created from a 16-byte identifier (type `[]byte`), a 32-byte key (type `[]byte`), and an absolute path (type `string`) to a file on the local file system, which will persistently store the client's state:
 
 ```go
-    client := e4.NewSymKeyClientPretty(name, password, path)
+    client, err := e4.NewSymKeyClient(id, key, filePath)
 ```
 
+A symmetric-key client can also be created from a name (`string` or arbitrary length) and a password (`string` of a least 16 characters), as follows:
 
-### Instantiating a client in public-key mode
+```go
+    client, err := e4.NewSymKeyClientPretty(name, password, filePath)
+```
 
-Same as for the symmetric key client, 2 constructors are available:
+The latter is a wrapper over `NewSymKeyClient()` that creates the ID by hashing `name` with SHA-3-256, and deriving a key using Argon2.
+
+### Public-key client
+
+A public-key client can be created from a 16-byte identifier (type `[]byte`), an Ed25519 private key (type `ed25519.PrivateKey`), an absolute file path (type `string`), and a Curve25519 public key (32-byte `[]byte`):
 
 ```go
 NewPubKeyClient(id []byte, key ed25519.PrivateKey, filePath string, c2PubKey []byte) (Client, error)
+```
+
+Compared to the symmetric-key mode, and additional argument is `c2PubKey`, the public key of the C2 server that sends control messages.
+
+A public-key client can also be created from a name (`string` or arbitrary length) and a password (`string` of a least 16 characters), as follows:
+
+```go
 NewPubKeyClientPretty(name string, password string, filePath string, c2PubKey []byte) (Client, error)
 ```
 
-accepting the same kind of arguments than the Symmetric Key Client, with the addition of a c2PubKey one.
+The Ed25519 private key is then created from a seed that is derived from the password using Argon2.
 
-Remember that in order to unprotect message, the client need to be sent the emitters public keys first.
-The password is required to be over 16 characters if used.
+### From a saved state 
 
-### Saving and restoring a client
-
-A client's state can be saved to the file system at any time by doing:
+A client instance can be recovered using the `LoadClient()` helper, providing as argument the `filePath` of its persistent state copy:
 
 ```go
-    client.save()
+    client, err := e4.LoadClient(filePath)
 ```
 
-(This save operation is automatically performed by the library when the state changes, you should not have to do it manually.)
+Note that a client's state is automatically saved to the provided `filePath` every time its state changes, and therefore does not need be manually saved.
 
-A client instance can then be recovered from its persistent state, using the `LoadClient()` helper:
+## Integration instructions
+
+To integrate e4go into your application, the protect/unprotect logic just needs be added between the network layer and the application layer when transmitting/receiving a message, using an instance of the client.
+
+This section provides further instructions related to error handling and to the special case of control messages received from the C2 server.
+
+Note that E4 is essentially an application security layer, therefore it processes the payload of a message (such as an MQTT payload), excluding header fields.
+References to "messages" below therefore refer to payload data (or application message),as opposed to the network-level message.
+
+## Messages received
+
+Assume that you receive messages over MQTT or Kafka, and have topics and payload defined as
 
 ```go
-    client, err := e4.LoadClient(path)
-```
-
-### Processing E4 messages
-
-You should receive messages over MQTT or Kafka using your chosen library the
-usual way. Having instantiated an instance of the client, imagine that you
-now also have:
-
     var topic string
     var message []byte
+```
 
-You can then unprotect the message as follows:
+Having instantiated a client, you can then unprotect the message as follows:
 
-    plainText, err := client.Unprotect(message, topic)
+```go
+    plaintext, err := client.Unprotect(message, topic)
     if err != nil {
         // your error reporting here
     }
+```
 
-If you receive no error, the plainText may still be nil. This happens when
-E4 has processed a control message. In this case you can simply not act on
-the received message - E4 has already processed it. If you want to detect this
-case you can test for
+
+If you receive no error, `plaintext` may still be `nil`. This happens when E4
+has processed a control message, that is, a message sent by the C2 server, for example to provision or delete a topic key.
+In this case, you do not need to act on the message, since E4 has already processed it. If you want to detect this case you can test for
+
 ```go
     if len(plainText) == 0 { ... }
 ```
+
 or alternatively
+
 ```go
     if client.IsReceivingTopic(topic)
 ```
+
 which indicates a message on E4's control channel.
+You should not have to parse E4's messages yourself. 
+Control messages are thus deliberately not returned to users.
 
-You should not try to parse E4's messages yourself and they are deliberately
-not returned to users as this may induce security vulnerabilities.
+If `plaintext` is not `nil` and `err` is nil, your application can proceed with the  unprotected, plaintext message. 
 
-### Sending E4 messages
 
-If you wish to transmit a message on a topic, suppose say that you have:
+### Messages transmitted
 
+To protect a message to be transmitted, suppose say that you have the topic and payload defined as:
+
+```go
     var topic string
     var message []byte
+```
 
-Then you may simply use the `Protect` function from the client library as
-follows:
+You can then use the `Protect` method from the client instance as follows:
 
-    cipherText, err := client.Protect(message, topic)
+```go
+    protected, err := client.Protect(message, topic)
+    if err != nil {
+        // your error reporting here
+    }
+```
 
 ### Handling errors
 
-All errors should be reported and you should stop processing any plainText or
-cipherText except in one case. If you receive `ErrTopicKeyNotFound` on a given
-topic when encrypting or decrypting, it is because the client does not have
-the key for this topic.
+All errors should be reported, and the `plaintext` and `protected` values discarded upon an error, *except potentially in one case*:
+if you receive an `ErrTopicKeyNotFound` error from  `ProtectMessage()` or `Unprotect()`, it is because the client does not have the key for this topic.
+Therefore, 
 
-Depending on your application, your "policy" may determine what to do. You
-may wish to not transmit any data, or it may be acceptable to transmit some
-other plainText message, or the original message in plainText, depending on
-your application.
+* When transmitting a message, your application can either discard the message to be sent, or choose to transmit it in clear.
 
-If you receive this message in testing our solution, please instruct the C2
-to deliver a key to the client.
+* When receiving a message, your application can either discard the message (for example if all messages are assumed to be encrypted in your network), or forward the message to the application (if you call `Unprotect()` for all messages yet tolerate the receiving of unencrypted messages over certain topics, which thus don't have a topic key).
 
-## Support
+In order to have the key associated to a certain topic, you must instruct the C2 to deliver said topic key to the client.
 
-You can receive support for this code by contacting team@teserakt.io.
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md)
+
 
 ## Security
 
 See [SECURITY.md](./SECURITY.md)
 
 
-## Contributing
+## Support
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md)
+To receive support, please contact [team@teserakt.io](mailto:team@teserakt.io).
+
+
+## Intellectual property
+
+e4go  is copyright (c) Teserakt AG 2018-2019-2020, and released under Apache 2.0 License (see [LICENCE](./LICENSE)).
 
