@@ -28,7 +28,7 @@ If you contribute code and submit a patch, please note the following:
 
 * We use Go version >= 1.13 for developing e4go.
 * Pull requests should target the `develop` branch.
-* Follow the established Go [coding conventions](https://golang.org/doc/effective_go.html)
+* Try to follow the established Go [coding conventions](https://golang.org/doc/effective_go.html).
 
 Also please make sure to create new unit tests covering your code additions. You can execute the tests by running:
 
