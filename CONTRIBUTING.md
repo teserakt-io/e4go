@@ -18,11 +18,11 @@ If you report a bug, please:
 * Check that it's not already reported in the [GitHub Issues](https://github.com/teserakt-io/e4go/issues).
 * Provide information to help us diagnose and ideally reproduce the bug.
 
-We appreciate feature requests, however we cannot guarantee that all feature requested will be added to e4go.
+We appreciate feature requests, however we cannot guarantee that all the features requested will be added to e4go.
 
 ## Patches
 
-We enraouge you to fix a bug or implement a new feature via a [GitHub Pull request](https://github.com/teserakt-io/e4go/pulls), preferably after creating a related issue and referring it in the PR.
+We encourage you to fix a bug or implement a new feature via a [GitHub Pull request](https://github.com/teserakt-io/e4go/pulls), preferably after creating a related issue and referring it in the PR.
 
 If you contribute code and submit a patch, please note the following:
 
