@@ -35,7 +35,7 @@ A symmetric-key client can be created from a 16-byte identifier (type `[]byte`),
     client, err := e4.NewSymKeyClient(id, key, filePath)
 ```
 
-A symmetric-key client can also be created from a name (`string` or arbitrary length) and a password (`string` of a least 16 characters), as follows:
+A symmetric-key client can also be created from a name (`string` of arbitrary length) and a password (`string` of a least 16 characters), as follows:
 
 ```go
     client, err := e4.NewSymKeyClientPretty(name, password, filePath)
