@@ -53,7 +53,7 @@ NewPubKeyClient(id []byte, key ed25519.PrivateKey, filePath string, c2PubKey []b
 
 Compared to the symmetric-key mode, and additional argument is `c2PubKey`, the public key of the C2 server that sends control messages.
 
-A public-key client can also be created from a name (`string` or arbitrary length) and a password (`string` of a least 16 characters), as follows:
+A public-key client can also be created from a name (`string` of arbitrary length) and a password (`string` of a least 16 characters), as follows:
 
 ```go
 NewPubKeyClientPretty(name string, password string, filePath string, c2PubKey []byte) (Client, error)
