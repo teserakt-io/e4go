@@ -4,9 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"golang.org/x/crypto/ed25519"
-
 	e4crypto "github.com/teserakt-io/e4go/crypto"
+	"golang.org/x/crypto/ed25519"
 )
 
 // Command is a command sent by C2 to a client. This is a sequence of bytes, starting from a Command, followed by the command arguments.

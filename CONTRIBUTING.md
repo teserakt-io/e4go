@@ -1,25 +1,49 @@
 # Contributing
 
-Although E4 is an in-house-developed product by Teserakt.io, it is still open-source, GPLv2-licensed software. This means you can hack it any way you want and contribute things back if you'd like to. As a software company, we focus on implementing features that are important to our products but would gladly spend some time on making E4 useful for everybody.
+e4go is maintained by [Teserakt AG](https://teserakt.io) and its team:
 
-## Bugs, issues, feature requests
+* [@daeMOn63 ](https://github.com/daeMOn63) (Flavien Binet)
+* [@diagprov](https://github.com/diagprov) (Antony Vennard)
+* [@odeke-em](https://github.com/odeke-em) (Emmanuel Odeke)
+* [@veorq](https://github.com/veorq) (JP Aumasson)
 
-Please let us know by creating a [Github issues](https://github.com/Teserakt-io/e4go/issues) if you stumble upon a bug, have an issue or a feature request.
+We welcome and encourage third-party contributions to e4go, be it reports of issues encountered while using the software, suggestions of new features, or proposals of patches.
 
-## Development
+## Bug reports
 
-* We use golang version >= 1.12 for developing e4go.
-* Makes sure to create new unit tests covering your code additions.
-* Please create pull requests targeting the `develop` branch
+Bugs, problems, and feature requests should be reported on [GitHub Issues](https://github.com/teserakt-io/e4go/issues).
 
-## Testing
+If you report a bug, please:
 
-You can execute the tests by running:
+* Check that it's not already reported in the [GitHub Issues](https://github.com/teserakt-io/e4go/issues).
+* Provide information to help us diagnose and ideally reproduce the bug.
+
+We appreciate feature requests, however we cannot guarantee that all the features requested will be added to e4go.
+
+## Patches
+
+We encourage you to fix a bug or implement a new feature via a [GitHub Pull request](https://github.com/teserakt-io/e4go/pulls), preferably after creating a related issue and referring it in the PR.
+
+If you contribute code and submit a patch, please note the following:
+
+* We use Go version >= 1.13 for developing e4go.
+* Pull requests should target the `develop` branch.
+* Try to follow the established Go [coding conventions](https://golang.org/doc/effective_go.html).
+
+Also please make sure to create new unit tests covering your code additions. You can execute the tests by running:
+
 ```bash
 ./scripts/unittest.sh
 ```
 
-Or using the go binary;
+or using the go binary;
+
 ```bash
 go test -v ./crypto
 ```
+
+All third-party contributions will be recognized in the list of contributors.
+
+## House rules
+
+When posting on discussion threads, please be respectful and civil, avoid (passive-)agressive tone, and try to communicate clearly and succinctly. This is usually better for everyone :-)

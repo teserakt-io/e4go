@@ -11,10 +11,10 @@ import (
 
 	"github.com/agl/ed25519/extra25519"
 	miscreant "github.com/miscreant/miscreant.go"
-	"golang.org/x/crypto/ed25519"
 
 	e4crypto "github.com/teserakt-io/e4go/crypto"
 	"github.com/teserakt-io/e4go/keys"
+	"golang.org/x/crypto/ed25519"
 )
 
 func TestNewClientSymKey(t *testing.T) {
