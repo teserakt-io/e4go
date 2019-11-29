@@ -5,8 +5,8 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"crypto/ed25519"
 	e4crypto "github.com/teserakt-io/e4go/crypto"
+	"golang.org/x/crypto/ed25519"
 )
 
 var invalidKeys = [][]byte{

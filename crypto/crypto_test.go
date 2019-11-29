@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"crypto/ed25519"
 	"github.com/agl/ed25519/extra25519"
+	"golang.org/x/crypto/ed25519"
 )
 
 func TestRandomID(t *testing.T) {

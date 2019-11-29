@@ -42,11 +42,10 @@ import (
 	"sync"
 	"time"
 
-	"crypto/ed25519"
-
 	miscreant "github.com/miscreant/miscreant.go"
 	e4crypto "github.com/teserakt-io/e4go/crypto"
 	"github.com/teserakt-io/e4go/keys"
+	"golang.org/x/crypto/ed25519"
 )
 
 const (

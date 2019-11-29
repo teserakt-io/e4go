@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"crypto/ed25519"
+	"golang.org/x/crypto/ed25519"
 )
 
 const (

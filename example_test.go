@@ -3,10 +3,10 @@ package e4go
 import (
 	"fmt"
 
-	"crypto/ed25519"
 	"github.com/agl/ed25519/extra25519"
 
 	"github.com/teserakt-io/e4go/crypto"
+	"golang.org/x/crypto/ed25519"
 )
 
 func ExampleNewSymKeyClient() {
