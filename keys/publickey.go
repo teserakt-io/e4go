@@ -110,16 +110,11 @@ func (k *pubKeyMaterial) ProtectMessage(payload []byte, topicKey TopicKey) ([]by
 		return nil, err
 	}
 
-	protected := append(timestamp, k.SignerID...)
-	protected = append(protected, ct...)
-
-	// sig should always be ed25519.SignatureSize=64 bytes
-	sig := ed25519.Sign(k.PrivateKey, protected)
-	if len(sig) != ed25519.SignatureSize {
-		return nil, ErrInvalidSignature
+	protected, err := e4crypto.Sign(k.SignerID, k.PrivateKey, timestamp, ct)
+	if err != nil {
+		return nil, err
 	}
 
-	protected = append(protected, sig...)
 	protectedLen := e4crypto.TimestampLen + e4crypto.IDLen + len(payload) + e4crypto.TagLen + ed25519.SignatureSize
 	if protectedLen != len(protected) {
 		return nil, e4crypto.ErrInvalidProtectedLen

@@ -38,6 +38,12 @@ var (
 	ErrTimestampInFuture = errors.New("timestamp received is in the future")
 	// ErrTimestampTooOld occurs when the cipher timestamp is older than MaxDelayDuration from now
 	ErrTimestampTooOld = errors.New("timestamp too old")
+	// ErrInvalidSignature occurs when a signature verification fails
+	ErrInvalidSignature = errors.New("invalid signature")
+	// ErrInvalidSignerID occurs when trying to sign with an invalid ID
+	ErrInvalidSignerID = errors.New("invalid signer ID")
+	// ErrInvalidTimestamp occurs when trying to sign with an invalid timestamp
+	ErrInvalidTimestamp = errors.New("invalid timestamp")
 )
 
 // Encrypt creates an authenticated ciphertext
@@ -87,6 +93,30 @@ func ScalarMultEd25519(privateKey ed25519.PrivateKey, publicKey ed25519.PublicKe
 	curve25519.ScalarMult(&shared, &privateCurveKey, &publicCurveKey)
 
 	return shared[:]
+}
+
+// Sign will sign the given payload using the given privateKey,
+// producing an output composed of: timestamp + signedID + payload + signature
+func Sign(signerID []byte, privateKey ed25519.PrivateKey, timestamp []byte, payload []byte) ([]byte, error) {
+	if len(signerID) != IDLen {
+		return nil, ErrInvalidSignerID
+	}
+
+	if len(timestamp) != TimestampLen {
+		return nil, ErrInvalidTimestamp
+	}
+
+	protected := append(timestamp, signerID...)
+	protected = append(protected, payload...)
+
+	// sig should always be ed25519.SignatureSize=64 bytes
+	sig := ed25519.Sign(privateKey, protected)
+	if len(sig) != ed25519.SignatureSize {
+		return nil, ErrInvalidSignature
+	}
+	protected = append(protected, sig...)
+
+	return protected, nil
 }
 
 // DeriveSymKey derives a symmetric key from a password using Argon2
