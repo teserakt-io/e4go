@@ -22,7 +22,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agl/ed25519/extra25519"
 	"golang.org/x/crypto/ed25519"
 
 	e4crypto "github.com/teserakt-io/e4go/crypto"
@@ -209,30 +208,17 @@ func TestPubKeyMaterialUnprotectCommand(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to generate c2 secret key: %v", err)
 	}
-	var c2EdPk [32]byte
-	copy(c2EdPk[:], c2PubKey[:32])
-	var c2Pk [32]byte
 
-	var c2EdSk [64]byte
-	copy(c2EdSk[:], c2PrivateKey)
-
-	var c2Sk [32]byte
-	extra25519.PublicKeyToCurve25519(&c2Pk, &c2EdPk)
-	extra25519.PrivateKeyToCurve25519(&c2Sk, &c2EdSk)
-
-	k, err := NewPubKeyMaterial(clientID, privKey, c2Pk[:])
+	c2pk := e4crypto.PublicEd25519KeyToCurve25519(c2PubKey)
+	k, err := NewPubKeyMaterial(clientID, privKey, c2pk[:])
 	if err != nil {
 		t.Fatalf("Failed to create key: %v", err)
 	}
 
 	command := []byte{0x01, 0x02, 0x03, 0x04}
 
-	var clientEdPk [32]byte
-	var clientPk [32]byte
-	copy(clientEdPk[:], pubKey[:32])
-	extra25519.PublicKeyToCurve25519(&clientPk, &clientEdPk)
-
-	protectedCmd, err := e4crypto.ProtectCommandPubKey(command, &clientPk, &c2Sk)
+	sharedKey := e4crypto.ScalarMultEd25519(c2PrivateKey, pubKey)
+	protectedCmd, err := e4crypto.ProtectSymKey(command, e4crypto.Sha3Sum256(sharedKey))
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
@@ -346,7 +332,7 @@ func TestPubKeyMaterialPubKeys(t *testing.T) {
 
 	// Double remove must return an error
 	if err := k.RemovePubKey([]byte("id1")); err == nil {
-		t.Fatal("Expected an error when removing an inexisting pubKey")
+		t.Fatal("Expected an error when removing an inexistent pubKey")
 	}
 
 	// Reset clears all

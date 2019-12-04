@@ -78,15 +78,15 @@ func Decrypt(key, ad, ct []byte) ([]byte, error) {
 	return c.Open(nil, ct, ad)
 }
 
-// ProtectCommandPubKey is an helper method to protect the given command using a client
-// public key and a secret key
-func ProtectCommandPubKey(command []byte, clientPubKey, secretKey *[32]byte) ([]byte, error) {
+// ScalarMultEd25519 returns the curve25519 shared point from the ed25519 private and public keys
+func ScalarMultEd25519(privateKey ed25519.PrivateKey, publicKey ed25519.PublicKey) []byte {
+	publicCurveKey := PublicEd25519KeyToCurve25519(publicKey)
+	privateCurveKey := PrivateEd25519KeyToCurve25519(privateKey)
+
 	var shared [32]byte
-	curve25519.ScalarMult(&shared, secretKey, clientPubKey)
+	curve25519.ScalarMult(&shared, &privateCurveKey, &publicCurveKey)
 
-	key := Sha3Sum256(shared[:])[:KeyLen]
-
-	return ProtectSymKey(command, key)
+	return shared[:]
 }
 
 // DeriveSymKey derives a symmetric key from a password using Argon2
