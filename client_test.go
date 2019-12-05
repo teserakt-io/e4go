@@ -92,7 +92,7 @@ func TestProtectUnprotectMessageSymKey(t *testing.T) {
 func TestProtectUnprotectMessagePubKey(t *testing.T) {
 	clientID := e4crypto.RandomID()
 
-	_, privateKey, err := ed25519.GenerateKey(nil)
+	publicKey, privateKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		t.Fatalf("Failed to generate ed25519 key: %v", err)
 	}
@@ -102,8 +102,7 @@ func TestProtectUnprotectMessagePubKey(t *testing.T) {
 		t.Fatalf("Failed to create client: %v", err)
 	}
 
-	pk := privateKey[32:]
-	err = client.setPubKey(pk, clientID)
+	err = client.setPubKey(publicKey, clientID)
 	if err != nil {
 		t.Fatalf("SetPubKey failed: %s", err)
 	}
@@ -310,7 +309,8 @@ func TestProtectUnprotectCommandsPubKey(t *testing.T) {
 	}
 
 	command := []byte{0x05}
-	sharedKey := e4crypto.ScalarMultEd25519(c2EdSk, clientEdPk)
+	c2PrivateCurveKey := e4crypto.PrivateEd25519KeyToCurve25519(c2EdSk)
+	sharedKey := e4crypto.Curve25519DH(c2PrivateCurveKey, clientEdPk)
 	protected, err := e4crypto.ProtectSymKey(command, e4crypto.Sha3Sum256(sharedKey))
 	if err != nil {
 		t.Fatalf("ProtectSymKey failed: %v", err)

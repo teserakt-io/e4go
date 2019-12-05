@@ -305,7 +305,7 @@ func TestPublicEd25519KeyToCurve25519(t *testing.T) {
 	extra25519.PublicKeyToCurve25519(&expectedCurveKey, &pk)
 
 	curveKey := PublicEd25519KeyToCurve25519(pubKey)
-	if curveKey != expectedCurveKey {
+	if !bytes.Equal(curveKey, expectedCurveKey[:]) {
 		t.Fatalf("Invalid curveKey, got %x, wanted %x", curveKey, expectedCurveKey)
 	}
 }
@@ -323,7 +323,7 @@ func TestPrivateEd25519KeyToCurve25519(t *testing.T) {
 	extra25519.PrivateKeyToCurve25519(&expectedCurveKey, &sk)
 
 	curveKey := PrivateEd25519KeyToCurve25519(privKey)
-	if curveKey != expectedCurveKey {
+	if !bytes.Equal(curveKey, expectedCurveKey[:]) {
 		t.Fatalf("Invalid curveKey, got %x, wanted %x", curveKey, expectedCurveKey)
 	}
 }

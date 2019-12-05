@@ -46,6 +46,12 @@ var (
 	ErrInvalidTimestamp = errors.New("invalid timestamp")
 )
 
+// Curve25519PublicKey defines a type for curve 25519 public keys
+type Curve25519PublicKey []byte
+
+// Curve25519PrivateKey defines a type for curve 25519 private keys
+type Curve25519PrivateKey []byte
+
 // Encrypt creates an authenticated ciphertext
 func Encrypt(key, ad, pt []byte) ([]byte, error) {
 	if err := ValidateSymKey(key); err != nil {
@@ -84,13 +90,18 @@ func Decrypt(key, ad, ct []byte) ([]byte, error) {
 	return c.Open(nil, ct, ad)
 }
 
-// ScalarMultEd25519 returns the curve25519 shared point from the ed25519 private and public keys
-func ScalarMultEd25519(privateKey ed25519.PrivateKey, publicKey ed25519.PublicKey) []byte {
+// Curve25519DH returns the curve25519 shared point from the curve25519 private key and the ed25519 public key
+func Curve25519DH(privateKey Curve25519PrivateKey, publicKey ed25519.PublicKey) []byte {
 	publicCurveKey := PublicEd25519KeyToCurve25519(publicKey)
-	privateCurveKey := PrivateEd25519KeyToCurve25519(privateKey)
+
+	var curvePubKey [32]byte
+	copy(curvePubKey[:], publicCurveKey[:32])
+
+	var curvePrivKey [32]byte
+	copy(curvePrivKey[:], privateKey[:32])
 
 	var shared [32]byte
-	curve25519.ScalarMult(&shared, &privateCurveKey, &publicCurveKey)
+	curve25519.ScalarMult(&shared, &curvePrivKey, &curvePubKey)
 
 	return shared[:]
 }
@@ -216,7 +227,7 @@ func Ed25519PrivateKeyFromPassword(password string) (ed25519.PrivateKey, error) 
 }
 
 // PublicEd25519KeyToCurve25519 convert an ed25519.PublicKey to a curve25519 public key.
-func PublicEd25519KeyToCurve25519(edPubKey ed25519.PublicKey) [32]byte {
+func PublicEd25519KeyToCurve25519(edPubKey ed25519.PublicKey) Curve25519PublicKey {
 	var edPk [32]byte
 	var curveKey [32]byte
 	copy(edPk[:], edPubKey)
@@ -224,15 +235,15 @@ func PublicEd25519KeyToCurve25519(edPubKey ed25519.PublicKey) [32]byte {
 		panic("could not convert ed25519 public key to curve25519")
 	}
 
-	return curveKey
+	return curveKey[:]
 }
 
 // PrivateEd25519KeyToCurve25519 convert an ed25519.PrivateKey to a curve25519 private key.
-func PrivateEd25519KeyToCurve25519(edPrivKey ed25519.PrivateKey) [32]byte {
+func PrivateEd25519KeyToCurve25519(edPrivKey ed25519.PrivateKey) Curve25519PrivateKey {
 	var edSk [64]byte
 	var curveKey [32]byte
 	copy(edSk[:], edPrivKey)
 	extra25519.PrivateKeyToCurve25519(&curveKey, &edSk)
 
-	return curveKey
+	return curveKey[:]
 }

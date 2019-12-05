@@ -209,15 +209,17 @@ func TestPubKeyMaterialUnprotectCommand(t *testing.T) {
 		t.Fatalf("Failed to generate c2 secret key: %v", err)
 	}
 
-	c2pk := e4crypto.PublicEd25519KeyToCurve25519(c2PubKey)
-	k, err := NewPubKeyMaterial(clientID, privKey, c2pk[:])
+	c2PublicCurveKey := e4crypto.PublicEd25519KeyToCurve25519(c2PubKey)
+	c2PrivateCurveKey := e4crypto.PrivateEd25519KeyToCurve25519(c2PrivateKey)
+
+	k, err := NewPubKeyMaterial(clientID, privKey, c2PublicCurveKey)
 	if err != nil {
 		t.Fatalf("Failed to create key: %v", err)
 	}
 
 	command := []byte{0x01, 0x02, 0x03, 0x04}
 
-	sharedKey := e4crypto.ScalarMultEd25519(c2PrivateKey, pubKey)
+	sharedKey := e4crypto.Curve25519DH(c2PrivateCurveKey, pubKey)
 	protectedCmd, err := e4crypto.ProtectSymKey(command, e4crypto.Sha3Sum256(sharedKey))
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)

@@ -97,7 +97,7 @@ type Client interface {
 	setIDKey(key []byte) error
 	// setPubKey set the public key for the given clientID, if the client key material support it.
 	// otherwise, ErrUnsupportedOperation is returned
-	setPubKey(key, clientID []byte) error
+	setPubKey(key ed25519.PublicKey, clientID []byte) error
 	// removePubKey remove the public key for the given clientID, if the client key material support it.
 	// otherwise, ErrUnsupportedOperation is returned
 	removePubKey(clientID []byte) error
@@ -106,7 +106,7 @@ type Client interface {
 	resetPubKeys() error
 	// getPubKeys returns the map of public keys having been set on the client, if the client key material support it.
 	// otherwise, ErrUnsupportedOperation is returned
-	getPubKeys() (map[string][]byte, error)
+	getPubKeys() (map[string]ed25519.PublicKey, error)
 	// setTopicKey set the key for the given topic hash (see crypto.HashTopic to obtain topic hashes).
 	// Setting topic keys is required prior being able to communicate over this topic.
 	setTopicKey(key, topicHash []byte) error
@@ -161,8 +161,8 @@ func NewSymKeyClient(id []byte, key []byte, persistStatePath string) (Client, er
 // id is a client identifier, and must be of length e4crypto.IDLen bytes.
 // key is the ed25519 private key.
 // persistStatePath is the file system path to the file to read and persist the client's state.
-// c2PubKey must be the curve25519 public part of the key that was used to protect client commands.
-func NewPubKeyClient(id []byte, key ed25519.PrivateKey, persistStatePath string, c2PubKey []byte) (Client, error) {
+// c2PubKey must be the curve25519 public part of the key that is used to protect client commands.
+func NewPubKeyClient(id []byte, key ed25519.PrivateKey, persistStatePath string, c2PubKey e4crypto.Curve25519PublicKey) (Client, error) {
 	var newID []byte
 	if len(id) == 0 {
 		newID = e4crypto.RandomID()
@@ -201,8 +201,8 @@ func NewSymKeyClientPretty(name string, password string, persistStatePath string
 // password will be used to derive the client key. It must be at least 16 characters long.
 // persistStatePath is a file system path to the file to be used to read
 // and persist the client's current state.
-// c2PubKey must be the curve25519 public part of the key that was used to protect client commands.
-func NewPubKeyClientPretty(name string, password string, persistStatePath string, c2PubKey []byte) (Client, ed25519.PublicKey, error) {
+// c2PubKey must be the curve25519 public part of the key that is used to protect client commands.
+func NewPubKeyClientPretty(name string, password string, persistStatePath string, c2PubKey e4crypto.Curve25519PublicKey) (Client, ed25519.PublicKey, error) {
 	id := e4crypto.HashIDAlias(name)
 
 	key, err := keys.NewPubKeyMaterialFromPassword(id, password, c2PubKey)
@@ -473,7 +473,7 @@ func (c *client) resetTopics() error {
 }
 
 // getPubKeys return the list of public keys stored on the client
-func (c *client) getPubKeys() (map[string][]byte, error) {
+func (c *client) getPubKeys() (map[string]ed25519.PublicKey, error) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
@@ -486,7 +486,7 @@ func (c *client) getPubKeys() (map[string][]byte, error) {
 }
 
 // setPubKey adds a key to the given topic hash, erasing any previous entry
-func (c *client) setPubKey(key, clientID []byte) error {
+func (c *client) setPubKey(key ed25519.PublicKey, clientID []byte) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 

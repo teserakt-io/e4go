@@ -39,10 +39,10 @@ type PubKeyMaterial interface {
 // pubKeyMaterial implements PubKeyMaterial to work with public e4 client key
 // and PubKeyStore to holds public key needed to verify message signatures
 type pubKeyMaterial struct {
-	PrivateKey ed25519.PrivateKey `json:"privateKey,omitempty"`
-	SignerID   []byte             `json:"signerID,omitempty"`
-	C2PubKey   []byte             `json:"c2PubKey,omitempty"`
-	PubKeys    map[string][]byte  `json:"pubKeys,omitempty"`
+	PrivateKey ed25519.PrivateKey           `json:"privateKey,omitempty"`
+	SignerID   []byte                       `json:"signerID,omitempty"`
+	C2PubKey   e4crypto.Curve25519PublicKey `json:"c2PubKey,omitempty"`
+	PubKeys    map[string]ed25519.PublicKey `json:"pubKeys,omitempty"`
 
 	mutex sync.RWMutex
 }
@@ -51,7 +51,7 @@ var _ PubKeyMaterial = (*pubKeyMaterial)(nil)
 var _ json.Marshaler = (*pubKeyMaterial)(nil)
 
 // NewPubKeyMaterial creates a new KeyMaterial to work with public e4 client key
-func NewPubKeyMaterial(signerID []byte, privateKey ed25519.PrivateKey, c2PubKey []byte) (PubKeyMaterial, error) {
+func NewPubKeyMaterial(signerID []byte, privateKey ed25519.PrivateKey, c2PubKey e4crypto.Curve25519PublicKey) (PubKeyMaterial, error) {
 	if err := e4crypto.ValidateID(signerID); err != nil {
 		return nil, fmt.Errorf("invalid signerID: %v", err)
 	}
@@ -65,7 +65,7 @@ func NewPubKeyMaterial(signerID []byte, privateKey ed25519.PrivateKey, c2PubKey 
 	}
 
 	e := &pubKeyMaterial{
-		PubKeys: make(map[string][]byte),
+		PubKeys: make(map[string]ed25519.PublicKey),
 	}
 
 	e.C2PubKey = make([]byte, len(c2PubKey))
@@ -81,7 +81,7 @@ func NewPubKeyMaterial(signerID []byte, privateKey ed25519.PrivateKey, c2PubKey 
 }
 
 // NewPubKeyMaterialFromPassword creates a new PubKeyMaterial e4 client key from given password
-func NewPubKeyMaterialFromPassword(signerID []byte, pwd string, c2PubKey []byte) (PubKeyMaterial, error) {
+func NewPubKeyMaterialFromPassword(signerID []byte, pwd string, c2PubKey e4crypto.Curve25519PublicKey) (PubKeyMaterial, error) {
 	key, err := e4crypto.Ed25519PrivateKeyFromPassword(pwd)
 	if err != nil {
 		return nil, err
@@ -91,7 +91,7 @@ func NewPubKeyMaterialFromPassword(signerID []byte, pwd string, c2PubKey []byte)
 }
 
 // NewRandomPubKeyMaterial creates a new PubKeyMaterial key from a random ed25519 key
-func NewRandomPubKeyMaterial(signerID []byte, c2PubKey []byte) (PubKeyMaterial, error) {
+func NewRandomPubKeyMaterial(signerID []byte, c2PubKey e4crypto.Curve25519PublicKey) (PubKeyMaterial, error) {
 	_, privateKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		return nil, err
@@ -146,7 +146,7 @@ func (k *pubKeyMaterial) UnprotectMessage(protected []byte, topicKey TopicKey) (
 	}
 
 	if !ed25519.Verify(ed25519.PublicKey(pubkey), signed, sig) {
-		return nil, ErrInvalidSignature
+		return nil, e4crypto.ErrInvalidSignature
 	}
 
 	ct := protected[e4crypto.TimestampLen+e4crypto.IDLen : len(protected)-ed25519.SignatureSize]
@@ -182,7 +182,7 @@ func (k *pubKeyMaterial) UnprotectCommand(protected []byte) ([]byte, error) {
 
 // AddPubKey store the given id and key in internal storage
 // It is safe for concurrent access
-func (k *pubKeyMaterial) AddPubKey(id []byte, pubKey []byte) error {
+func (k *pubKeyMaterial) AddPubKey(id []byte, pubKey ed25519.PublicKey) error {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
 
@@ -226,7 +226,7 @@ func (k *pubKeyMaterial) ResetPubKeys() {
 }
 
 // GetPubKeys return a map of stored pubKeys, indexed by their hex encoded ids
-func (k *pubKeyMaterial) GetPubKeys() map[string][]byte {
+func (k *pubKeyMaterial) GetPubKeys() map[string]ed25519.PublicKey {
 	k.mutex.RLock()
 	defer k.mutex.RUnlock()
 
@@ -235,7 +235,7 @@ func (k *pubKeyMaterial) GetPubKeys() map[string][]byte {
 
 // GetPubKey return a pubKey associated to given ID, or ErrPubKeyNotFound
 // when it doesn't exists
-func (k *pubKeyMaterial) GetPubKey(id []byte) ([]byte, error) {
+func (k *pubKeyMaterial) GetPubKey(id []byte) (ed25519.PublicKey, error) {
 	sid := hex.EncodeToString(id)
 
 	key, ok := k.PubKeys[sid]
@@ -271,7 +271,7 @@ func (k *pubKeyMaterial) MarshalJSON() ([]byte, error) {
 			PrivateKey ed25519.PrivateKey
 			SignerID   []byte
 			C2PubKey   []byte
-			PubKeys    map[string][]byte
+			PubKeys    map[string]ed25519.PublicKey
 		}{
 			PrivateKey: k.PrivateKey,
 			SignerID:   k.SignerID,
