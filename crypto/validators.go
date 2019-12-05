@@ -109,7 +109,7 @@ func ValidateCurve25519PrivKey(key []byte) error {
 	}
 
 	if bytes.Equal(zeroCurve25519sk, key) {
-		return errors.New("invalid public key, all zeros")
+		return errors.New("invalid private key, all zeros")
 	}
 
 	return nil
