@@ -90,22 +90,6 @@ func Decrypt(key, ad, ct []byte) ([]byte, error) {
 	return c.Open(nil, ct, ad)
 }
 
-// Curve25519DH returns the curve25519 shared point from the curve25519 private key and the ed25519 public key
-func Curve25519DH(privateKey Curve25519PrivateKey, publicKey ed25519.PublicKey) []byte {
-	publicCurveKey := PublicEd25519KeyToCurve25519(publicKey)
-
-	var curvePubKey [32]byte
-	copy(curvePubKey[:], publicCurveKey[:32])
-
-	var curvePrivKey [32]byte
-	copy(curvePrivKey[:], privateKey[:32])
-
-	var shared [32]byte
-	curve25519.ScalarMult(&shared, &curvePrivKey, &curvePubKey)
-
-	return shared[:]
-}
-
 // Sign will sign the given payload using the given privateKey,
 // producing an output composed of: timestamp + signedID + payload + signature
 func Sign(signerID []byte, privateKey ed25519.PrivateKey, timestamp []byte, payload []byte) ([]byte, error) {

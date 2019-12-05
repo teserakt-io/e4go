@@ -22,7 +22,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/agl/ed25519/extra25519"
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/ed25519"
 
@@ -164,16 +163,11 @@ func (k *pubKeyMaterial) UnprotectMessage(protected []byte, topicKey TopicKey) (
 // It will use the material's private key and the c2 public key to create the required symmetric key
 func (k *pubKeyMaterial) UnprotectCommand(protected []byte) ([]byte, error) {
 	// convert ed key to curve key
-	var curvekey [32]byte
-	var edKey [64]byte
-	copy(edKey[:], k.PrivateKey)
-	extra25519.PrivateKeyToCurve25519(&curvekey, &edKey)
-
-	var shared [32]byte
-	var c2PubKey [32]byte
-	copy(c2PubKey[:], k.C2PubKey[:32])
-
-	curve25519.ScalarMult(&shared, &curvekey, &c2PubKey)
+	curvePrivateKey := e4crypto.PrivateEd25519KeyToCurve25519(k.PrivateKey)
+	shared, err := curve25519.X25519(curvePrivateKey, k.C2PubKey)
+	if err != nil {
+		return nil, fmt.Errorf("curve25519 X25519 failed: %v", err)
+	}
 
 	key := e4crypto.Sha3Sum256(shared[:])[:e4crypto.KeyLen]
 

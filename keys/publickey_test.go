@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/ed25519"
 
 	e4crypto "github.com/teserakt-io/e4go/crypto"
@@ -216,7 +217,11 @@ func TestPubKeyMaterialUnprotectCommand(t *testing.T) {
 
 	command := []byte{0x01, 0x02, 0x03, 0x04}
 
-	sharedKey := e4crypto.Curve25519DH(c2PrivateCurveKey, pubKey)
+	sharedKey, err := curve25519.X25519(c2PrivateCurveKey, e4crypto.PublicEd25519KeyToCurve25519(pubKey))
+	if err != nil {
+		t.Fatalf("curve25519 X25519 failed: %v", err)
+	}
+
 	protectedCmd, err := e4crypto.ProtectSymKey(command, e4crypto.Sha3Sum256(sharedKey))
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)
