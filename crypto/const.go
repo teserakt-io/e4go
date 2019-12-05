@@ -38,4 +38,9 @@ const (
 	IDLenHex = IDLen * 2
 	// KeyLenHex is the length of a hexadecimal encoded key
 	KeyLenHex = KeyLen * 2
+
+	// Curve25519PubKeyLen is the length of a curve25519 public key
+	Curve25519PubKeyLen = 32
+	// Curve25519PrivKeyLen is the length of a curve25519 private key
+	Curve25519PrivKeyLen = 32
 )

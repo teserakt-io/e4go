@@ -880,14 +880,14 @@ func assertSavedClientPubKeysEquals(t *testing.T, filepath string, c Client) {
 }
 
 func generateCurve25519PubKey(t *testing.T) []byte {
-	var c2PubKey [32]byte
+	var c2PubKey [e4crypto.Curve25519PubKeyLen]byte
 
 	c2EdPubKey, _, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		t.Fatalf("Failed to generate c2 public key: %v", err)
 	}
 
-	var c2EdPk [32]byte
+	var c2EdPk [ed25519.PublicKeySize]byte
 	copy(c2EdPk[:], c2EdPubKey)
 
 	extra25519.PublicKeyToCurve25519(&c2PubKey, &c2EdPk)

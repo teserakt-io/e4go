@@ -223,8 +223,8 @@ func Ed25519PrivateKeyFromPassword(password string) (ed25519.PrivateKey, error) 
 
 // PublicEd25519KeyToCurve25519 convert an ed25519.PublicKey to a curve25519 public key.
 func PublicEd25519KeyToCurve25519(edPubKey ed25519.PublicKey) Curve25519PublicKey {
-	var edPk [32]byte
-	var curveKey [32]byte
+	var edPk [ed25519.PublicKeySize]byte
+	var curveKey [Curve25519PubKeyLen]byte
 	copy(edPk[:], edPubKey)
 	if !extra25519.PublicKeyToCurve25519(&curveKey, &edPk) {
 		panic("could not convert ed25519 public key to curve25519")
@@ -235,8 +235,8 @@ func PublicEd25519KeyToCurve25519(edPubKey ed25519.PublicKey) Curve25519PublicKe
 
 // PrivateEd25519KeyToCurve25519 convert an ed25519.PrivateKey to a curve25519 private key.
 func PrivateEd25519KeyToCurve25519(edPrivKey ed25519.PrivateKey) Curve25519PrivateKey {
-	var edSk [64]byte
-	var curveKey [32]byte
+	var edSk [ed25519.PrivateKeySize]byte
+	var curveKey [Curve25519PrivKeyLen]byte
 	copy(edSk[:], edPrivKey)
 	extra25519.PrivateKeyToCurve25519(&curveKey, &edSk)
 
