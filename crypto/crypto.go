@@ -194,6 +194,17 @@ func RandomKey() []byte {
 	return key
 }
 
+// RandomCurve25519Keys generates Curve25519 public and private keys
+func RandomCurve25519Keys() (Curve25519PublicKey, Curve25519PrivateKey, error) {
+	privateKey := RandomKey()
+	publicKey, err := curve25519.X25519(privateKey, curve25519.Basepoint)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return publicKey, privateKey, nil
+}
+
 // RandomID generates a random IDLen-byte ID
 func RandomID() []byte {
 	id := make([]byte, IDLen)
