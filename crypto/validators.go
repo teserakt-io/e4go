@@ -108,7 +108,7 @@ func ValidateCurve25519PrivKey(key []byte) error {
 		return fmt.Errorf("invalid private key length, got %d, expected %d", g, w)
 	}
 
-	if bytes.Equal(zeroCurve25519pk, key) {
+	if bytes.Equal(zeroCurve25519sk, key) {
 		return errors.New("invalid public key, all zeros")
 	}
 
