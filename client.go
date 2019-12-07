@@ -485,7 +485,7 @@ func (c *client) getPubKeys() (map[string]ed25519.PublicKey, error) {
 	return pkStore.GetPubKeys(), nil
 }
 
-// setPubKey adds a key to the given topic hash, erasing any previous entry
+// setPubKey adds a key to the given clientID, erasing any previous entry
 func (c *client) setPubKey(key ed25519.PublicKey, clientID []byte) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
