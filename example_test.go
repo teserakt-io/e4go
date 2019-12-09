@@ -1,4 +1,4 @@
-package e4go
+package e4go_test
 
 // Copyright 2018-2019-2020 Teserakt AG
 //
@@ -20,11 +20,12 @@ import (
 	"github.com/agl/ed25519/extra25519"
 	"golang.org/x/crypto/ed25519"
 
+	e4 "github.com/teserakt-io/e4go"
 	"github.com/teserakt-io/e4go/crypto"
 )
 
 func ExampleNewSymKeyClient() {
-	client, err := NewSymKeyClient([]byte("clientID"), crypto.RandomKey(), "./symClient.json")
+	client, err := e4.NewSymKeyClient([]byte("clientID"), crypto.RandomKey(), "./symClient.json")
 	if err != nil {
 		panic(err)
 	}
@@ -38,7 +39,7 @@ func ExampleNewSymKeyClient() {
 }
 
 func ExampleNewSymKeyClientPretty() {
-	client, err := NewSymKeyClientPretty("clientName", "verySecretPassword", "./symClient.json")
+	client, err := e4.NewSymKeyClientPretty("clientName", "verySecretPassword", "./symClient.json")
 	if err != nil {
 		panic(err)
 	}
@@ -67,7 +68,7 @@ func ExampleNewPubKeyClient() {
 	copy(c2EdPk[:], c2EdPubKey)
 	extra25519.PublicKeyToCurve25519(&c2PubKey, &c2EdPk)
 
-	client, err := NewPubKeyClient([]byte("clientID"), privateKey, "./pubClient.json", c2PubKey[:])
+	client, err := e4.NewPubKeyClient([]byte("clientID"), privateKey, "./pubClient.json", c2PubKey[:])
 	if err != nil {
 		panic(err)
 	}
@@ -91,7 +92,7 @@ func ExampleNewPubKeyClientPretty() {
 	copy(c2EdPk[:], c2EdPubKey)
 	extra25519.PublicKeyToCurve25519(&c2PubKey, &c2EdPk)
 
-	client, pubKey, err := NewPubKeyClientPretty("clientName", "verySecretPassword", "./pubClient.json", c2PubKey[:])
+	client, pubKey, err := e4.NewPubKeyClientPretty("clientName", "verySecretPassword", "./pubClient.json", c2PubKey[:])
 	if err != nil {
 		panic(err)
 	}
