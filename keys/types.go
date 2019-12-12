@@ -1,6 +1,3 @@
-// Package keys holds E4 key material implementations.
-package keys
-
 // Copyright 2018-2019-2020 Teserakt AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +11,9 @@ package keys
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package keys holds E4 key material implementations.
+package keys
 
 import (
 	"errors"
