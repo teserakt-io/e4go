@@ -1,5 +1,3 @@
-package crypto
-
 // Copyright 2018-2019-2020 Teserakt AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +11,8 @@ package crypto
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+package crypto
 
 import (
 	"bytes"
@@ -40,8 +40,10 @@ var (
 	blankEd25519sk [ed25519.PrivateKeySize]byte
 	zeroEd25519sk  = blankEd25519sk[:]
 
-	blankCurve25519pk [32]byte
+	blankCurve25519pk [Curve25519PubKeyLen]byte
+	blankCurve25519sk [Curve25519PrivKeyLen]byte
 	zeroCurve25519pk  = blankCurve25519pk[:]
+	zeroCurve25519sk  = blankCurve25519sk[:]
 
 	blankSymKey [KeyLen]byte
 	zeroSymKey  = blankSymKey[:]
@@ -50,8 +52,8 @@ var (
 // ValidateSymKey checks that a key is of the expected length
 // and not filled with zero
 func ValidateSymKey(key []byte) error {
-	if len(key) != KeyLen {
-		return fmt.Errorf("invalid symmetric key length, expected %d, got %d", KeyLen, len(key))
+	if g, w := len(key), KeyLen; g != w {
+		return fmt.Errorf("invalid symmetric key length, got %d, expected %d", g, w)
 	}
 
 	if bytes.Equal(zeroSymKey, key) {
@@ -64,7 +66,7 @@ func ValidateSymKey(key []byte) error {
 // ValidateEd25519PrivKey checks that a key is of the expected length and not all zero
 func ValidateEd25519PrivKey(key []byte) error {
 	if g, w := len(key), ed25519.PrivateKeySize; g != w {
-		return fmt.Errorf("invalid private key length, expected %d, got %d", g, w)
+		return fmt.Errorf("invalid private key length, got %d, expected %d", g, w)
 	}
 
 	if bytes.Equal(zeroEd25519sk, key) {
@@ -77,7 +79,7 @@ func ValidateEd25519PrivKey(key []byte) error {
 // ValidateEd25519PubKey checks that a key is of the expected length and not all zero
 func ValidateEd25519PubKey(key []byte) error {
 	if g, w := len(key), ed25519.PublicKeySize; g != w {
-		return fmt.Errorf("invalid public key length, expected %d, got %d", g, w)
+		return fmt.Errorf("invalid public key length, got %d, expected %d", g, w)
 	}
 
 	if bytes.Equal(zeroEd25519pk, key) {
@@ -89,8 +91,8 @@ func ValidateEd25519PubKey(key []byte) error {
 
 // ValidateCurve25519PubKey checks that a key is of the expected length and not all zero
 func ValidateCurve25519PubKey(key []byte) error {
-	if g, w := len(key), 32; g != w {
-		return fmt.Errorf("invalid public key length, expected %d, got %d", g, w)
+	if g, w := len(key), Curve25519PubKeyLen; g != w {
+		return fmt.Errorf("invalid public key length, got %d, expected %d", g, w)
 	}
 
 	if bytes.Equal(zeroCurve25519pk, key) {
@@ -100,10 +102,23 @@ func ValidateCurve25519PubKey(key []byte) error {
 	return nil
 }
 
+// ValidateCurve25519PrivKey checks that a key is of the expected length and not all zero
+func ValidateCurve25519PrivKey(key []byte) error {
+	if g, w := len(key), Curve25519PrivKeyLen; g != w {
+		return fmt.Errorf("invalid private key length, got %d, expected %d", g, w)
+	}
+
+	if bytes.Equal(zeroCurve25519sk, key) {
+		return errors.New("invalid private key, all zeros")
+	}
+
+	return nil
+}
+
 // ValidateID checks that an id is of the expected length
 func ValidateID(id []byte) error {
-	if len(id) != IDLen {
-		return fmt.Errorf("invalid ID length, expected %d, got %d", IDLen, len(id))
+	if g, w := len(id), IDLen; g != w {
+		return fmt.Errorf("invalid ID length, got %d, expected %d", g, w)
 	}
 
 	return nil
@@ -141,7 +156,7 @@ func ValidateTopic(topic string) error {
 // ValidateTopicHash checks that a topic hash is of the expected length
 func ValidateTopicHash(topicHash []byte) error {
 	if g, w := len(topicHash), HashLen; g != w {
-		return fmt.Errorf("invalid Topic Hash length, expected %d, got %d", g, w)
+		return fmt.Errorf("invalid Topic Hash length, got %d, expected %d", g, w)
 	}
 
 	return nil
@@ -185,7 +200,7 @@ func ValidateTimestampKey(timestamp []byte) error {
 // ValidatePassword checks given password is an utf8 string of at least PasswordMinLength characters
 func ValidatePassword(password string) error {
 	if !utf8.ValidString(password) {
-		return fmt.Errorf("password is not a valid UTF-8 string")
+		return errors.New("password is not a valid UTF-8 string")
 	}
 
 	if len(password) < PasswordMinLength {

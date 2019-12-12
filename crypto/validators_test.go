@@ -1,5 +1,3 @@
-package crypto
-
 // Copyright 2018-2019-2020 Teserakt AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +11,8 @@ package crypto
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+package crypto
 
 import (
 	"crypto/rand"
@@ -268,12 +268,12 @@ func TestValidateTimestampKey(t *testing.T) {
 
 func TestValidateCurve25519PubKey(t *testing.T) {
 	t.Run("Invalid public keys return an error", func(t *testing.T) {
-		allZeroKey := make([]byte, 32)
+		allZeroKey := make([]byte, Curve25519PubKeyLen)
 
-		tooLongKey := make([]byte, 33)
+		tooLongKey := make([]byte, Curve25519PubKeyLen+1)
 		rand.Read(tooLongKey)
 
-		tooShortKey := make([]byte, 31)
+		tooShortKey := make([]byte, Curve25519PubKeyLen-1)
 		rand.Read(tooShortKey)
 
 		invalidKeys := [][]byte{
@@ -290,7 +290,7 @@ func TestValidateCurve25519PubKey(t *testing.T) {
 	})
 
 	t.Run("Valid public keys return no error", func(t *testing.T) {
-		validKey := make([]byte, 32)
+		validKey := make([]byte, Curve25519PubKeyLen)
 		rand.Read(validKey)
 
 		validKeys := [][]byte{
@@ -299,6 +299,45 @@ func TestValidateCurve25519PubKey(t *testing.T) {
 
 		for _, validKey := range validKeys {
 			if err := ValidateCurve25519PubKey(validKey); err != nil {
+				t.Fatalf("Got error %v when validating key '%v', wanted no error", err, validKey)
+			}
+		}
+	})
+}
+
+func TestValidateCurve25519PrivKey(t *testing.T) {
+	t.Run("Invalid private keys return an error", func(t *testing.T) {
+		allZeroKey := make([]byte, Curve25519PrivKeyLen)
+
+		tooLongKey := make([]byte, Curve25519PrivKeyLen+1)
+		rand.Read(tooLongKey)
+
+		tooShortKey := make([]byte, Curve25519PrivKeyLen-1)
+		rand.Read(tooShortKey)
+
+		invalidKeys := [][]byte{
+			allZeroKey,
+			tooLongKey,
+			tooShortKey,
+		}
+
+		for _, invalidKey := range invalidKeys {
+			if err := ValidateCurve25519PrivKey(invalidKey); err == nil {
+				t.Fatalf("Expected key '%v' validation to return an error", invalidKey)
+			}
+		}
+	})
+
+	t.Run("Valid private keys return no error", func(t *testing.T) {
+		validKey := make([]byte, Curve25519PrivKeyLen)
+		rand.Read(validKey)
+
+		validKeys := [][]byte{
+			validKey,
+		}
+
+		for _, validKey := range validKeys {
+			if err := ValidateCurve25519PrivKey(validKey); err != nil {
 				t.Fatalf("Got error %v when validating key '%v', wanted no error", err, validKey)
 			}
 		}

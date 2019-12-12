@@ -1,6 +1,3 @@
-// Package keys holds E4 key material implementations.
-package keys
-
 // Copyright 2018-2019-2020 Teserakt AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,13 +12,17 @@ package keys
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package keys holds E4 key material implementations.
+package keys
+
 import (
 	"errors"
+
+	"golang.org/x/crypto/ed25519"
 )
 
 var (
-	// ErrInvalidSignature occurs when a signature verification fails
-	ErrInvalidSignature = errors.New("invalid signature")
+
 	// ErrPubKeyNotFound occurs when a public key is missing when verifying a signature
 	ErrPubKeyNotFound = errors.New("signer public key not found")
 )
@@ -58,12 +59,12 @@ type KeyMaterial interface {
 type PubKeyStore interface {
 	// AddPubKey allows to add a public key to the store, identified by ID.
 	// If a key already exists with this ID, it will be replaced.
-	AddPubKey(id []byte, key []byte) error
+	AddPubKey(id []byte, key ed25519.PublicKey) error
 	// GetPubKey returns the public key associated to the ID.
 	// ErrPubKeyNotFound is returned when it cannot be found.
-	GetPubKey(id []byte) ([]byte, error)
+	GetPubKey(id []byte) (ed25519.PublicKey, error)
 	// GetPubKeys returns all stored public keys, in a ID indexed map.
-	GetPubKeys() map[string][]byte
+	GetPubKeys() map[string]ed25519.PublicKey
 	// RemovePubKey removes a public key from the store by its ID, or returns
 	// an error if it doesn't exists.
 	RemovePubKey(id []byte) error
