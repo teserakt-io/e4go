@@ -23,6 +23,8 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/crypto/curve25519"
+
 	"github.com/agl/ed25519/extra25519"
 	miscreant "github.com/miscreant/miscreant.go"
 	"golang.org/x/crypto/ed25519"
@@ -92,7 +94,7 @@ func TestProtectUnprotectMessageSymKey(t *testing.T) {
 func TestProtectUnprotectMessagePubKey(t *testing.T) {
 	clientID := e4crypto.RandomID()
 
-	_, privateKey, err := ed25519.GenerateKey(nil)
+	publicKey, privateKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		t.Fatalf("Failed to generate ed25519 key: %v", err)
 	}
@@ -102,8 +104,7 @@ func TestProtectUnprotectMessagePubKey(t *testing.T) {
 		t.Fatalf("Failed to create client: %v", err)
 	}
 
-	pk := privateKey[32:]
-	err = client.setPubKey(pk, clientID)
+	err = client.setPubKey(publicKey, clientID)
 	if err != nil {
 		t.Fatalf("SetPubKey failed: %s", err)
 	}
@@ -304,24 +305,25 @@ func TestProtectUnprotectCommandsPubKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to generate ed25519 key: %v", err)
 	}
-	c2EdPk, c2EdSk, err := ed25519.GenerateKey(rand.Reader)
+
+	c2PublicCurveKey, c2PrivateCurveKey, err := e4crypto.RandomCurve25519Keys()
 	if err != nil {
-		t.Fatalf("Failed to generate ed25519 key: %v", err)
+		t.Fatalf("Failed to generate curve25519 keys: %v", err)
 	}
 
-	cpk := e4crypto.PublicEd25519KeyToCurve25519(clientEdPk)
-
-	c2pk := e4crypto.PublicEd25519KeyToCurve25519(c2EdPk)
-	c2sk := e4crypto.PrivateEd25519KeyToCurve25519(c2EdSk)
-
 	command := []byte{0x05}
-	protected, err := e4crypto.ProtectCommandPubKey(command, &cpk, &c2sk)
+	sharedKey, err := curve25519.X25519(c2PrivateCurveKey, e4crypto.PublicEd25519KeyToCurve25519(clientEdPk))
 	if err != nil {
-		t.Fatalf("ProtectCommandPubKey failed: %v", err)
+		t.Fatalf("curve25519 X25519 failed: %v", err)
+	}
+
+	protected, err := e4crypto.ProtectSymKey(command, e4crypto.Sha3Sum256(sharedKey))
+	if err != nil {
+		t.Fatalf("ProtectSymKey failed: %v", err)
 	}
 
 	clientID := e4crypto.RandomID()
-	gc, err := NewPubKeyClient(clientID, clientEdSk, "./test/data/clienttestcommand", c2pk[:])
+	gc, err := NewPubKeyClient(clientID, clientEdSk, "./test/data/clienttestcommand", c2PublicCurveKey)
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -878,14 +880,14 @@ func assertSavedClientPubKeysEquals(t *testing.T, filepath string, c Client) {
 }
 
 func generateCurve25519PubKey(t *testing.T) []byte {
-	var c2PubKey [32]byte
+	var c2PubKey [e4crypto.Curve25519PubKeyLen]byte
 
 	c2EdPubKey, _, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		t.Fatalf("Failed to generate c2 public key: %v", err)
 	}
 
-	var c2EdPk [32]byte
+	var c2EdPk [ed25519.PublicKeySize]byte
 	copy(c2EdPk[:], c2EdPubKey)
 
 	extra25519.PublicKeyToCurve25519(&c2PubKey, &c2EdPk)

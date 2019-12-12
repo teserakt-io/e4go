@@ -298,14 +298,14 @@ func TestPublicEd25519KeyToCurve25519(t *testing.T) {
 		t.Fatalf("Failed to generate ed25519 key: %v", err)
 	}
 
-	var pk [32]byte
+	var pk [ed25519.PublicKeySize]byte
 	copy(pk[:], pubKey)
 
-	var expectedCurveKey [32]byte
+	var expectedCurveKey [Curve25519PubKeyLen]byte
 	extra25519.PublicKeyToCurve25519(&expectedCurveKey, &pk)
 
 	curveKey := PublicEd25519KeyToCurve25519(pubKey)
-	if curveKey != expectedCurveKey {
+	if !bytes.Equal(curveKey, expectedCurveKey[:]) {
 		t.Fatalf("Invalid curveKey, got %x, wanted %x", curveKey, expectedCurveKey)
 	}
 }
@@ -319,11 +319,11 @@ func TestPrivateEd25519KeyToCurve25519(t *testing.T) {
 	var sk [64]byte
 	copy(sk[:], privKey)
 
-	var expectedCurveKey [32]byte
+	var expectedCurveKey [Curve25519PrivKeyLen]byte
 	extra25519.PrivateKeyToCurve25519(&expectedCurveKey, &sk)
 
 	curveKey := PrivateEd25519KeyToCurve25519(privKey)
-	if curveKey != expectedCurveKey {
+	if !bytes.Equal(curveKey, expectedCurveKey[:]) {
 		t.Fatalf("Invalid curveKey, got %x, wanted %x", curveKey, expectedCurveKey)
 	}
 }

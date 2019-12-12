@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agl/ed25519/extra25519"
+	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/ed25519"
 
 	e4crypto "github.com/teserakt-io/e4go/crypto"
@@ -205,34 +205,24 @@ func TestPubKeyMaterialUnprotectCommand(t *testing.T) {
 		t.Fatalf("Failed to generate ed25519 keys: %v", err)
 	}
 
-	c2PubKey, c2PrivateKey, err := ed25519.GenerateKey(nil)
+	c2PublicCurveKey, c2PrivateCurveKey, err := e4crypto.RandomCurve25519Keys()
 	if err != nil {
-		t.Fatalf("Failed to generate c2 secret key: %v", err)
+		t.Fatalf("Failed to generate curve25519 keys: %v", err)
 	}
-	var c2EdPk [32]byte
-	copy(c2EdPk[:], c2PubKey[:32])
-	var c2Pk [32]byte
 
-	var c2EdSk [64]byte
-	copy(c2EdSk[:], c2PrivateKey)
-
-	var c2Sk [32]byte
-	extra25519.PublicKeyToCurve25519(&c2Pk, &c2EdPk)
-	extra25519.PrivateKeyToCurve25519(&c2Sk, &c2EdSk)
-
-	k, err := NewPubKeyMaterial(clientID, privKey, c2Pk[:])
+	k, err := NewPubKeyMaterial(clientID, privKey, c2PublicCurveKey)
 	if err != nil {
 		t.Fatalf("Failed to create key: %v", err)
 	}
 
 	command := []byte{0x01, 0x02, 0x03, 0x04}
 
-	var clientEdPk [32]byte
-	var clientPk [32]byte
-	copy(clientEdPk[:], pubKey[:32])
-	extra25519.PublicKeyToCurve25519(&clientPk, &clientEdPk)
+	sharedKey, err := curve25519.X25519(c2PrivateCurveKey, e4crypto.PublicEd25519KeyToCurve25519(pubKey))
+	if err != nil {
+		t.Fatalf("curve25519 X25519 failed: %v", err)
+	}
 
-	protectedCmd, err := e4crypto.ProtectCommandPubKey(command, &clientPk, &c2Sk)
+	protectedCmd, err := e4crypto.ProtectSymKey(command, e4crypto.Sha3Sum256(sharedKey))
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
@@ -346,7 +336,7 @@ func TestPubKeyMaterialPubKeys(t *testing.T) {
 
 	// Double remove must return an error
 	if err := k.RemovePubKey([]byte("id1")); err == nil {
-		t.Fatal("Expected an error when removing an inexisting pubKey")
+		t.Fatal("Expected an error when removing an inexistent pubKey")
 	}
 
 	// Reset clears all

@@ -38,7 +38,19 @@ var (
 	ErrTimestampInFuture = errors.New("timestamp received is in the future")
 	// ErrTimestampTooOld occurs when the cipher timestamp is older than MaxDelayDuration from now
 	ErrTimestampTooOld = errors.New("timestamp too old")
+	// ErrInvalidSignature occurs when a signature verification fails
+	ErrInvalidSignature = errors.New("invalid signature")
+	// ErrInvalidSignerID occurs when trying to sign with an invalid ID
+	ErrInvalidSignerID = errors.New("invalid signer ID")
+	// ErrInvalidTimestamp occurs when trying to sign with an invalid timestamp
+	ErrInvalidTimestamp = errors.New("invalid timestamp")
 )
+
+// Curve25519PublicKey defines a type for curve 25519 public keys
+type Curve25519PublicKey []byte
+
+// Curve25519PrivateKey defines a type for curve 25519 private keys
+type Curve25519PrivateKey []byte
 
 // Encrypt creates an authenticated ciphertext
 func Encrypt(key, ad, pt []byte) ([]byte, error) {
@@ -78,15 +90,28 @@ func Decrypt(key, ad, ct []byte) ([]byte, error) {
 	return c.Open(nil, ct, ad)
 }
 
-// ProtectCommandPubKey is an helper method to protect the given command using a client
-// public key and a secret key
-func ProtectCommandPubKey(command []byte, clientPubKey, secretKey *[32]byte) ([]byte, error) {
-	var shared [32]byte
-	curve25519.ScalarMult(&shared, secretKey, clientPubKey)
+// Sign will sign the given payload using the given privateKey,
+// producing an output composed of: timestamp + signedID + payload + signature
+func Sign(signerID []byte, privateKey ed25519.PrivateKey, timestamp []byte, payload []byte) ([]byte, error) {
+	if len(signerID) != IDLen {
+		return nil, ErrInvalidSignerID
+	}
 
-	key := Sha3Sum256(shared[:])[:KeyLen]
+	if len(timestamp) != TimestampLen {
+		return nil, ErrInvalidTimestamp
+	}
 
-	return ProtectSymKey(command, key)
+	protected := append(timestamp, signerID...)
+	protected = append(protected, payload...)
+
+	// sig should always be ed25519.SignatureSize=64 bytes
+	sig := ed25519.Sign(privateKey, protected)
+	if len(sig) != ed25519.SignatureSize {
+		return nil, ErrInvalidSignature
+	}
+	protected = append(protected, sig...)
+
+	return protected, nil
 }
 
 // DeriveSymKey derives a symmetric key from a password using Argon2
@@ -153,6 +178,17 @@ func RandomKey() []byte {
 	return key
 }
 
+// RandomCurve25519Keys generates Curve25519 public and private keys
+func RandomCurve25519Keys() (Curve25519PublicKey, Curve25519PrivateKey, error) {
+	privateKey := RandomKey()
+	publicKey, err := curve25519.X25519(privateKey, curve25519.Basepoint)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return publicKey, privateKey, nil
+}
+
 // RandomID generates a random IDLen-byte ID
 func RandomID() []byte {
 	id := make([]byte, IDLen)
@@ -186,23 +222,23 @@ func Ed25519PrivateKeyFromPassword(password string) (ed25519.PrivateKey, error) 
 }
 
 // PublicEd25519KeyToCurve25519 convert an ed25519.PublicKey to a curve25519 public key.
-func PublicEd25519KeyToCurve25519(edPubKey ed25519.PublicKey) [32]byte {
-	var edPk [32]byte
-	var curveKey [32]byte
+func PublicEd25519KeyToCurve25519(edPubKey ed25519.PublicKey) Curve25519PublicKey {
+	var edPk [ed25519.PublicKeySize]byte
+	var curveKey [Curve25519PubKeyLen]byte
 	copy(edPk[:], edPubKey)
 	if !extra25519.PublicKeyToCurve25519(&curveKey, &edPk) {
 		panic("could not convert ed25519 public key to curve25519")
 	}
 
-	return curveKey
+	return curveKey[:]
 }
 
 // PrivateEd25519KeyToCurve25519 convert an ed25519.PrivateKey to a curve25519 private key.
-func PrivateEd25519KeyToCurve25519(edPrivKey ed25519.PrivateKey) [32]byte {
-	var edSk [64]byte
-	var curveKey [32]byte
+func PrivateEd25519KeyToCurve25519(edPrivKey ed25519.PrivateKey) Curve25519PrivateKey {
+	var edSk [ed25519.PrivateKeySize]byte
+	var curveKey [Curve25519PrivKeyLen]byte
 	copy(edSk[:], edPrivKey)
 	extra25519.PrivateKeyToCurve25519(&curveKey, &edSk)
 
-	return curveKey
+	return curveKey[:]
 }
