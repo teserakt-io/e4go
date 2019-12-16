@@ -10,11 +10,11 @@ e4go defines a `Client` object that has a minimal interface, making its integrat
 
 We talk of message *protection* instead of just *encryption* because the protection operation includes also authentication and replay defense.
 
-**NOTE:** 
 E4's server (C2) is necessary to send control messages and manage a fleet of clients through GUIs, APIs, and automation components.
 The server can for example deploy key rotation policies, grant and revoke rights, and enable forward secrecy.
-Please [contact us](mailto:contact@teserakt.io) to use your private instance of the server, or test the limited public version.
-Without the server, e4go can be used to protect messages using static keys.
+
+Please [contact us](mailto:contact@teserakt.io) to request access to a private instance of the server, or test the limited public version.
+Without the C2 server, e4go can be used to protect messages using static keys.
 
 ## Creating a client
 
@@ -153,20 +153,20 @@ In order to have the key associated to a certain topic, you must instruct the C2
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md)
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 
 ## Security
 
-See [SECURITY.md](./SECURITY.md)
+See [SECURITY.md](./SECURITY.md).
 
 
 ## Support
 
-To receive support, please contact [team@teserakt.io](mailto:team@teserakt.io).
+To request support, please contact [team@teserakt.io](mailto:team@teserakt.io).
 
 
 ## Intellectual property
 
-e4go  is copyright (c) Teserakt AG 2018-2019-2020, and released under Apache 2.0 License (see [LICENCE](./LICENSE)).
+e4go is copyright (c) Teserakt AG 2018-2020, and released under Apache 2.0 License (see [LICENCE](./LICENSE)).
 
