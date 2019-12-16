@@ -4,8 +4,6 @@ The Teserakt team recognizes the important contributions the security research c
 
 If you believe you have discovered a security vulnerability, please send an email to security@teserakt.io. You may send an encrypted message using the public key below.
 
-### Public Key ###
-
 ```
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 
