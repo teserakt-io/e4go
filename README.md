@@ -2,7 +2,7 @@
 
 e4go is a repository providing an E4 package, implementing Teserakt's secure communication and key management framework for MQTT and other publish-subscribe protocols.
 
-e4 defines a `Client` object that has a minimal interface, making its integration straightforward via the following methods:
+E4 package defines a `Client` object that has a minimal interface, making its integration straightforward via the following methods:
 
 * `ProtectMessage(payload []byte, topic string)` takes a cleartext payload to protect and the associated topic, and returns a `[]byte` that is the payload encrypted and authenticated with the topic's key.
 
@@ -14,7 +14,7 @@ E4's server (C2) is necessary to send control messages and manage a fleet of cli
 The server can for example deploy key rotation policies, grant and revoke rights, and enable forward secrecy.
 
 Please [contact us](mailto:contact@teserakt.io) to request access to a private instance of the server, or test the limited public version.
-Without the C2 server, e4go can be used to protect messages using static keys.
+Without the C2 server, the E4 package can be used to protect messages using static keys.
 
 ## Creating a client
 
@@ -73,7 +73,7 @@ Note that a client's state is automatically saved to the provided `filePath` eve
 
 ## Integration instructions
 
-To integrate e4 into your application, the protect/unprotect logic just needs be added between the network layer and the application layer when transmitting/receiving a message, using an instance of the client.
+To integrate E4 into your application, the protect/unprotect logic just needs be added between the network layer and the application layer when transmitting/receiving a message, using an instance of the client.
 
 This section provides further instructions related to error handling and to the special case of control messages received from the C2 server.
 
