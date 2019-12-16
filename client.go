@@ -20,11 +20,11 @@
 // Creating a client
 //
 // the package provides several helpers to instantiate a client using symmetric keys:
-//  client, err := NewSymKeyClient([]byte("clientID"), crypto.RandomKey(), "./symClient.json")
-//  client, err := NewSymKeyClientPretty("clientName", "secretPassword", "./symClient.json")
+//  client, err := NewSymKeyClient(SymKeyIDAndKey([]byte("clientID"), crypto.RandomKey()), "./symClient.json")
+//  client, err := NewSymKeyClient(SymKeyNameAndPassword("clientName", "secretPassword"), "./symClient.json")
 // or asymmetric keys:
-//  client, err := NewPubKeyClient([]byte("clientID"), privateKey, "./asymClient.json", sharedPubKey)
-//  client, err := NewPubKeyClientPretty([]byte("clientID"), "secretPassword", "./asymClient.json", sharedPubKey)
+//  client, pubKey, err := NewPubKeyClient(PubKeyIDAndKey([]byte("clientID"), privateKey), "./asymClient.json", sharedPubKey)
+//  client, pubKey, err := NewPubKeyClient(PubKeyNameAndPassword([]byte("clientID"), "secretPassword"), "./asymClient.json", sharedPubKey)
 // see provided examples for a more detailed usage.
 //
 // Protecting and unprotecting messages
@@ -133,12 +133,88 @@ type client struct {
 
 var _ Client = (*client)(nil)
 
-// NewSymKeyClient creates a new client using a symmetric key
+// PubKeyClientConfig defines an interface for PubKeyClient configuration
+type PubKeyClientConfig interface {
+	getIDAndKey() (id []byte, key ed25519.PrivateKey, err error)
+}
+
+type pubKeyClientConfig struct {
+	f func() ([]byte, ed25519.PrivateKey, error)
+}
+
+func (o *pubKeyClientConfig) getIDAndKey() (id []byte, key ed25519.PrivateKey, err error) {
+	return o.f()
+}
+
+// PubKeyIDAndKey creates a PubKeyClientConfig from an ID and Key
+func PubKeyIDAndKey(id []byte, key ed25519.PrivateKey) PubKeyClientConfig {
+	return &pubKeyClientConfig{
+		f: func() ([]byte, ed25519.PrivateKey, error) {
+			return id, key, nil
+		},
+	}
+}
+
+// PubKeyNameAndPassword creates a PubKeyClientConfig from a name and password
+func PubKeyNameAndPassword(name, password string) PubKeyClientConfig {
+	return &pubKeyClientConfig{
+		f: func() ([]byte, ed25519.PrivateKey, error) {
+			key, err := e4crypto.Ed25519PrivateKeyFromPassword(password)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			return e4crypto.HashIDAlias(name), key, nil
+		},
+	}
+}
+
+// SymKeyClientConfig defines an interface for SymKeyClient configuration
+type SymKeyClientConfig interface {
+	getIDAndKey() (id, key []byte, err error)
+}
+
+type symKeyClientConfig struct {
+	f func() ([]byte, []byte, error)
+}
+
+func (o *symKeyClientConfig) getIDAndKey() (id, key []byte, err error) {
+	return o.f()
+}
+
+// SymKeyIDAndKey creates a SymKeyClientConfig from an ID and key
+func SymKeyIDAndKey(id, key []byte) SymKeyClientConfig {
+	return &symKeyClientConfig{
+		f: func() ([]byte, []byte, error) {
+			return id, key, nil
+		},
+	}
+}
+
+// SymKeyNameAndPassword creates a SymKeyClientConfig from a name and password
+func SymKeyNameAndPassword(name, password string) SymKeyClientConfig {
+	return &symKeyClientConfig{
+		f: func() ([]byte, []byte, error) {
+			key, err := e4crypto.DeriveSymKey(password)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			return e4crypto.HashIDAlias(name), key, nil
+		},
+	}
+}
+
+// NewSymKeyClient creates a new client using a symmetric key.
 //
-// id is a client identifier, and must be of length e4crypto.IDLen bytes.
-// key is the client private key,  and must be of length  e4crypto.KeyLen bytes.
+// opts is a SymKeyClientConfig, either from SymKeyIDAndKey or SymKeyNameAndPassword.
 // persistStatePath is the file system path to the file to read and persist the client's state.
-func NewSymKeyClient(id []byte, key []byte, persistStatePath string) (Client, error) {
+func NewSymKeyClient(opts SymKeyClientConfig, persistStatePath string) (Client, error) {
+	id, key, err := opts.getIDAndKey()
+	if err != nil {
+		return nil, err
+	}
+
 	var newID []byte
 	if len(id) == 0 {
 		newID = e4crypto.RandomID()
@@ -149,19 +225,24 @@ func NewSymKeyClient(id []byte, key []byte, persistStatePath string) (Client, er
 
 	symKeyMaterial, err := keys.NewSymKeyMaterial(key)
 	if err != nil {
-		return nil, fmt.Errorf("failed to created symkey from key: %v", err)
+		return nil, fmt.Errorf("failed to create symkey from key: %v", err)
 	}
 
 	return newClient(newID, symKeyMaterial, persistStatePath)
 }
 
-// NewPubKeyClient creates a new client using the provided ed25519 private key.
+// NewPubKeyClient creates a new client using public keys to authenticate incoming and sign outgoing messages.
+// It also return the client public key, to be shared with others needing to authenticate client's messages.
 //
-// id is a client identifier, and must be of length e4crypto.IDLen bytes.
-// key is the ed25519 private key.
+// opts is a PubKeyClientConfig, either from PubKeyIDAndKey or PubKeyNameAndPassword.
 // persistStatePath is the file system path to the file to read and persist the client's state.
 // c2PubKey must be the curve25519 public part of the key that is used to protect client commands.
-func NewPubKeyClient(id []byte, key ed25519.PrivateKey, persistStatePath string, c2PubKey e4crypto.Curve25519PublicKey) (Client, error) {
+func NewPubKeyClient(opts PubKeyClientConfig, persistStatePath string, c2PubKey e4crypto.Curve25519PublicKey) (Client, ed25519.PublicKey, error) {
+	id, key, err := opts.getIDAndKey()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	var newID []byte
 	if len(id) == 0 {
 		newID = e4crypto.RandomID()
@@ -172,49 +253,15 @@ func NewPubKeyClient(id []byte, key ed25519.PrivateKey, persistStatePath string,
 
 	pubKeyMaterialKey, err := keys.NewPubKeyMaterial(newID, key, c2PubKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create ed25519key from key: %v", err)
+		return nil, nil, fmt.Errorf("failed to create ed25519key from key: %v", err)
 	}
 
-	return newClient(newID, pubKeyMaterialKey, persistStatePath)
-}
-
-// NewSymKeyClientPretty is like NewClient but takes a client name and a password
-//
-// name is the unique identifier for the client.
-// password will be used to derive the client key. It must be at least 16 characters long.
-// persistStatePath is the file system path to the file to read and persist the client's state.
-func NewSymKeyClientPretty(name string, password string, persistStatePath string) (Client, error) {
-	id := e4crypto.HashIDAlias(name)
-
-	key, err := keys.NewSymKeyMaterialFromPassword(password)
+	c, err := newClient(newID, pubKeyMaterialKey, persistStatePath)
 	if err != nil {
-		return nil, err
+		return nil, nil, fmt.Errorf("failed to create client: %v", err)
 	}
 
-	return newClient(id, key, persistStatePath)
-}
-
-// NewPubKeyClientPretty is like NewPubKeyClient except that it takes in the client's name and a password.
-//
-// name is the unique identifier for the client.
-// password will be used to derive the client key. It must be at least 16 characters long.
-// persistStatePath is a file system path to the file to be used to read
-// and persist the client's current state.
-// c2PubKey must be the curve25519 public part of the key that is used to protect client commands.
-func NewPubKeyClientPretty(name string, password string, persistStatePath string, c2PubKey e4crypto.Curve25519PublicKey) (Client, ed25519.PublicKey, error) {
-	id := e4crypto.HashIDAlias(name)
-
-	key, err := keys.NewPubKeyMaterialFromPassword(id, password, c2PubKey)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	client, err := newClient(id, key, persistStatePath)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return client, key.PublicKey(), nil
+	return c, pubKeyMaterialKey.PublicKey(), nil
 }
 
 // newClient creates a new client, generating a random ID if they are empty

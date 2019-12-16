@@ -75,7 +75,7 @@ func TestCmdResetTopics(t *testing.T) {
 	t.Run("expected command is created", func(t *testing.T) {
 		cmd, err := CmdResetTopics()
 		if err != nil {
-			t.Fatalf("failed to created command: %v", err)
+			t.Fatalf("failed to create command: %v", err)
 		}
 
 		if got, want := len(cmd), 1; got != want {
@@ -189,7 +189,7 @@ func TestCmdResetPubKeys(t *testing.T) {
 	t.Run("expected command is created", func(t *testing.T) {
 		cmd, err := CmdResetPubKeys()
 		if err != nil {
-			t.Fatalf("failed to created command: %v", err)
+			t.Fatalf("failed to create command: %v", err)
 		}
 
 		if got, want := len(cmd), 1; got != want {

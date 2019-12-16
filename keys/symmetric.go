@@ -33,16 +33,6 @@ type symKeyMaterial struct {
 
 var _ SymKeyMaterial = (*symKeyMaterial)(nil)
 
-// NewSymKeyMaterialFromPassword creates a SymKeyMaterial from a given password
-func NewSymKeyMaterialFromPassword(pwd string) (SymKeyMaterial, error) {
-	key, err := e4crypto.DeriveSymKey(pwd)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewSymKeyMaterial(key)
-}
-
 // NewSymKeyMaterial creates a new SymKeyMaterial
 func NewSymKeyMaterial(key []byte) (SymKeyMaterial, error) {
 	if err := e4crypto.ValidateSymKey(key); err != nil {

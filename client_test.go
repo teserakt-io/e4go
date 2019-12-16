@@ -42,7 +42,7 @@ func TestNewClientSymKey(t *testing.T) {
 
 	path := "./test/data/clienttestnew"
 
-	c, err := NewSymKeyClient(id, k, path)
+	c, err := NewSymKeyClient(SymKeyIDAndKey(id, k), path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func TestNewClientSymKey(t *testing.T) {
 }
 
 func TestProtectUnprotectMessageSymKey(t *testing.T) {
-	client, err := NewSymKeyClient(nil, e4crypto.RandomKey(), "./test/data/clienttestprotectSymKey")
+	client, err := NewSymKeyClient(SymKeyIDAndKey(nil, e4crypto.RandomKey()), "./test/data/clienttestprotectSymKey")
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -99,7 +99,7 @@ func TestProtectUnprotectMessagePubKey(t *testing.T) {
 		t.Fatalf("Failed to generate ed25519 key: %v", err)
 	}
 
-	client, err := NewPubKeyClient(clientID, privateKey, "./test/data/clienttestprotectPubKey", generateCurve25519PubKey(t))
+	client, _, err := NewPubKeyClient(PubKeyIDAndKey(clientID, privateKey), "./test/data/clienttestprotectPubKey", generateCurve25519PubKey(t))
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -201,7 +201,7 @@ func TestKeyTransition(t *testing.T) {
 	clientKey := e4crypto.RandomKey()
 	topic := "topic"
 
-	c, err := NewSymKeyClient(clientID, clientKey, "./test/data/testkeytransition")
+	c, err := NewSymKeyClient(SymKeyIDAndKey(clientID, clientKey), "./test/data/testkeytransition")
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -260,7 +260,7 @@ func TestKeyTransition(t *testing.T) {
 func TestClientWriteRead(t *testing.T) {
 	filePath := "./test/data/clienttestwriteread"
 
-	gc, err := NewSymKeyClient(nil, e4crypto.RandomKey(), filePath)
+	gc, err := NewSymKeyClient(SymKeyIDAndKey(nil, e4crypto.RandomKey()), filePath)
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -323,7 +323,7 @@ func TestProtectUnprotectCommandsPubKey(t *testing.T) {
 	}
 
 	clientID := e4crypto.RandomID()
-	gc, err := NewPubKeyClient(clientID, clientEdSk, "./test/data/clienttestcommand", c2PublicCurveKey)
+	gc, _, err := NewPubKeyClient(PubKeyIDAndKey(clientID, clientEdSk), "./test/data/clienttestcommand", c2PublicCurveKey)
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -347,7 +347,7 @@ func TestClientPubKeys(t *testing.T) {
 	t.Run("pubKey client properly add / remove / reset pubKeys", func(t *testing.T) {
 		clientFilePath := "./test/data/pubclienttestpubkeys"
 
-		c, pubKey, err := NewPubKeyClientPretty("testClient", "passwordTestRandom", clientFilePath, generateCurve25519PubKey(t))
+		c, pubKey, err := NewPubKeyClient(PubKeyNameAndPassword("testClient", "passwordTestRandom"), clientFilePath, generateCurve25519PubKey(t))
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
@@ -432,7 +432,7 @@ func TestClientPubKeys(t *testing.T) {
 	t.Run("pubKey client return errors on pubKey operations with invalid ids", func(t *testing.T) {
 		clientFilePath := "./test/data/pubclienttestpubkeys"
 
-		c, pubKey, err := NewPubKeyClientPretty("testClient", "passwordTestRandom", clientFilePath, generateCurve25519PubKey(t))
+		c, pubKey, err := NewPubKeyClient(PubKeyNameAndPassword("testClient", "passwordTestRandom"), clientFilePath, generateCurve25519PubKey(t))
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
@@ -456,7 +456,7 @@ func TestClientPubKeys(t *testing.T) {
 	})
 
 	t.Run("symClient must return unsupported operations on pubKey methods", func(t *testing.T) {
-		symClient, err := NewSymKeyClientPretty("testClient", "passwordTestRandom", "./symclienttestpubkeys")
+		symClient, err := NewSymKeyClient(SymKeyNameAndPassword("testClient", "passwordTestRandom"), "./symclienttestpubkeys")
 		if err != nil {
 			t.Fatalf("Failed to create symClient: %v", err)
 		}
@@ -481,7 +481,7 @@ func TestClientPubKeys(t *testing.T) {
 
 func TestClientTopics(t *testing.T) {
 	t.Run("topic key operations properly update client state", func(t *testing.T) {
-		symClient, err := NewSymKeyClientPretty("clientID", "passwordTestRandom", "./test/data/testclienttopics")
+		symClient, err := NewSymKeyClient(SymKeyNameAndPassword("clientID", "passwordTestRandom"), "./test/data/testclienttopics")
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
@@ -533,7 +533,7 @@ func TestClientTopics(t *testing.T) {
 	})
 
 	t.Run("topic key operations returns errors when invoked with bad topic hashes", func(t *testing.T) {
-		symClient, err := NewSymKeyClientPretty("clientID", "passwordTestRandom", "./test/data/testclienttopics")
+		symClient, err := NewSymKeyClient(SymKeyNameAndPassword("clientID", "passwordTestRandom"), "./test/data/testclienttopics")
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
@@ -555,7 +555,7 @@ func TestClientSetIDKey(t *testing.T) {
 	validKey := e4crypto.RandomKey()
 	invalidKey := make([]byte, e4crypto.KeyLen)
 
-	c, err := NewSymKeyClient(clientID, validKey, "./test/data/testSetIdKeyClient")
+	c, err := NewSymKeyClient(SymKeyIDAndKey(clientID, validKey), "./test/data/testSetIdKeyClient")
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -571,7 +571,7 @@ func TestCommandsSymClient(t *testing.T) {
 	clientKey := e4crypto.RandomKey()
 	topic := "topic1"
 
-	c, err := NewSymKeyClient(clientID, clientKey, "./test/data/testcommandsclient")
+	c, err := NewSymKeyClient(SymKeyIDAndKey(clientID, clientKey), "./test/data/testcommandsclient")
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}

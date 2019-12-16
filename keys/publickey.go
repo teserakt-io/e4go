@@ -79,16 +79,6 @@ func NewPubKeyMaterial(signerID []byte, privateKey ed25519.PrivateKey, c2PubKey 
 	return e, nil
 }
 
-// NewPubKeyMaterialFromPassword creates a new PubKeyMaterial e4 client key from given password
-func NewPubKeyMaterialFromPassword(signerID []byte, pwd string, c2PubKey e4crypto.Curve25519PublicKey) (PubKeyMaterial, error) {
-	key, err := e4crypto.Ed25519PrivateKeyFromPassword(pwd)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewPubKeyMaterial(signerID, key, c2PubKey)
-}
-
 // NewRandomPubKeyMaterial creates a new PubKeyMaterial key from a random ed25519 key
 func NewRandomPubKeyMaterial(signerID []byte, c2PubKey e4crypto.Curve25519PublicKey) (PubKeyMaterial, error) {
 	_, privateKey, err := ed25519.GenerateKey(nil)

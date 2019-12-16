@@ -57,25 +57,6 @@ func TestNewPubKeyMaterial(t *testing.T) {
 	}
 }
 
-func TestNewPubKeyMaterialFromPassword(t *testing.T) {
-	password := "test-password-random"
-
-	expectedSignerID := e4crypto.HashIDAlias("test")
-	expectedC2PubKey := getTestC2PubKey(t)
-
-	key, err := NewPubKeyMaterialFromPassword(expectedSignerID, password, expectedC2PubKey)
-	if err != nil {
-		t.Fatalf("Key creation failed: %v", err)
-	}
-
-	expectedPrivateKey, err := e4crypto.Ed25519PrivateKeyFromPassword(password)
-	if err != nil {
-		t.Fatalf("Key creation from password failed: %v", err)
-	}
-
-	assertPubKeyMaterialContains(t, key, expectedSignerID, expectedPrivateKey, expectedC2PubKey)
-}
-
 func assertPubKeyMaterialContains(
 	t *testing.T,
 	key PubKeyMaterial,
