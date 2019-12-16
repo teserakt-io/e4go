@@ -32,13 +32,13 @@ Depending on the mode, different functions should be used to instantiate a clien
 A symmetric-key client can be created from a 16-byte identifier (type `[]byte`), a 32-byte key (type `[]byte`), and an absolute path (type `string`) to a file on the local file system, which will persistently store the client's state:
 
 ```go
-    client, err := e4.NewSymKeyClient(id, key, filePath)
+    client, err := e4.NewSymKeyClient(SymKeyIDAndKey(id, key), filePath)
 ```
 
 A symmetric-key client can also be created from a name (`string` of arbitrary length) and a password (`string` of a least 16 characters), as follows:
 
 ```go
-    client, err := e4.NewSymKeyClientPretty(name, password, filePath)
+    client, err := e4.NewSymKeyClient(SymKeyNameAndPassword(name, password), filePath)
 ```
 
 The latter is a wrapper over `NewSymKeyClient()` that creates the ID by hashing `name` with SHA-3-256, and deriving a key using Argon2.
@@ -48,7 +48,7 @@ The latter is a wrapper over `NewSymKeyClient()` that creates the ID by hashing 
 A public-key client can be created from a 16-byte identifier (type `[]byte`), an Ed25519 private key (type `ed25519.PrivateKey`), an absolute file path (type `string`), and a Curve25519 public key (32-byte `[]byte`):
 
 ```go
-NewPubKeyClient(id []byte, key ed25519.PrivateKey, filePath string, c2PubKey []byte) (Client, error)
+client, err := e4.NewPubKeyClient(PubKeyIDAndKey(id, key), filePath, c2PubKey)
 ```
 
 Compared to the symmetric-key mode, and additional argument is `c2PubKey`, the public key of the C2 server that sends control messages.
@@ -56,7 +56,7 @@ Compared to the symmetric-key mode, and additional argument is `c2PubKey`, the p
 A public-key client can also be created from a name (`string` of arbitrary length) and a password (`string` of a least 16 characters), as follows:
 
 ```go
-NewPubKeyClientPretty(name string, password string, filePath string, c2PubKey []byte) (Client, error)
+client, err := e4.NewPubKeyClient(PubKeyNameAndPassword(name, password), filePath, c2PubKey)
 ```
 
 The Ed25519 private key is then created from a seed that is derived from the password using Argon2.
