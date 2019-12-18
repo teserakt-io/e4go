@@ -1,4 +1,4 @@
-// Copyright 2018-2019-2020 Teserakt AG
+// Copyright 2019 Teserakt AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -27,9 +28,9 @@ import (
 
 // List of supported KeyTypes
 const (
-	KeyTypeSymmetric  string = "symmetric"
-	KeyTypeEd25519    string = "ed25519"
-	KeyTypeCurve25519 string = "curve25519"
+	KeyTypeSymmetric  = "symmetric"
+	KeyTypeEd25519    = "ed25519"
+	KeyTypeCurve25519 = "curve25519"
 )
 
 func main() {
@@ -38,8 +39,12 @@ func main() {
 	var out string
 	var force bool
 
+	log.SetFlags(0)
+
+	keyTypeHelp := fmt.Sprintf("type of the key to generate (one of %q, %q, %q)", KeyTypeSymmetric, KeyTypeEd25519, KeyTypeCurve25519)
+
 	flag.StringVar(&name, "name", "", "name of the key file to be created (required).")
-	flag.StringVar(&keyType, "type", "symmetric", fmt.Sprintf("type of the key to generate (one of \"%s\", \"%s\", \"%s\")", KeyTypeSymmetric, KeyTypeEd25519, KeyTypeCurve25519))
+	flag.StringVar(&keyType, "type", "symmetric", keyTypeHelp)
 	flag.StringVar(&out, "out", "", "folder path where to write the generated key (default: current folder)")
 	flag.BoolVar(&force, "force", false, "force overwritting key file if it exists")
 	flag.Parse()
@@ -61,23 +66,19 @@ func main() {
 	case KeyTypeEd25519:
 		pubKey, privKey, err = ed25519.GenerateKey(nil)
 		if err != nil {
-			fmt.Printf("failed to generate ed25519 key: %v\n", err)
-			os.Exit(1)
+			log.Fatalf("failed to generate ed25519 key: %v\n", err)
 		}
 	case KeyTypeCurve25519:
 		pubKey, privKey, err = e4crypto.RandomCurve25519Keys()
 		if err != nil {
-			fmt.Printf("failed to generate curve25519 key: %v\n", err)
-			os.Exit(1)
+			log.Fatalf("failed to generate curve25519 key: %v\n", err)
 		}
 	default:
-		fmt.Printf("unknown key type: %s\n", keyType)
-		os.Exit(1)
+		log.Fatalf("unknown key type: %s\n", keyType)
 	}
 
 	if err := writeKey(privKey, pubKey, keyPath, force); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 }
 
