@@ -1,8 +1,8 @@
 # e4go
 
-e4go is a Go library that implements E4, Teserakt's secure communication and key management framework for MQTT and other publish-subscribe protocols.
+e4go is a repository providing an E4 package, implementing Teserakt's secure communication and key management framework for MQTT and other publish-subscribe protocols.
 
-e4go defines a `Client` object that has a minimal interface, making its integration straightforward via the following methods:
+E4 package defines a `Client` object that has a minimal interface, making its integration straightforward via the following methods:
 
 * `ProtectMessage(payload []byte, topic string)` takes a cleartext payload to protect and the associated topic, and returns a `[]byte` that is the payload encrypted and authenticated with the topic's key.
 
@@ -14,11 +14,11 @@ E4's server (C2) is necessary to send control messages and manage a fleet of cli
 The server can for example deploy key rotation policies, grant and revoke rights, and enable forward secrecy.
 
 Please [contact us](mailto:contact@teserakt.io) to request access to a private instance of the server, or test the limited public version.
-Without the C2 server, e4go can be used to protect messages using static keys.
+Without the C2 server, the E4 package can be used to protect messages using static keys.
 
 ## Creating a client
 
-The following instructions assume that your program imports `e4go` as follows:
+The following instructions assume that your program imports `e4` as follows:
 
 ```go
     import e4 "github.com/teserakt-io/e4go"
@@ -61,7 +61,7 @@ NewPubKeyClientPretty(name string, password string, filePath string, c2PubKey []
 
 The Ed25519 private key is then created from a seed that is derived from the password using Argon2.
 
-### From a saved state 
+### From a saved state
 
 A client instance can be recovered using the `LoadClient()` helper, providing as argument the `filePath` of its persistent state copy:
 
@@ -73,7 +73,7 @@ Note that a client's state is automatically saved to the provided `filePath` eve
 
 ## Integration instructions
 
-To integrate e4go into your application, the protect/unprotect logic just needs be added between the network layer and the application layer when transmitting/receiving a message, using an instance of the client.
+To integrate E4 into your application, the protect/unprotect logic just needs be added between the network layer and the application layer when transmitting/receiving a message, using an instance of the client.
 
 This section provides further instructions related to error handling and to the special case of control messages received from the C2 server.
 
@@ -114,10 +114,10 @@ or alternatively
 ```
 
 which indicates a message on E4's control channel.
-You should not have to parse E4's messages yourself. 
+You should not have to parse E4's messages yourself.
 Control messages are thus deliberately not returned to users.
 
-If `plaintext` is not `nil` and `err` is nil, your application can proceed with the  unprotected, plaintext message. 
+If `plaintext` is not `nil` and `err` is nil, your application can proceed with the  unprotected, plaintext message.
 
 
 ### Messages transmitted
@@ -142,7 +142,7 @@ You can then use the `Protect` method from the client instance as follows:
 
 All errors should be reported, and the `plaintext` and `protected` values discarded upon an error, *except potentially in one case*:
 if you receive an `ErrTopicKeyNotFound` error from  `ProtectMessage()` or `Unprotect()`, it is because the client does not have the key for this topic.
-Therefore, 
+Therefore,
 
 * When transmitting a message, your application can either discard the message to be sent, or choose to transmit it in clear.
 
@@ -169,4 +169,3 @@ To request support, please contact [team@teserakt.io](mailto:team@teserakt.io).
 ## Intellectual property
 
 e4go is copyright (c) Teserakt AG 2018-2020, and released under Apache 2.0 License (see [LICENCE](./LICENSE)).
-
