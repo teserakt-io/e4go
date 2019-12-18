@@ -150,6 +150,41 @@ Therefore,
 
 In order to have the key associated to a certain topic, you must instruct the C2 to deliver said topic key to the client.
 
+## E4 Keygen
+
+A key generator is provided, to help generate the various key types used to operate E4
+
+```
+Usage of ./bin/e4keygen:
+  -force
+        force overwritting key file if it exists
+  -name string
+        name of the key file to be created (required).
+  -out string
+        folder path where to write the generated key (default: current folder)
+  -type string
+        type of the key to generate (one of "symmetric", "ed25519", "curve25519") (default "symmetric")
+```
+
+You can use it to generate client's symmetric key:
+```
+$ ./bin/e4keygen -name client1 -out ~/e4/keys/ -type symmetric
+private key successfully written at ~/e4/keys/client1
+```
+
+or ed25519 private and public keys:
+```
+$ ./bin/e4keygen -name client1 -out ~/e4/keys/ -type ed25519
+private key successfully written at ~/e4/keys/client1
+public key successfully written at ~/e4/keys/client1.pub
+```
+
+or even curve25519 keys, needed in public key mode:
+```
+$ ./bin/e4keygen -name c2 -out ~/e4/keys/ -type curve25519
+private key successfully written at ~/e4/keys/c2
+public key successfully written at ~/e4/keys/c2.pub
+```
 
 ## Contributing
 
