@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 
 	"golang.org/x/crypto/ed25519"
 
@@ -34,7 +33,6 @@ const (
 )
 
 func main() {
-	var name string
 	var keyType string
 	var out string
 	var force bool
@@ -43,18 +41,15 @@ func main() {
 
 	keyTypeHelp := fmt.Sprintf("type of the key to generate (one of %q, %q, %q)", KeyTypeSymmetric, KeyTypeEd25519, KeyTypeCurve25519)
 
-	flag.StringVar(&name, "name", "", "name of the key file to be created (required).")
 	flag.StringVar(&keyType, "type", "symmetric", keyTypeHelp)
-	flag.StringVar(&out, "out", "", "folder path where to write the generated key (default: current folder)")
+	flag.StringVar(&out, "out", "", "file path where the key will be generated (required)")
 	flag.BoolVar(&force, "force", false, "force overwritting key file if it exists")
 	flag.Parse()
 
-	if len(name) == 0 {
+	if len(out) == 0 {
 		flag.Usage()
 		os.Exit(1)
 	}
-
-	keyPath := filepath.Join(out, name)
 
 	var privKey []byte
 	var pubKey []byte
@@ -77,7 +72,7 @@ func main() {
 		log.Fatalf("unknown key type: %s\n", keyType)
 	}
 
-	if err := writeKey(privKey, pubKey, keyPath, force); err != nil {
+	if err := writeKey(privKey, pubKey, out, force); err != nil {
 		log.Fatal(err)
 	}
 }
