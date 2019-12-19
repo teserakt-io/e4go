@@ -21,8 +21,8 @@ import (
 	e4crypto "github.com/teserakt-io/e4go/crypto"
 )
 
-func ExampleNewSymKeyClient_idAndKey() {
-	client, err := e4.NewSymKeyClient(e4.SymKeyIDAndKey([]byte("clientID"), e4crypto.RandomKey()), "./symClient.json")
+func ExampleNewClient_symIDAndKey() {
+	client, err := e4.NewClient(&e4.SymIDAndKey{ID: []byte("clientID"), Key: e4crypto.RandomKey()}, "./symClient.json")
 	if err != nil {
 		panic(err)
 	}
@@ -35,8 +35,8 @@ func ExampleNewSymKeyClient_idAndKey() {
 	fmt.Printf("Protected message: %v", protectedMessage)
 }
 
-func ExampleNewSymKeyClient_nameAndPassword() {
-	client, err := e4.NewSymKeyClient(e4.SymKeyNameAndPassword("clientName", "verySecretPassword"), "./symClient.json")
+func ExampleNewClient_symNameAndPassword() {
+	client, err := e4.NewClient(&e4.SymNameAndPassword{Name: "clientName", Password: "verySecretPassword"}, "./symClient.json")
 	if err != nil {
 		panic(err)
 	}
@@ -49,7 +49,7 @@ func ExampleNewSymKeyClient_nameAndPassword() {
 	fmt.Printf("Protected message: %v", protectedMessage)
 }
 
-func ExampleNewPubKeyClient_idAndKey() {
+func ExampleNewClient_pubIDAndKey() {
 	privateKey, err := e4crypto.Ed25519PrivateKeyFromPassword("verySecretPassword")
 	if err != nil {
 		panic(err)
@@ -60,7 +60,12 @@ func ExampleNewPubKeyClient_idAndKey() {
 		panic(err)
 	}
 
-	client, _, err := e4.NewPubKeyClient(e4.PubKeyIDAndKey([]byte("clientID"), privateKey), "./pubClient.json", c2PubKey)
+	client, err := e4.NewClient(&e4.PubIDAndKey{
+		ID:       []byte("clientID"),
+		Key:      privateKey,
+		C2PubKey: c2PubKey,
+	}, "./pubClient.json")
+
 	if err != nil {
 		panic(err)
 	}
@@ -73,13 +78,24 @@ func ExampleNewPubKeyClient_idAndKey() {
 	fmt.Printf("Protected message: %v", protectedMessage)
 }
 
-func ExampleNewPubKeyClient_nameAndPassword() {
+func ExampleNewClient_pubNameAndPassword() {
 	c2PubKey, _, err := e4crypto.RandomCurve25519Keys()
 	if err != nil {
 		panic(err)
 	}
+	config := &e4.PubNameAndPassword{
+		Name:     "clientName",
+		Password: "verySecretPassword",
+		C2PubKey: c2PubKey,
+	}
 
-	client, pubKey, err := e4.NewPubKeyClient(e4.PubKeyNameAndPassword("clientName", "verySecretPassword"), "./pubClient.json", c2PubKey)
+	client, err := e4.NewClient(config, "./pubClient.json")
+	if err != nil {
+		panic(err)
+	}
+
+	// We may need to get the public key derived from the password:
+	pubKey, err := config.PubKey()
 	if err != nil {
 		panic(err)
 	}
