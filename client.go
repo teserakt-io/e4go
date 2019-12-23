@@ -17,16 +17,6 @@
 // It aims to be quick and easy to integrate in IoT devices applications
 // enabling to secure their communications, as well as exposing a way to manage the various keys required.
 //
-// Creating a client
-//
-// the package provides several helpers to instantiate a client using symmetric keys:
-//  client, err := NewSymKeyClient(SymKeyIDAndKey([]byte("clientID"), crypto.RandomKey()), "./symClient.json")
-//  client, err := NewSymKeyClient(SymKeyNameAndPassword("clientName", "secretPassword"), "./symClient.json")
-// or asymmetric keys:
-//  client, pubKey, err := NewPubKeyClient(PubKeyIDAndKey([]byte("clientID"), privateKey), "./asymClient.json", sharedPubKey)
-//  client, pubKey, err := NewPubKeyClient(PubKeyNameAndPassword([]byte("clientID"), "secretPassword"), "./asymClient.json", sharedPubKey)
-// see provided examples for a more detailed usage.
-//
 // Protecting and unprotecting messages
 //
 // Once created, a client provide methods to protect messages before sending them to the broker:
