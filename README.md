@@ -1,9 +1,26 @@
 # e4go
 
-e4go is a repository providing an E4 package, implementing Teserakt's secure communication and key management framework for MQTT and other publish-subscribe protocols.
+![alt text](logo.png)
 
-E4 package defines a `Client` object that has a minimal interface, making its integration straightforward via the following methods:
+  * [Introduction](#introduction)
+  * [Creating a client](#creating-a-client)
+    + [Symmetric-key client](#symmetric-key-client)
+    + [Public-key client](#public-key-client)
+    + [From a saved state](#from-a-saved-state)
+  * [Integration instructions](#integration-instructions)
+    + [Receiving a message](#receiving-a-message)
+    + [Transmitting a message](#transmitting-a-message)
+    + [Handling errors](#handling-errors)
+  * [Contributing](#contributing)
+  * [Security](#security)
+  * [Support](#support)
+  * [Intellectual property](#intellectual-property)
 
+## Introduction
+
+This repository provides the `e4` Go package, the client library for [Teserakt's E4](https://teserakt.io/e4.html), and end-to-end encryption and key management framework for MQTT and other publish-subscribe protocols.
+
+The `e4` package defines a `Client` object that has a minimal interface, making its integration straightforward via the following methods: 
 * `ProtectMessage(payload []byte, topic string)` takes a cleartext payload to protect and the associated topic, and returns a `[]byte` that is the payload encrypted and authenticated with the topic's key.
 
 * `Unprotect(protected []byte, topic string)` takes a protected payload and attempts to decrypt and verify it. If `topic` is the special topic reserved for control messages, then the control message is processed and the client's state updated accordingly.
@@ -14,7 +31,7 @@ E4's server (C2) is necessary to send control messages and manage a fleet of cli
 The server can for example deploy key rotation policies, grant and revoke rights, and enable forward secrecy.
 
 Please [contact us](mailto:contact@teserakt.io) to request access to a private instance of the server, or test the limited public version.
-Without the C2 server, the E4 package can be used to protect messages using static keys.
+Without the C2 server, the E4 client library can be used to protect messages using static keys, manually managed.
 
 ## Creating a client
 
@@ -24,7 +41,7 @@ The following instructions assume that your program imports `e4` as follows:
     import e4 "github.com/teserakt-io/e4go"
 ```
 
-E4 supports both symmetric key and public-key mode.
+The E4 protocol supports both symmetric key and public-key mode.
 Depending on the mode, different functions should be used to instantiate a client:
 
 ### Symmetric-key client
@@ -80,7 +97,7 @@ This section provides further instructions related to error handling and to the 
 Note that E4 is essentially an application security layer, therefore it processes the payload of a message (such as an MQTT payload), excluding header fields.
 References to "messages" below therefore refer to payload data (or application message),as opposed to the network-level message.
 
-## Messages received
+### Receiving a message
 
 Assume that you receive messages over MQTT or Kafka, and have topics and payload defined as
 
@@ -120,7 +137,7 @@ Control messages are thus deliberately not returned to users.
 If `plaintext` is not `nil` and `err` is nil, your application can proceed with the  unprotected, plaintext message.
 
 
-### Messages transmitted
+### Transmitting a message
 
 To protect a message to be transmitted, suppose say that you have the topic and payload defined as:
 
