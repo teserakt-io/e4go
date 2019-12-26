@@ -167,7 +167,6 @@ Therefore,
 
 In order to have the key associated to a certain topic, you must instruct the C2 to deliver said topic key to the client.
 
-
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md).
