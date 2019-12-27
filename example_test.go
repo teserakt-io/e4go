@@ -17,15 +17,12 @@ package e4_test
 import (
 	"fmt"
 
-	"github.com/agl/ed25519/extra25519"
-	"golang.org/x/crypto/ed25519"
-
 	e4 "github.com/teserakt-io/e4go"
-	"github.com/teserakt-io/e4go/crypto"
+	e4crypto "github.com/teserakt-io/e4go/crypto"
 )
 
-func ExampleNewSymKeyClient() {
-	client, err := e4.NewSymKeyClient([]byte("clientID"), crypto.RandomKey(), "./symClient.json")
+func ExampleNewClient_symIDAndKey() {
+	client, err := e4.NewClient(&e4.SymIDAndKey{ID: []byte("clientID"), Key: e4crypto.RandomKey()}, "./symClient.json")
 	if err != nil {
 		panic(err)
 	}
@@ -38,8 +35,8 @@ func ExampleNewSymKeyClient() {
 	fmt.Printf("Protected message: %v", protectedMessage)
 }
 
-func ExampleNewSymKeyClientPretty() {
-	client, err := e4.NewSymKeyClientPretty("clientName", "verySecretPassword", "./symClient.json")
+func ExampleNewClient_symNameAndPassword() {
+	client, err := e4.NewClient(&e4.SymNameAndPassword{Name: "clientName", Password: "verySecretPassword"}, "./symClient.json")
 	if err != nil {
 		panic(err)
 	}
@@ -52,23 +49,23 @@ func ExampleNewSymKeyClientPretty() {
 	fmt.Printf("Protected message: %v", protectedMessage)
 }
 
-func ExampleNewPubKeyClient() {
-	privateKey, err := crypto.Ed25519PrivateKeyFromPassword("verySecretPassword")
+func ExampleNewClient_pubIDAndKey() {
+	privateKey, err := e4crypto.Ed25519PrivateKeyFromPassword("verySecretPassword")
 	if err != nil {
 		panic(err)
 	}
 
-	var c2PubKey [32]byte
-	c2EdPubKey, _, err := ed25519.GenerateKey(nil)
+	c2PubKey, _, err := e4crypto.RandomCurve25519Keys()
 	if err != nil {
 		panic(err)
 	}
 
-	var c2EdPk [32]byte
-	copy(c2EdPk[:], c2EdPubKey)
-	extra25519.PublicKeyToCurve25519(&c2PubKey, &c2EdPk)
+	client, err := e4.NewClient(&e4.PubIDAndKey{
+		ID:       []byte("clientID"),
+		Key:      privateKey,
+		C2PubKey: c2PubKey,
+	}, "./pubClient.json")
 
-	client, err := e4.NewPubKeyClient([]byte("clientID"), privateKey, "./pubClient.json", c2PubKey[:])
 	if err != nil {
 		panic(err)
 	}
@@ -81,18 +78,24 @@ func ExampleNewPubKeyClient() {
 	fmt.Printf("Protected message: %v", protectedMessage)
 }
 
-func ExampleNewPubKeyClientPretty() {
-	var c2PubKey [32]byte
-	c2EdPubKey, _, err := ed25519.GenerateKey(nil)
+func ExampleNewClient_pubNameAndPassword() {
+	c2PubKey, _, err := e4crypto.RandomCurve25519Keys()
+	if err != nil {
+		panic(err)
+	}
+	config := &e4.PubNameAndPassword{
+		Name:     "clientName",
+		Password: "verySecretPassword",
+		C2PubKey: c2PubKey,
+	}
+
+	client, err := e4.NewClient(config, "./pubClient.json")
 	if err != nil {
 		panic(err)
 	}
 
-	var c2EdPk [32]byte
-	copy(c2EdPk[:], c2EdPubKey)
-	extra25519.PublicKeyToCurve25519(&c2PubKey, &c2EdPk)
-
-	client, pubKey, err := e4.NewPubKeyClientPretty("clientName", "verySecretPassword", "./pubClient.json", c2PubKey[:])
+	// We may need to get the public key derived from the password:
+	pubKey, err := config.PubKey()
 	if err != nil {
 		panic(err)
 	}

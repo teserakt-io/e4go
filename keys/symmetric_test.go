@@ -24,29 +24,6 @@ import (
 	e4crypto "github.com/teserakt-io/e4go/crypto"
 )
 
-func TestNewSymKeyFromPassword(t *testing.T) {
-	password := "test password random"
-	expectedKey, err := e4crypto.DeriveSymKey(password)
-	if err != nil {
-		t.Fatalf("Failed to derive symKeyMaterialMaterial: %v", err)
-	}
-
-	k, err := NewSymKeyMaterialFromPassword(password)
-	if err != nil {
-		t.Fatalf("Failed to create symKeyMaterial: %v", err)
-
-	}
-
-	tk, ok := k.(*symKeyMaterial)
-	if !ok {
-		t.Fatalf("Unexpected type: got %T, wanted symKeyMaterial", k)
-	}
-
-	if !bytes.Equal(tk.Key, expectedKey) {
-		t.Fatalf("Invalid key: got %v, wanted %v", tk.Key, expectedKey)
-	}
-}
-
 func TestNewSymKey(t *testing.T) {
 	t.Run("symKeyMaterial creates key properly", func(t *testing.T) {
 		expectedKey, err := e4crypto.DeriveSymKey("test password random")
