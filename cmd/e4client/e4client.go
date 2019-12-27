@@ -19,6 +19,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"regexp"
@@ -29,6 +30,7 @@ import (
 	tui "github.com/marcusolsson/tui-go"
 
 	e4 "github.com/teserakt-io/e4go"
+	e4crypto "github.com/teserakt-io/e4go/crypto"
 
 	"github.com/teserakt-io/e4go/cmd/e4client/commands"
 	"github.com/teserakt-io/e4go/cmd/e4client/logger"
@@ -37,10 +39,14 @@ import (
 func main() {
 	var name string
 	var password string
+	var pubKeyMode bool
+	var c2PubKeyPath string
 	var broker string
 
 	flag.StringVar(&name, "name", "", "The client identifier")
 	flag.StringVar(&password, "password", "", "The client password, over 16 characters")
+	flag.BoolVar(&pubKeyMode, "pubkey", false, "Enable public key mode")
+	flag.StringVar(&c2PubKeyPath, "c2PubKey", "", "path to the c2 curve25519 public key. Required with -pubkey")
 	flag.StringVar(&broker, "broker", "", "ip:port of the MQTT broker")
 	flag.Parse()
 
@@ -65,13 +71,35 @@ func main() {
 		os.Exit(1)
 	}
 
+	if pubKeyMode && len(c2PubKeyPath) == 0 {
+		flag.Usage()
+		fmt.Println()
+		fmt.Println("-c2pubkey is required")
+		os.Exit(1)
+	}
+
+	var c2PubKey []byte
+	if len(c2PubKeyPath) > 0 {
+		keyFile, err := os.Open(c2PubKeyPath)
+		if err != nil {
+			fmt.Printf("failed to open file %s: %v\n", c2PubKeyPath, err)
+			os.Exit(1)
+		}
+		defer keyFile.Close()
+		c2PubKey, err = ioutil.ReadAll(keyFile)
+		if err != nil {
+			fmt.Printf("failed to read key from %s: %v\n", c2PubKeyPath, err)
+			os.Exit(1)
+		}
+	}
+
 	history := tui.NewVBox()
 	historyScroll := tui.NewScrollArea(history)
 	historyScroll.SetAutoscrollToBottom(true)
 
 	logger := logger.NewTUILogger(history)
 
-	e4Client, err := loadOrCreateClient(name, password)
+	e4Client, err := loadOrCreateClient(name, password, pubKeyMode, c2PubKey)
 	if err != nil {
 		fmt.Printf("Failed to load or create E4 client: %v\n", err)
 		os.Exit(1)
@@ -117,7 +145,7 @@ func main() {
 	}
 
 	commands := []*commands.Command{
-		commands.PrintKeyCommand(logger),
+		commands.PrintKeyCommand(logger, pubKeyMode),
 		commands.SendProtectedMessageCommand(e4Client, mqttClient, logger),
 		commands.SendUnprotectedMessageCommand(e4Client, mqttClient, logger),
 		commands.SubscribeTopicCommand(e4Client, mqttClient, logger),
@@ -230,7 +258,7 @@ func main() {
 	}
 }
 
-func loadOrCreateClient(name, password string) (e4.Client, error) {
+func loadOrCreateClient(name, password string, pubKeyMode bool, c2PubKey e4crypto.Curve25519PublicKey) (e4.Client, error) {
 	var e4Client e4.Client
 
 	savedClientPath := fmt.Sprintf("./%s.json", name)
@@ -249,7 +277,14 @@ func loadOrCreateClient(name, password string) (e4.Client, error) {
 		return nil, errors.New("password is required")
 	}
 
-	e4Client, err := e4.NewClient(&e4.SymNameAndPassword{Name: name, Password: password}, savedClientPath)
+	var config e4.ClientConfig
+	if pubKeyMode {
+		config = &e4.PubNameAndPassword{Name: name, Password: password, C2PubKey: c2PubKey}
+	} else {
+		config = &e4.SymNameAndPassword{Name: name, Password: password}
+	}
+
+	e4Client, err := e4.NewClient(config, savedClientPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create E4 client: %v", err)
 	}

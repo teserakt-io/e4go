@@ -1,6 +1,6 @@
 # E4 Go Client
 
-A command-line application to interact with Teserakt's key management service [E4](https://teserakt.io/e4.html)
+A command-line application to interact with Teserakt's key management service [E4](https://teserakt.io/#e4)
 
 ## Usage
 
@@ -8,10 +8,14 @@ A command-line application to interact with Teserakt's key management service [E
 Usage of ./bin/e4client:
   -broker string
         ip:port of the MQTT broker
+  -c2PubKey string
+        path to the c2 public key. Required with -pubkey
   -name string
         The client identifier
   -password string
         The client password, over 16 characters
+  -pubkey
+        Enable public key mode
 ```
 
 ## Getting started using the e4-demo environment
