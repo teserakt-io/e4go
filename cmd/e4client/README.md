@@ -1,6 +1,6 @@
 # E4 Go Client
 
-A command-line application to interact with Teserakt's key management service [E4](https://teserakt.io/#e4)
+A command-line application to interact with Teserakt's key management service [E4](https://teserakt.io/e4.html)
 
 ## Usage
 
