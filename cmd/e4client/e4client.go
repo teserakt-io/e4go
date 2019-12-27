@@ -249,7 +249,7 @@ func loadOrCreateClient(name, password string) (e4.Client, error) {
 		return nil, errors.New("password is required")
 	}
 
-	e4Client, err := e4.NewSymKeyClientPretty(name, password, savedClientPath)
+	e4Client, err := e4.NewClient(&e4.SymNameAndPassword{Name: name, Password: password}, savedClientPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create E4 client: %v", err)
 	}
