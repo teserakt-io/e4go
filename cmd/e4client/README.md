@@ -18,7 +18,7 @@ Usage of ./bin/e4client:
 
 Choose your own deviceID and a password (min 16 characters), and launch the client:
 ```
-./bin/e4client -name deviceID -password superSecretDevicePassword -broker mqtt.teserakt.io:1883
+./bin/e4client -name deviceID -password superSecretDevicePassword -broker mqtt.demo.teserakt.io:1883
 ```
 
 This will start an E4 interactive shell, with commands to subscribe to topics and send protected / unprotected messages.

@@ -20,7 +20,7 @@
 
 This repository provides the `e4` Go package, the client library for [Teserakt's E4](https://teserakt.io/e4.html), and end-to-end encryption and key management framework for MQTT and other publish-subscribe protocols.
 
-The `e4` package defines a `Client` object that has a minimal interface, making its integration straightforward via the following methods: 
+The `e4` package defines a `Client` object that has a minimal interface, making its integration straightforward via the following methods:
 * `ProtectMessage(payload []byte, topic string)` takes a cleartext payload to protect and the associated topic, and returns a `[]byte` that is the payload encrypted and authenticated with the topic's key.
 
 * `Unprotect(protected []byte, topic string)` takes a protected payload and attempts to decrypt and verify it. If `topic` is the special topic reserved for control messages, then the control message is processed and the client's state updated accordingly.
@@ -172,6 +172,14 @@ Therefore,
 * When receiving a message, your application can either discard the message (for example if all messages are assumed to be encrypted in your network), or forward the message to the application (if you call `Unprotect()` for all messages yet tolerate the receiving of unencrypted messages over certain topics, which thus don't have a topic key).
 
 In order to have the key associated to a certain topic, you must instruct the C2 to deliver said topic key to the client.
+
+## Client application
+
+To try E4 without writing your own application, we created a simple [interactive client application](./cmd/e4client/) that you can use in combination with our [public demo server interface](https://console.demo.teserakt.io). You can directly [download](https://github.com/teserakt-io/e4go/releases) the client's binary for your platform or build it yourself, and then follow the instructions in the client's [README](./cmd/e4client/README.md).
+
+## Keygen
+
+To ease key creation, we also provide a [key generator](./cmd/e4keygen) that you can use to generate symmetric, Ed25519 or Curve25519 keys needed for E4 operations. You can directly [download](https://github.com/teserakt-io/e4go/releases) the keygen binary for your platform or build it yourself, and then follow the instructions in the keygen [README](./cmd/e4keygen/README.md).
 
 ## Contributing
 
