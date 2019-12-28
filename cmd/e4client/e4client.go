@@ -50,46 +50,34 @@ func main() {
 	flag.StringVar(&broker, "broker", "", "ip:port of the MQTT broker")
 	flag.Parse()
 
+	log.SetFlags(0)
+
 	if len(name) == 0 {
 		flag.Usage()
-		fmt.Println()
-		fmt.Println("-name is required")
-		os.Exit(1)
+		log.Fatal("\n-name is required")
 	}
 
 	if len(password) < 16 {
 		flag.Usage()
-		fmt.Println()
-		fmt.Println("-password is required and must contains at least 16 characters")
-		os.Exit(1)
+		log.Fatal("\n-password is required and must contains at least 16 characters")
 	}
 
 	if len(broker) == 0 {
 		flag.Usage()
-		fmt.Println()
-		fmt.Println("-broker is required")
-		os.Exit(1)
+		log.Fatal("\n-broker is required")
 	}
 
 	if pubKeyMode && len(c2PubKeyPath) == 0 {
 		flag.Usage()
-		fmt.Println()
-		fmt.Println("-c2pubkey is required")
-		os.Exit(1)
+		log.Fatal("\n-c2pubkey is required")
 	}
 
 	var c2PubKey []byte
-	if len(c2PubKeyPath) > 0 {
-		keyFile, err := os.Open(c2PubKeyPath)
-		if err != nil {
-			fmt.Printf("failed to open file %s: %v\n", c2PubKeyPath, err)
-			os.Exit(1)
-		}
-		defer keyFile.Close()
-		c2PubKey, err = ioutil.ReadAll(keyFile)
-		if err != nil {
-			fmt.Printf("failed to read key from %s: %v\n", c2PubKeyPath, err)
-			os.Exit(1)
+	var err error
+
+	if len(c2PubKeyPath) != 0 {
+		if c2PubKey, err = ioutil.ReadFile(c2PubKeyPath); err != nil {
+			log.Fatalf("failed to read key from %s: %v\n", c2PubKeyPath, err)
 		}
 	}
 
@@ -101,21 +89,18 @@ func main() {
 
 	e4Client, err := loadOrCreateClient(name, password, pubKeyMode, c2PubKey)
 	if err != nil {
-		fmt.Printf("Failed to load or create E4 client: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Failed to load or create E4 client: %v\n", err)
 	}
 	logger.Printf("E4 client '%s' initialized\n", name)
 
 	mqttClient, err := initMQTT(broker, name)
 	if err != nil {
-		fmt.Printf("Failed to init mqtt client: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Failed to init mqtt client: %v\n", err)
 	}
 	logger.Printf("Connected to MQTT broker %s\n", broker)
 
 	if err := subscribeToE4ControlTopic(logger, e4Client, mqttClient); err != nil {
-		fmt.Printf("Failed to subscribe to e4 client control topic: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Failed to subscribe to e4 client control topic: %v\n", err)
 	}
 	logger.Printf("Subscribed to MQTT device control topic %s\n", e4Client.GetReceivingTopic())
 
@@ -140,8 +125,7 @@ func main() {
 
 	ui, err := tui.New(chat)
 	if err != nil {
-		fmt.Printf("Failed to init tui: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Failed to init tui: %v\n", err)
 	}
 
 	commands := []*commands.Command{
@@ -265,8 +249,7 @@ func loadOrCreateClient(name, password string, pubKeyMode bool, c2PubKey e4crypt
 	if _, err := os.Stat(savedClientPath); err == nil {
 		e4Client, err = e4.LoadClient(savedClientPath)
 		if err != nil {
-			fmt.Printf("Failed to load client from file %s: %v\n", savedClientPath, err)
-			os.Exit(1)
+			return nil, err
 		}
 		fmt.Printf("Loaded client from %s\n", savedClientPath)
 
