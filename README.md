@@ -179,7 +179,7 @@ To try E4 without writing your own application, we created a simple [interactive
 
 ## Keygen
 
-To ease key creation, we also provide a [key generator](./cmd/e4keygen) that you can use to generate symmetric, ed25519 or curve25519 keys needed for E4 operations. You can directly [download](https://github.com/teserakt-io/e4go/releases) the keygen binary for your platform or build it yourself, and then follow the instructions in the keygen [README](./cmd/e4keygen/README.md).
+To ease key creation, we also provide a [key generator](./cmd/e4keygen) that you can use to generate symmetric, Ed25519 or Curve25519 keys needed for E4 operations. You can directly [download](https://github.com/teserakt-io/e4go/releases) the keygen binary for your platform or build it yourself, and then follow the instructions in the keygen [README](./cmd/e4keygen/README.md).
 
 ## Contributing
 
