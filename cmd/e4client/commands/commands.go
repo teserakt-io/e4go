@@ -182,6 +182,7 @@ func PrintKeyCommand(l logger.Logger, isPubKeyMode bool) *Command {
 				key, err := e4crypto.Ed25519PrivateKeyFromPassword(args[0])
 				if err != nil {
 					l.Printf("failed to generate key from password: %v", err)
+					return
 				}
 
 				l.Printf("public key: %x", key.Public())
