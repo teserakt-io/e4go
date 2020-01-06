@@ -1,9 +1,10 @@
 # E4 Go Client
 
-A command-line application to interact with Teserakt's key management service [E4](https://teserakt.io/e4.html)
+We provide a simple command-line application to interact with Teserakt's key management server [E4](https://teserakt.io/e4.html).
 
-## Usage
+You can [download](https://github.com/teserakt-io/e4go/releases) the binary for your platform or build it yourself.
 
+The program takes the following arguments (note that it does not need to know the server host address, this is the magic of E4):
 ```
 Usage of ./bin/e4client:
   -broker string
@@ -18,13 +19,18 @@ Usage of ./bin/e4client:
         Enable public key mode
 ```
 
-## Getting started using the e4-demo environment
+## Getting started using the demo environment
 
-Choose your own deviceID and a password (min 16 characters), and launch the client:
-```
-./bin/e4client -name deviceID -password superSecretDevicePassword -broker mqtt.teserakt.io:1883
-```
+We describe how to use the client application in combination with our public demo server instance.
+Keep in mind that the server is only for demonstration purposes, and is operated by Teserakt without any guarantee.
+Also note that, since the demo platform is public and registration-free, anyone will see your client in the list of devices, and therefore anyone could remove it from the platform, for example.
 
+### 1. Create a client instance
+
+Choose your own deviceID and a password (at least 16 characters), and launch the client:
+```
+./bin/e4client -name deviceID -password superSecretDevicePassword -broker mqtt.demo.teserakt.io:1883
+```
 This will start an E4 interactive shell, with commands to subscribe to topics and send protected / unprotected messages.
 
 ```
@@ -42,29 +48,43 @@ Available commands:
   exit                            exit the application
 ```
 
-First, print the key and register the device on the web UI. Repeat the password provided when launching the client to obtain the actual key:
+### 2. Register your client on the demo server
+
+First, use the `print-key` command to obtain your device key from its password (in our example, the password is "superSecretDevicePassword"):
 
 ```
 > print-key superSecretDevicePassword
 device key: a83d896e7513e929cf63206e9c07629a441d64fb187cae0501f28786ecb8a55d
 ```
 
-Then head over `https://console.demo.teserakt.io/clients` and add your client here, providing the same name you used to start it and the above key.
+Then head over to `https://console.demo.teserakt.io/clients`, click on "ADD CLIENT", and add your deviceID and the key obtained in the previous step.
 
-Now, subscribe to a topic:
+### 3. Subscribe to a topic and generate a key for it
+
+In this step, the client will create a new topic, tell the server that messages sent with this topic are to be protected, and tell the server to grant encryption/decryption rights to our device.
+
+For example, in a real application the topic might be the type of data sent such as telemetry data, the identifier of a subgroup of devices, a secrecy classification level, or the identifier of an  ephemeral conversation between two or more devices.
+
+Using the topic "demoTopic" as an example, first use the client interactive shell to subscribe to the topic, as follows:
+
 ```
 > subscribe demoTopic
 success subscribing to topic 'demoTopic'
 ```
 
-And head back to the web UI to create the topic if it doesn't exists yet, and bind your client on it.
+Then go to `https://console.demo.teserakt.io/topics`, click on "ADD TOPIC", and add your "demoTopic".
+This time, no need to generate the key, as the server takes care of it.
 
-And you're all set, you can now send and read messages on any topic your device is bound to.
+To authorize your client to encrypt and decrypt demoTopic messages, click the "Edit" action pictogram next to the topic created in the list, and add your device. You can also add the topic from the "Edit" menu of the client.
+
+### 4. Send and receive messages
+
+And you're all set, you can now send and read messages on any topic your device is bound to, using the `e4msg` command:
 
 ```
 > e4msg demoTopic test
 received protected message on topic demoTopic: test
 protected message has been published on topic demoTopic
-> e4msg anotherTopic test
-failed to protect message: topic key not found
 ```
+
+Using similar operations, you can now create multiple client instances and multiple topics, and use the web UI to manage access rights to protected topics.

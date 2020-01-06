@@ -1,37 +1,41 @@
-# e4go
-
 ![alt text](logo.png)
 
-  * [Introduction](#introduction)
-  * [Creating a client](#creating-a-client)
-    + [Symmetric-key client](#symmetric-key-client)
-    + [Public-key client](#public-key-client)
-    + [From a saved state](#from-a-saved-state)
-  * [Integration instructions](#integration-instructions)
-    + [Receiving a message](#receiving-a-message)
-    + [Transmitting a message](#transmitting-a-message)
-    + [Handling errors](#handling-errors)
-  * [Contributing](#contributing)
-  * [Security](#security)
-  * [Support](#support)
-  * [Intellectual property](#intellectual-property)
+- [Introduction](#introduction)
+- [Using our client application](#using-our-client-application)
+- [Creating a client](#creating-a-client)
+  * [Symmetric-key client](#symmetric-key-client)
+  * [Public-key client](#public-key-client)
+  * [From a saved state](#from-a-saved-state)
+- [Integration instructions](#integration-instructions)
+  * [Receiving a message](#receiving-a-message)
+  * [Transmitting a message](#transmitting-a-message)
+  * [Handling errors](#handling-errors)
+  * [Key generation](#key-generation)
+- [Contributing](#contributing)
+- [Security](#security)
+- [Support](#support)
+- [Intellectual property](#intellectual-property)
 
 ## Introduction
 
 This repository provides the `e4` Go package, the client library for [Teserakt's E4](https://teserakt.io/e4.html), and end-to-end encryption and key management framework for MQTT and other publish-subscribe protocols.
 
-The `e4` package defines a `Client` object that has a minimal interface, making its integration straightforward via the following methods: 
+The `e4` package defines a `Client` object that has a minimal interface, making its integration straightforward via the following methods:
 * `ProtectMessage(payload []byte, topic string)` takes a cleartext payload to protect and the associated topic, and returns a `[]byte` that is the payload encrypted and authenticated with the topic's key.
 
 * `Unprotect(protected []byte, topic string)` takes a protected payload and attempts to decrypt and verify it. If `topic` is the special topic reserved for control messages, then the control message is processed and the client's state updated accordingly.
 
-We talk of message *protection* instead of just *encryption* because the protection operation includes also authentication and replay defense.
+Note that we talk of message *protection* instead of just *encryption* because the protection operation includes also authentication and replay defense. The *unprotection* operation thus involves decryption and additional checks, and includes the processing of control messages sent by the server.
 
 E4's server (C2) is necessary to send control messages and manage a fleet of clients through GUIs, APIs, and automation components.
 The server can for example deploy key rotation policies, grant and revoke rights, and enable forward secrecy.
 
 Please [contact us](mailto:contact@teserakt.io) to request access to a private instance of the server, or test the limited public version.
 Without the C2 server, the E4 client library can be used to protect messages using static keys, manually managed.
+
+## Using our client application
+
+To try E4 without writing your own application, we created a simple [interactive client application](./cmd/e4client/) that you can use in combination with our [public demo server interface](https://console.demo.teserakt.io). You can directly [download](https://github.com/teserakt-io/e4go/releases) the client's binary for your platform or build it yourself, and then follow the instructions in the client's [README](./cmd/e4client/README.md).
 
 ## Creating a client
 
@@ -96,7 +100,7 @@ Note that a client's state is automatically saved to the provided `filePath` eve
 
 ## Integration instructions
 
-To integrate E4 into your application, the protect/unprotect logic just needs be added between the network layer and the application layer when transmitting/receiving a message, using an instance of the client.
+To integrate E4 into your application, the protect/unprotect logic needs be added between the network layer and the application layer when transmitting/receiving a message.
 
 This section provides further instructions related to error handling and to the special case of control messages received from the C2 server.
 
@@ -172,6 +176,14 @@ Therefore,
 * When receiving a message, your application can either discard the message (for example if all messages are assumed to be encrypted in your network), or forward the message to the application (if you call `Unprotect()` for all messages yet tolerate the receiving of unencrypted messages over certain topics, which thus don't have a topic key).
 
 In order to have the key associated to a certain topic, you must instruct the C2 to deliver said topic key to the client.
+
+
+### Key generation
+
+To ease key creation, we provide a [key generation](./cmd/e4keygen) application  that you can use to generate symmetric, Ed25519 or Curve25519 keys needed for E4 operations. 
+You can [download](https://github.com/teserakt-io/e4go/releases) the binary for your platform or build it yourself, and then follow the instructions in the keygen [README](./cmd/e4keygen/README.md).
+
+Our key generator relies on Go's `crypto/rand` package, which guarantees cryptographically secure randomness across various platforms.
 
 ## Contributing
 
