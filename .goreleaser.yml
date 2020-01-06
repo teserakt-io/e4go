@@ -37,7 +37,6 @@ archives:
       386: i386
       amd64: x86_64
     files:
-      - ./cmd/e4client/README.md
       - LICENSE
     name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
     format: tar.gz
@@ -55,7 +54,6 @@ archives:
       386: i386
       amd64: x86_64
     files:
-      - ./cmd/e4keygen/README.md
       - LICENSE
     name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
     format: tar.gz
