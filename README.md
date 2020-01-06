@@ -125,7 +125,6 @@ Having instantiated a client, you can then unprotect the message as follows:
     }
 ```
 
-
 If you receive no error, `plaintext` may still be `nil`. This happens when E4
 has processed a control message, that is, a message sent by the C2 server, for example to provision or delete a topic key.
 In this case, you do not need to act on the message, since E4 has already processed it. If you want to detect this case you can test for
@@ -145,7 +144,6 @@ You should not have to parse E4's messages yourself.
 Control messages are thus deliberately not returned to users.
 
 If `plaintext` is not `nil` and `err` is nil, your application can proceed with the  unprotected, plaintext message.
-
 
 ### Transmitting a message
 
@@ -177,28 +175,24 @@ Therefore,
 
 In order to have the key associated to a certain topic, you must instruct the C2 to deliver said topic key to the client.
 
-
 ### Key generation
 
-To ease key creation, we provide a [key generation](./cmd/e4keygen) application  that you can use to generate symmetric, Ed25519 or Curve25519 keys needed for E4 operations. 
+To ease key creation, we provide a [key generation](./cmd/e4keygen) application  that you can use to generate symmetric, Ed25519 or Curve25519 keys needed for E4 operations.
 You can [download](https://github.com/teserakt-io/e4go/releases) the binary for your platform or build it yourself, and then follow the instructions in the keygen [README](./cmd/e4keygen/README.md).
 
 Our key generator relies on Go's `crypto/rand` package, which guarantees cryptographically secure randomness across various platforms.
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md).
-
+Before contributing, please read our [CONTRIBUTING](./CONTRIBUTING.md) guide.
 
 ## Security
 
-See [SECURITY.md](./SECURITY.md).
-
+To report a security vulnerability (or potential vulnerability where private discussion is preferred) see [SECURITY](./SECURITY.md).
 
 ## Support
 
 To request support, please contact [team@teserakt.io](mailto:team@teserakt.io).
-
 
 ## Intellectual property
 
