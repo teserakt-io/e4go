@@ -18,7 +18,7 @@
 
 ## Introduction
 
-This repository provides the `e4` Go package, the client library for [Teserakt's E4](https://teserakt.io/e4.html), and end-to-end encryption and key management framework for MQTT and other publish-subscribe protocols.
+This repository provides the `e4` Go package, the client library for [Teserakt's E4](https://teserakt.io/e4), and end-to-end encryption and key management framework for MQTT and other publish-subscribe protocols.
 
 The `e4` package defines a `Client` object that has a minimal interface, making its integration straightforward via the following methods:
 * `ProtectMessage(payload []byte, topic string)` takes a cleartext payload to protect and the associated topic, and returns a `[]byte` that is the payload encrypted and authenticated with the topic's key.
