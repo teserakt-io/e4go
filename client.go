@@ -238,7 +238,7 @@ func (np *PubNameAndPassword) PubKey() (e4crypto.Ed25519PublicKey, error) {
 		return nil, fmt.Errorf("failed to create ed25519 key from password: %v", err)
 	}
 
-	edKey, ok := key.Public().(ed25519.PublicKey)
+	edKey, ok := ed25519.PrivateKey(key).Public().(ed25519.PublicKey)
 	if !ok {
 		return nil, errors.New("failed to cast key to ed25519.PublicKey")
 	}

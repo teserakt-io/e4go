@@ -97,7 +97,7 @@ func Decrypt(key, ad, ct []byte) ([]byte, error) {
 
 // Sign will sign the given payload using the given privateKey,
 // producing an output composed of: timestamp + signedID + payload + signature
-func Sign(signerID []byte, privateKey ed25519.PrivateKey, timestamp []byte, payload []byte) ([]byte, error) {
+func Sign(signerID []byte, privateKey Ed25519PrivateKey, timestamp []byte, payload []byte) ([]byte, error) {
 	if len(signerID) != IDLen {
 		return nil, ErrInvalidSignerID
 	}
@@ -206,7 +206,7 @@ func RandomDelta16() uint16 {
 }
 
 // Ed25519PrivateKeyFromPassword creates a ed25519.PrivateKey from a password
-func Ed25519PrivateKeyFromPassword(password string) (ed25519.PrivateKey, error) {
+func Ed25519PrivateKeyFromPassword(password string) (Ed25519PrivateKey, error) {
 	if err := ValidatePassword(password); err != nil {
 		return nil, fmt.Errorf("invalid password: %v", err)
 	}
@@ -215,8 +215,8 @@ func Ed25519PrivateKeyFromPassword(password string) (ed25519.PrivateKey, error) 
 	return ed25519.NewKeyFromSeed(seed), nil
 }
 
-// PublicEd25519KeyToCurve25519 convert an ed25519.PublicKey to a curve25519 public key.
-func PublicEd25519KeyToCurve25519(edPubKey ed25519.PublicKey) Curve25519PublicKey {
+// PublicEd25519KeyToCurve25519 convert an Ed25519PublicKey to a Curve25519PublicKey.
+func PublicEd25519KeyToCurve25519(edPubKey Ed25519PublicKey) Curve25519PublicKey {
 	var edPk [ed25519.PublicKeySize]byte
 	var curveKey [Curve25519PubKeyLen]byte
 	copy(edPk[:], edPubKey)
@@ -227,8 +227,8 @@ func PublicEd25519KeyToCurve25519(edPubKey ed25519.PublicKey) Curve25519PublicKe
 	return curveKey[:]
 }
 
-// PrivateEd25519KeyToCurve25519 convert an ed25519.PrivateKey to a curve25519 private key.
-func PrivateEd25519KeyToCurve25519(edPrivKey ed25519.PrivateKey) Curve25519PrivateKey {
+// PrivateEd25519KeyToCurve25519 convert an Ed25519PrivateKey to a Curve25519PrivateKey.
+func PrivateEd25519KeyToCurve25519(edPrivKey Ed25519PrivateKey) Curve25519PrivateKey {
 	var edSk [ed25519.PrivateKeySize]byte
 	var curveKey [Curve25519PrivKeyLen]byte
 	copy(edSk[:], edPrivKey)
