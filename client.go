@@ -147,7 +147,7 @@ type SymNameAndPassword struct {
 // from an ID, an ed25519 private key, and a curve25519 public key.
 type PubIDAndKey struct {
 	ID       []byte
-	Key      ed25519.PrivateKey
+	Key      e4crypto.Ed25519PrivateKey
 	C2PubKey e4crypto.Curve25519PublicKey
 }
 
@@ -232,7 +232,7 @@ func (np *PubNameAndPassword) genNewClient(persistStatePath string) (Client, err
 }
 
 // PubKey returns the ed25519.PublicKey derived from the password
-func (np *PubNameAndPassword) PubKey() (ed25519.PublicKey, error) {
+func (np *PubNameAndPassword) PubKey() (e4crypto.Ed25519PublicKey, error) {
 	key, err := e4crypto.Ed25519PrivateKeyFromPassword(np.Password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ed25519 key from password: %v", err)

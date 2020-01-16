@@ -310,7 +310,8 @@ func TestProtectUnprotectCommandsPubKey(t *testing.T) {
 		t.Fatalf("Failed to generate ed25519 key: %v", err)
 	}
 
-	c2PublicCurveKey, c2PrivateCurveKey, err := e4crypto.RandomCurve25519Keys()
+	c2PrivateCurveKey := e4crypto.RandomKey()
+	c2PublicCurveKey, err := curve25519.X25519(c2PrivateCurveKey, curve25519.Basepoint)
 	if err != nil {
 		t.Fatalf("Failed to generate curve25519 keys: %v", err)
 	}
@@ -635,7 +636,7 @@ func TestCommandsSymClient(t *testing.T) {
 
 	assertClientTopicKey(t, true, c, topicHash, topicKey)
 
-	removeTopicCmd := []byte{RemoveTopic.ToByte()}
+	removeTopicCmd := []byte{RemoveTopic}
 	removeTopicCmd = append(removeTopicCmd, topicHash...)
 
 	protectedRemoveTopicCmd, err := e4crypto.ProtectSymKey(removeTopicCmd, clientKey)
@@ -712,7 +713,7 @@ func TestCommandsSymClient(t *testing.T) {
 	}
 
 	// Reset topics
-	resetTopicCmd := []byte{ResetTopics.ToByte()}
+	resetTopicCmd := []byte{ResetTopics}
 	protectedResetCmd, err := e4crypto.ProtectSymKey(resetTopicCmd, clientKey)
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)
@@ -737,7 +738,7 @@ func TestCommandsSymClient(t *testing.T) {
 	assertClientTopicKey(t, false, c, topicHash, topicKey)
 
 	// SetIDKey
-	setIDKeyCmd := []byte{SetIDKey.ToByte()}
+	setIDKeyCmd := []byte{SetIDKey}
 
 	newClientKey := e4crypto.RandomKey()
 	setIDKeyCmd = append(setIDKeyCmd, newClientKey...)
@@ -768,7 +769,7 @@ func TestCommandsSymClient(t *testing.T) {
 		t.Fatal("Expected an error with a command protected with old key")
 	}
 
-	setPubKeyCmd := []byte{SetPubKey.ToByte()}
+	setPubKeyCmd := []byte{SetPubKey}
 	pubKey, _, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		t.Fatalf("Failed to generate pubkey: %v", err)
@@ -796,7 +797,7 @@ func TestCommandsSymClient(t *testing.T) {
 	}
 
 	// RemovePubKey
-	removePubKeyCmd := []byte{RemovePubKey.ToByte()}
+	removePubKeyCmd := []byte{RemovePubKey}
 	removePubKeyCmd = append(removePubKeyCmd, pubKeyID...)
 
 	protectedRemovePubKeyCmd, err := e4crypto.ProtectSymKey(removePubKeyCmd, newClientKey)
@@ -818,7 +819,7 @@ func TestCommandsSymClient(t *testing.T) {
 	}
 
 	// ResetPubKeys
-	resetPubKeyCmd := []byte{ResetPubKeys.ToByte()}
+	resetPubKeyCmd := []byte{ResetPubKeys}
 
 	protectedResetPubKeyCmd, err := e4crypto.ProtectSymKey(resetPubKeyCmd, newClientKey)
 	if err != nil {

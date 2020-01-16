@@ -19,6 +19,7 @@ import (
 
 	e4 "github.com/teserakt-io/e4go"
 	e4crypto "github.com/teserakt-io/e4go/crypto"
+	"golang.org/x/crypto/curve25519"
 )
 
 func ExampleNewClient_symIDAndKey() {
@@ -55,7 +56,7 @@ func ExampleNewClient_pubIDAndKey() {
 		panic(err)
 	}
 
-	c2PubKey, _, err := e4crypto.RandomCurve25519Keys()
+	c2PubKey, err := curve25519.X25519(e4crypto.RandomKey(), curve25519.Basepoint)
 	if err != nil {
 		panic(err)
 	}
@@ -79,7 +80,7 @@ func ExampleNewClient_pubIDAndKey() {
 }
 
 func ExampleNewClient_pubNameAndPassword() {
-	c2PubKey, _, err := e4crypto.RandomCurve25519Keys()
+	c2PubKey, err := curve25519.X25519(e4crypto.RandomKey(), curve25519.Basepoint)
 	if err != nil {
 		panic(err)
 	}
