@@ -203,8 +203,8 @@ This will generate:
 After importing the AAR in your project, E4 client can be created and invoked in a similar way than the Go version:
 
 ```kotlin
-import e4.*
-import crypto.*
+import io.teserakt.e4.*
+import io.teserakt.crypto.*
 
 val cfg = SymNameAndPassword()
 cfg.name = "deviceXYZ"

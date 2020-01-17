@@ -13,4 +13,4 @@ INCLUDE_GO_PACKAGES=""
 
 mkdir -p "${OUTDIR}" 2>/dev/null
 
-gomobile bind -v -target android -o "${OUTDIR}/e4.aar" ${DIR}/../ ${DIR}/../crypto
+gomobile bind -v -target android -o "${OUTDIR}/e4.aar" -javapkg io.teserakt ${DIR}/../ ${DIR}/../crypto
