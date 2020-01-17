@@ -200,7 +200,8 @@ This will generate:
 - `dist/bindings/android/e4.aar`: the Android package, containing compiled Java class and native libraries for most common architectures
 - `dist/bindings/android/e4-sources.jar`: the Java source files
 
-After importing the AAR in your project, E4 client can be created and invoked in a similar way than the Go version:
+After importing the AAR in your project, E4 client can be created and invoked 
+in a similar way than the Go version, for example using Kotlin:
 
 ```kotlin
 import io.teserakt.e4.*
