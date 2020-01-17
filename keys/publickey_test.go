@@ -186,7 +186,8 @@ func TestPubKeyMaterialUnprotectCommand(t *testing.T) {
 		t.Fatalf("Failed to generate ed25519 keys: %v", err)
 	}
 
-	c2PublicCurveKey, c2PrivateCurveKey, err := e4crypto.RandomCurve25519Keys()
+	c2PrivateCurveKey := e4crypto.RandomKey()
+	c2PublicCurveKey, err := curve25519.X25519(c2PrivateCurveKey, curve25519.Basepoint)
 	if err != nil {
 		t.Fatalf("Failed to generate curve25519 keys: %v", err)
 	}

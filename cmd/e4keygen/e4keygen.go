@@ -20,6 +20,7 @@ import (
 	"log"
 	"os"
 
+	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/ed25519"
 
 	e4crypto "github.com/teserakt-io/e4go/crypto"
@@ -61,15 +62,16 @@ func main() {
 	case KeyTypeEd25519:
 		pubKey, privKey, err = ed25519.GenerateKey(nil)
 		if err != nil {
-			log.Fatalf("failed to generate ed25519 key: %v\n", err)
+			log.Fatalf("Failed to generate ed25519 key: %v\n", err)
 		}
 	case KeyTypeCurve25519:
-		pubKey, privKey, err = e4crypto.RandomCurve25519Keys()
+		privKey = e4crypto.RandomKey()
+		pubKey, err = curve25519.X25519(privKey, curve25519.Basepoint)
 		if err != nil {
-			log.Fatalf("failed to generate curve25519 key: %v\n", err)
+			log.Fatalf("Failed to generate curve25519 key: %v\n", err)
 		}
 	default:
-		log.Fatalf("unknown key type: %s\n", keyType)
+		log.Fatalf("Unknown key type: %s\n", keyType)
 	}
 
 	if err := writeKey(privKey, pubKey, out, force); err != nil {

@@ -23,16 +23,11 @@ import (
 	e4crypto "github.com/teserakt-io/e4go/crypto"
 )
 
-// Command is a command sent by C2 to a client. This is a sequence of bytes, starting from a Command, followed by the command arguments.
-// Such command message must then be protected using the client key, before being passed to the client's Unprotect() method. The command will
-// then be unprotected, and processed.
-type Command int
-
 // List of supported commands
 const (
 	// RemoveTopic command allows to remove a topic key from the client.
 	// It expects a topic hash as argument
-	RemoveTopic Command = iota
+	RemoveTopic byte = iota
 	// ResetTopics allows to clear out all the topics on a client.
 	// It doesn't have any argument
 	ResetTopics
@@ -54,7 +49,7 @@ const (
 
 	// UnknownCommand must stay the last element. It's used to
 	// know if a Command is out of range
-	UnknownCommand
+	UnknownCommand = 0xFF
 )
 
 var (
@@ -62,21 +57,12 @@ var (
 	ErrInvalidCommand = errors.New("invalid command")
 )
 
-// ToByte converts a command into its byte representation
-// A value of 255 is returned when the command is out of range
-func (c Command) ToByte() byte {
-	if c < RemoveTopic || c >= UnknownCommand {
-		return 255
-	}
-	return byte(c)
-}
-
 // processCommand will attempt to parse given command
 // and extract arguments to call expected Client method
 func processCommand(client Client, payload []byte) error {
 	cmd, blob := payload[0], payload[1:]
 
-	switch Command(cmd) {
+	switch cmd {
 	case RemoveTopic:
 		if len(blob) != e4crypto.HashLen {
 			return errors.New("invalid RemoveTopic length")
@@ -131,14 +117,14 @@ func CmdRemoveTopic(topic string) ([]byte, error) {
 		return nil, errors.New("topic must not be empty")
 	}
 
-	cmd := append([]byte{RemoveTopic.ToByte()}, e4crypto.HashTopic(topic)...)
+	cmd := append([]byte{RemoveTopic}, e4crypto.HashTopic(topic)...)
 
 	return cmd, nil
 }
 
 // CmdResetTopics creates a command to remove all topic keys stored on the client
 func CmdResetTopics() ([]byte, error) {
-	return []byte{ResetTopics.ToByte()}, nil
+	return []byte{ResetTopics}, nil
 }
 
 // CmdSetIDKey creates a command to set the client private key to the given key
@@ -147,7 +133,7 @@ func CmdSetIDKey(key []byte) ([]byte, error) {
 		return nil, fmt.Errorf("invalid key length, got %d, wanted %d", keyLen, e4crypto.KeyLen)
 	}
 
-	cmd := append([]byte{SetIDKey.ToByte()}, key...)
+	cmd := append([]byte{SetIDKey}, key...)
 
 	return cmd, nil
 }
@@ -163,7 +149,7 @@ func CmdSetTopicKey(topicKey []byte, topic string) ([]byte, error) {
 		return nil, errors.New("topic must not be empty")
 	}
 
-	cmd := append([]byte{SetTopicKey.ToByte()}, topicKey...)
+	cmd := append([]byte{SetTopicKey}, topicKey...)
 	cmd = append(cmd, e4crypto.HashTopic(topic)...)
 
 	return cmd, nil
@@ -175,19 +161,19 @@ func CmdRemovePubKey(name string) ([]byte, error) {
 		return nil, errors.New("name must not be empty")
 	}
 
-	cmd := append([]byte{RemovePubKey.ToByte()}, e4crypto.HashIDAlias(name)...)
+	cmd := append([]byte{RemovePubKey}, e4crypto.HashIDAlias(name)...)
 
 	return cmd, nil
 }
 
 // CmdResetPubKeys creates a command to removes all public keys from the client
 func CmdResetPubKeys() ([]byte, error) {
-	return []byte{ResetPubKeys.ToByte()}, nil
+	return []byte{ResetPubKeys}, nil
 }
 
 // CmdSetPubKey creates a command to set a given public key,
 // identified by given name on the client
-func CmdSetPubKey(pubKey ed25519.PublicKey, name string) ([]byte, error) {
+func CmdSetPubKey(pubKey e4crypto.Ed25519PublicKey, name string) ([]byte, error) {
 	if g, w := len(pubKey), ed25519.PublicKeySize; g != w {
 		return nil, fmt.Errorf("invalid public key length, got %d, wanted %d", g, w)
 	}
@@ -196,7 +182,7 @@ func CmdSetPubKey(pubKey ed25519.PublicKey, name string) ([]byte, error) {
 		return nil, errors.New("name must not be empty")
 	}
 
-	cmd := append([]byte{SetPubKey.ToByte()}, pubKey...)
+	cmd := append([]byte{SetPubKey}, pubKey...)
 	cmd = append(cmd, e4crypto.HashIDAlias(name)...)
 
 	return cmd, nil

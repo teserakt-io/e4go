@@ -25,7 +25,6 @@ import (
 	"github.com/agl/ed25519/extra25519"
 	miscreant "github.com/miscreant/miscreant.go"
 	"golang.org/x/crypto/argon2"
-	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -46,11 +45,17 @@ var (
 	ErrInvalidTimestamp = errors.New("invalid timestamp")
 )
 
-// Curve25519PublicKey defines a type for curve 25519 public keys
-type Curve25519PublicKey []byte
+// Ed25519PublicKey defines an alias for Ed25519 public keys
+type Ed25519PublicKey = []byte
 
-// Curve25519PrivateKey defines a type for curve 25519 private keys
-type Curve25519PrivateKey []byte
+// Ed25519PrivateKey defines an alias for Ed25519 private keys
+type Ed25519PrivateKey = []byte
+
+// Curve25519PublicKey defines an alias for curve 25519 public keys
+type Curve25519PublicKey = []byte
+
+// Curve25519PrivateKey defines an alias for curve 25519 private keys
+type Curve25519PrivateKey = []byte
 
 // Encrypt creates an authenticated ciphertext
 func Encrypt(key, ad, pt []byte) ([]byte, error) {
@@ -92,7 +97,7 @@ func Decrypt(key, ad, ct []byte) ([]byte, error) {
 
 // Sign will sign the given payload using the given privateKey,
 // producing an output composed of: timestamp + signedID + payload + signature
-func Sign(signerID []byte, privateKey ed25519.PrivateKey, timestamp []byte, payload []byte) ([]byte, error) {
+func Sign(signerID []byte, privateKey Ed25519PrivateKey, timestamp []byte, payload []byte) ([]byte, error) {
 	if len(signerID) != IDLen {
 		return nil, ErrInvalidSignerID
 	}
@@ -178,17 +183,6 @@ func RandomKey() []byte {
 	return key
 }
 
-// RandomCurve25519Keys generates Curve25519 public and private keys
-func RandomCurve25519Keys() (Curve25519PublicKey, Curve25519PrivateKey, error) {
-	privateKey := RandomKey()
-	publicKey, err := curve25519.X25519(privateKey, curve25519.Basepoint)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return publicKey, privateKey, nil
-}
-
 // RandomID generates a random IDLen-byte ID
 func RandomID() []byte {
 	id := make([]byte, IDLen)
@@ -212,7 +206,7 @@ func RandomDelta16() uint16 {
 }
 
 // Ed25519PrivateKeyFromPassword creates a ed25519.PrivateKey from a password
-func Ed25519PrivateKeyFromPassword(password string) (ed25519.PrivateKey, error) {
+func Ed25519PrivateKeyFromPassword(password string) (Ed25519PrivateKey, error) {
 	if err := ValidatePassword(password); err != nil {
 		return nil, fmt.Errorf("invalid password: %v", err)
 	}
@@ -221,8 +215,8 @@ func Ed25519PrivateKeyFromPassword(password string) (ed25519.PrivateKey, error) 
 	return ed25519.NewKeyFromSeed(seed), nil
 }
 
-// PublicEd25519KeyToCurve25519 convert an ed25519.PublicKey to a curve25519 public key.
-func PublicEd25519KeyToCurve25519(edPubKey ed25519.PublicKey) Curve25519PublicKey {
+// PublicEd25519KeyToCurve25519 convert an Ed25519PublicKey to a Curve25519PublicKey.
+func PublicEd25519KeyToCurve25519(edPubKey Ed25519PublicKey) Curve25519PublicKey {
 	var edPk [ed25519.PublicKeySize]byte
 	var curveKey [Curve25519PubKeyLen]byte
 	copy(edPk[:], edPubKey)
@@ -233,8 +227,8 @@ func PublicEd25519KeyToCurve25519(edPubKey ed25519.PublicKey) Curve25519PublicKe
 	return curveKey[:]
 }
 
-// PrivateEd25519KeyToCurve25519 convert an ed25519.PrivateKey to a curve25519 private key.
-func PrivateEd25519KeyToCurve25519(edPrivKey ed25519.PrivateKey) Curve25519PrivateKey {
+// PrivateEd25519KeyToCurve25519 convert an Ed25519PrivateKey to a Curve25519PrivateKey.
+func PrivateEd25519KeyToCurve25519(edPrivKey Ed25519PrivateKey) Curve25519PrivateKey {
 	var edSk [ed25519.PrivateKeySize]byte
 	var curveKey [Curve25519PrivKeyLen]byte
 	copy(edSk[:], edPrivKey)
