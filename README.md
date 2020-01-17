@@ -11,6 +11,8 @@
   * [Transmitting a message](#transmitting-a-message)
   * [Handling errors](#handling-errors)
   * [Key generation](#key-generation)
+  * [Bindings](#bindings)
+    * [Android](#android)
 - [Contributing](#contributing)
 - [Security](#security)
 - [Support](#support)
@@ -181,6 +183,38 @@ To ease key creation, we provide a [key generation](./cmd/e4keygen) application 
 You can [download](https://github.com/teserakt-io/e4go/releases) the binary for your platform or build it yourself, and then follow the instructions in the keygen [README](./cmd/e4keygen/README.md).
 
 Our key generator relies on Go's `crypto/rand` package, which guarantees cryptographically secure randomness across various platforms.
+
+### Bindings
+
+#### Android
+
+Latest bindings for android can be downloaded from the release page.
+On an environment having an Android SDK and NDK available, an Android AAR package can be generated invoking the following script:
+
+```bash
+./scripts/android_bindings.sh
+```
+
+This will generate:
+
+- `dist/bindings/android/e4.aar`: the android package, containing compiled java class and native libraries for most common architectures
+- `dist/bindings/android/e4-sources.jar`: the java source files
+
+After importing the aar in your project, E4 client can be created and invoked in a similar way than the go version:
+
+```kotlin
+val cfg = SymNameAndPassword()
+cfg.name = "deviceXYZ"
+cfg.password = "secretForDeviceXYZ"
+
+val client = E4.newClient(cfg,  cacheDir.path + "deviceXYZ.json")
+
+// From here, messages can be protected / unprotected :
+val topic = "/deviceXYZ/data";
+val protectedMessage = client.protectMessage("Hello".toByteArray(Charsets.UTF_8), topic)
+val unprotectedMessage = client.unprotect(protectedMessage, topic)
+```
+
 
 ## Contributing
 
