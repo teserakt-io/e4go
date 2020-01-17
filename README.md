@@ -188,7 +188,7 @@ Our key generator relies on Go's `crypto/rand` package, which guarantees cryptog
 
 #### Android
 
-Latest bindings for android can be downloaded from the release page.
+Latest bindings for Android can be downloaded from the [release page](https://github.com/teserakt-io/e4go/releases).
 On an environment having an Android SDK and NDK available, an Android AAR package can be generated invoking the following script:
 
 ```bash
@@ -197,12 +197,15 @@ On an environment having an Android SDK and NDK available, an Android AAR packag
 
 This will generate:
 
-- `dist/bindings/android/e4.aar`: the android package, containing compiled java class and native libraries for most common architectures
-- `dist/bindings/android/e4-sources.jar`: the java source files
+- `dist/bindings/android/e4.aar`: the Android package, containing compiled Java class and native libraries for most common architectures
+- `dist/bindings/android/e4-sources.jar`: the Java source files
 
-After importing the aar in your project, E4 client can be created and invoked in a similar way than the go version:
+After importing the AAR in your project, E4 client can be created and invoked in a similar way than the Go version:
 
 ```kotlin
+import e4.*
+import crypto.*
+
 val cfg = SymNameAndPassword()
 cfg.name = "deviceXYZ"
 cfg.password = "secretForDeviceXYZ"

@@ -1,9 +1,9 @@
 #!/bin/bash
-# Build android bindings
-# Require to have created env variables:
+# Build Android bindings
+# These two environment variable are required:
 #     export ANDROID_HOME=~/Android/Sdk/
 #     export ANDROID_NDK_HOME=~/Android/Sdk/ndk/21.0.6113669/
-# (this is default path where Android Studio is installing the SDK and NDK)
+# (These are the default paths where Android Studio is installing the SDK and NDK, the version might need to be adjusted depending on your setup)
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
