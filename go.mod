@@ -8,5 +8,5 @@ require (
 	github.com/marcusolsson/tui-go v0.4.0
 	github.com/miscreant/miscreant.go v0.0.0-20190903041724-6bebe170cbaf
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
-	golang.org/x/mobile v0.0.0-20200113190325-b9f03b3fa33c // indirect
+	golang.org/x/net v0.0.0-20190620200207-3b0461eec859 // indirect
 )
