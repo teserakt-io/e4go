@@ -27,7 +27,7 @@ import (
 const (
 	// RemoveTopic command allows to remove a topic key from the client.
 	// It expects a topic hash as argument
-	RemoveTopic byte = iota
+	RemoveTopic = iota
 	// ResetTopics allows to clear out all the topics on a client.
 	// It doesn't have any argument
 	ResetTopics

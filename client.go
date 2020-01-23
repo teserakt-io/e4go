@@ -123,11 +123,6 @@ type client struct {
 
 var _ Client = (*client)(nil)
 
-// ClientConfig defines an interface for client configuration
-type ClientConfig interface {
-	genNewClient(persistStatePath string) (Client, error)
-}
-
 // SymIDAndKey defines a configuration to create an E4 client in symmetric key mode
 // from an ID and a symmetric key
 type SymIDAndKey struct {
@@ -159,11 +154,6 @@ type PubNameAndPassword struct {
 	Password string
 	C2PubKey e4crypto.Curve25519PublicKey
 }
-
-var _ ClientConfig = (*SymIDAndKey)(nil)
-var _ ClientConfig = (*SymNameAndPassword)(nil)
-var _ ClientConfig = (*PubIDAndKey)(nil)
-var _ ClientConfig = (*PubNameAndPassword)(nil)
 
 func (ik *SymIDAndKey) genNewClient(persistStatePath string) (Client, error) {
 	var newID []byte
@@ -251,7 +241,7 @@ func (np *PubNameAndPassword) PubKey() (e4crypto.Ed25519PublicKey, error) {
 //
 // config is a ClientConfig, either SymIDAndKey, SymNameAndPassword, PubIDAndKey or PubNameAndPassword
 // persistStatePath is the file system path to the file to read and persist the client's state.
-func NewClient(config ClientConfig, persistStatePath string) (Client, error) {
+func NewClient(config *SymNameAndPassword, persistStatePath string) (Client, error) {
 	return config.genNewClient(persistStatePath)
 }
 
