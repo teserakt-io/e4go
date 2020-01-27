@@ -1,0 +1,116 @@
+// E4 symmetric mode basic usage formal model for Verifpal
+//
+// Download Verifpal by following instructions at https://verifpal.com/
+// Run verification as `verifpal verify e4sym.vp`
+//
+// Copyright (c) Teserakt AG, 2020
+
+attacker[active]
+
+principal C2[]
+principal client1[]
+principal client2[]
+principal client3[]
+
+// dummy principal to better model the attacker
+principal eve[]
+
+// client keys pre-provisioned to devices:
+
+// honest
+principal client1[
+    knows private clkey1
+]
+
+// honest
+principal client2[
+    knows private clkey2
+]
+
+// malicious
+principal client3[
+    knows private clkey3
+]
+
+
+principal C2 [
+    knows private clkey1
+    knows private clkey2
+    knows private clkey3
+]
+
+// generate topic key and sends it to client 1 and 2
+
+principal C2 [
+    generates topickey1
+    e1topickey1 = AEAD_ENC(clkey1, topickey1, nil)
+    e2topickey1 = AEAD_ENC(clkey2, topickey1, nil)
+]
+
+// SetTopicKey commands
+C2 -> client1: e1topickey1
+C2 -> client2: e2topickey1
+
+principal client1 [
+    cl1topickey1 = AEAD_DEC(clkey1, e1topickey1, nil)?
+]
+
+principal client2 [
+    cl2topickey1 = AEAD_DEC(clkey2, e2topickey1, nil)?
+]
+
+principal client1 [
+    generates msg1
+    emsg1 = AEAD_ENC(cl1topickey1, msg1, nil)
+]
+
+client1 -> client2: emsg1
+
+principal client2 [
+    dmsg1 = AEAD_DEC(cl2topickey1, emsg1, nil)?
+]
+
+// new topic key, this time authorizing client3
+principal C2 [
+    generates topickey1a
+    e1topickey1a = AEAD_ENC(clkey1, topickey1a, nil)
+    e2topickey1a = AEAD_ENC(clkey2, topickey1a, nil)
+    e3topickey1a = AEAD_ENC(clkey3, topickey1a, nil)
+]
+
+C2 -> client1: e1topickey1a
+C2 -> client2: e2topickey1a
+C2 -> client3: e3topickey1a
+
+
+principal client1 [
+    cl1topickey1a = AEAD_DEC(clkey1, e1topickey1a, nil)?
+    generates msg2
+    emsg2 = AEAD_ENC(cl1topickey1a, msg2, nil)
+]
+
+client1 -> client2: emsg2
+
+principal client2 [
+    cl2topickey1a = AEAD_DEC(clkey2, e2topickey1a, nil)?
+    dmsg2 = AEAD_DEC(cl2topickey1a, emsg2, nil)?
+]
+
+// if client3 is compromised afterwards, then:
+// - msg1 still protected, since it was using another key (forward secrecy)
+// - msg2 confidentiality compromised, and authentication/integrity guaranteed
+//   only if emsg2 was delivered (i.e., attacker only active after compromising client3)
+// (Verifpal reports authentication failure)
+
+client3 -> eve: clkey3
+
+queries [
+    confidentiality? msg1
+    authentication? client1 -> client2: emsg2
+
+    authentication? C2 -> client1: e1topickey1
+    authentication? C2 -> client2: e2topickey1
+
+    authentication? C2 -> client1: e1topickey1a
+    authentication? C2 -> client2: e2topickey1a
+]
