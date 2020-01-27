@@ -23,7 +23,7 @@ import (
 )
 
 func ExampleNewClient_symIDAndKey() {
-	client, err := e4.NewClient(&e4.SymIDAndKey{ID: []byte("clientID"), Key: e4crypto.RandomKey()}, "./symClient.json")
+	client, err := e4.NewClient(&e4.SymIDAndKey{ID: []byte("clientID"), Key: e4crypto.RandomKey()}, e4.NewMemoryStore())
 	if err != nil {
 		panic(err)
 	}
@@ -37,7 +37,7 @@ func ExampleNewClient_symIDAndKey() {
 }
 
 func ExampleNewClient_symNameAndPassword() {
-	client, err := e4.NewClient(&e4.SymNameAndPassword{Name: "clientName", Password: "verySecretPassword"}, "./symClient.json")
+	client, err := e4.NewClient(&e4.SymNameAndPassword{Name: "clientName", Password: "verySecretPassword"}, e4.NewMemoryStore())
 	if err != nil {
 		panic(err)
 	}
@@ -65,7 +65,7 @@ func ExampleNewClient_pubIDAndKey() {
 		ID:       []byte("clientID"),
 		Key:      privateKey,
 		C2PubKey: c2PubKey,
-	}, "./pubClient.json")
+	}, e4.NewMemoryStore())
 
 	if err != nil {
 		panic(err)
@@ -90,7 +90,7 @@ func ExampleNewClient_pubNameAndPassword() {
 		C2PubKey: c2PubKey,
 	}
 
-	client, err := e4.NewClient(config, "./pubClient.json")
+	client, err := e4.NewClient(config, e4.NewMemoryStore())
 	if err != nil {
 		panic(err)
 	}

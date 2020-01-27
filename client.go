@@ -40,8 +40,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
-	"os"
 	"sync"
 	"time"
 
@@ -115,17 +115,17 @@ type client struct {
 
 	Key keys.KeyMaterial
 
-	FilePath       string
 	ReceivingTopic string
 
-	lock sync.RWMutex
+	store io.WriteSeeker
+	lock  sync.RWMutex
 }
 
 var _ Client = (*client)(nil)
 
 // ClientConfig defines an interface for client configuration
 type ClientConfig interface {
-	genNewClient(persistStatePath string) (Client, error)
+	genNewClient(store io.WriteSeeker) (Client, error)
 }
 
 // SymIDAndKey defines a configuration to create an E4 client in symmetric key mode
@@ -165,7 +165,7 @@ var _ ClientConfig = (*SymNameAndPassword)(nil)
 var _ ClientConfig = (*PubIDAndKey)(nil)
 var _ ClientConfig = (*PubNameAndPassword)(nil)
 
-func (ik *SymIDAndKey) genNewClient(persistStatePath string) (Client, error) {
+func (ik *SymIDAndKey) genNewClient(store io.WriteSeeker) (Client, error) {
 	var newID []byte
 	if len(ik.ID) == 0 {
 		newID = e4crypto.RandomID()
@@ -179,10 +179,10 @@ func (ik *SymIDAndKey) genNewClient(persistStatePath string) (Client, error) {
 		return nil, fmt.Errorf("failed to created symkey from key: %v", err)
 	}
 
-	return newClient(newID, symKeyMaterial, persistStatePath)
+	return newClient(newID, symKeyMaterial, store)
 }
 
-func (np *SymNameAndPassword) genNewClient(persistStatePath string) (Client, error) {
+func (np *SymNameAndPassword) genNewClient(store io.WriteSeeker) (Client, error) {
 	id := e4crypto.HashIDAlias(np.Name)
 
 	key, err := e4crypto.DeriveSymKey(np.Password)
@@ -195,10 +195,10 @@ func (np *SymNameAndPassword) genNewClient(persistStatePath string) (Client, err
 		return nil, fmt.Errorf("failed to created symkey from key: %v", err)
 	}
 
-	return newClient(id, symKeyMaterial, persistStatePath)
+	return newClient(id, symKeyMaterial, store)
 }
 
-func (ik *PubIDAndKey) genNewClient(persistStatePath string) (Client, error) {
+func (ik *PubIDAndKey) genNewClient(store io.WriteSeeker) (Client, error) {
 	var newID []byte
 	if len(ik.ID) == 0 {
 		newID = e4crypto.RandomID()
@@ -212,10 +212,10 @@ func (ik *PubIDAndKey) genNewClient(persistStatePath string) (Client, error) {
 		return nil, fmt.Errorf("failed to create ed25519key from key: %v", err)
 	}
 
-	return newClient(newID, pubKeyMaterialKey, persistStatePath)
+	return newClient(newID, pubKeyMaterialKey, store)
 }
 
-func (np *PubNameAndPassword) genNewClient(persistStatePath string) (Client, error) {
+func (np *PubNameAndPassword) genNewClient(store io.WriteSeeker) (Client, error) {
 	id := e4crypto.HashIDAlias(np.Name)
 
 	key, err := e4crypto.Ed25519PrivateKeyFromPassword(np.Password)
@@ -228,7 +228,7 @@ func (np *PubNameAndPassword) genNewClient(persistStatePath string) (Client, err
 		return nil, fmt.Errorf("failed to create ed25519key from key: %v", err)
 	}
 
-	return newClient(id, pubKeyMaterialKey, persistStatePath)
+	return newClient(id, pubKeyMaterialKey, store)
 }
 
 // PubKey returns the ed25519.PublicKey derived from the password
@@ -251,12 +251,12 @@ func (np *PubNameAndPassword) PubKey() (e4crypto.Ed25519PublicKey, error) {
 //
 // config is a ClientConfig, either SymIDAndKey, SymNameAndPassword, PubIDAndKey or PubNameAndPassword
 // persistStatePath is the file system path to the file to read and persist the client's state.
-func NewClient(config ClientConfig, persistStatePath string) (Client, error) {
-	return config.genNewClient(persistStatePath)
+func NewClient(config ClientConfig, store io.WriteSeeker) (Client, error) {
+	return config.genNewClient(store)
 }
 
 // newClient creates a new client, generating a random ID if they are empty
-func newClient(id []byte, clientKey keys.KeyMaterial, persistStatePath string) (Client, error) {
+func newClient(id []byte, clientKey keys.KeyMaterial, store io.WriteSeeker) (Client, error) {
 	if len(id) == 0 {
 		return nil, errors.New("client id must not be empty")
 	}
@@ -264,8 +264,9 @@ func newClient(id []byte, clientKey keys.KeyMaterial, persistStatePath string) (
 	c := &client{
 		Key:            clientKey,
 		TopicKeys:      make(map[string]keys.TopicKey),
-		FilePath:       persistStatePath,
 		ReceivingTopic: TopicForID(id),
+
+		store: store,
 	}
 
 	c.ID = make([]byte, len(id))
@@ -277,47 +278,33 @@ func newClient(id []byte, clientKey keys.KeyMaterial, persistStatePath string) (
 }
 
 // LoadClient loads a client state from the file system
-func LoadClient(persistStatePath string) (Client, error) {
+func LoadClient(store io.ReadWriteSeeker) (Client, error) {
 	c := &client{}
-	err := readJSON(persistStatePath, c)
+
+	decoder := json.NewDecoder(store)
+	err := decoder.Decode(c)
 	if err != nil {
 		return nil, err
 	}
+
+	store.Seek(0, io.SeekStart)
+
+	c.store = store
 
 	return c, nil
 }
 
 func (c *client) save() error {
-	err := writeJSON(c.FilePath, c)
+	encoder := json.NewEncoder(c.store)
+	err := encoder.Encode(c)
 	if err != nil {
 		log.Printf("failed to save client: %v", err)
 		return err
 	}
+
+	c.store.Seek(0, io.SeekStart)
+
 	return nil
-}
-
-func writeJSON(filePath string, object interface{}) error {
-	file, err := os.Create(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to create file at %s: %v", filePath, err)
-	}
-	defer file.Close()
-
-	encoder := json.NewEncoder(file)
-	err = encoder.Encode(object)
-
-	return err
-}
-
-func readJSON(filePath string, object interface{}) error {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	decoder := json.NewDecoder(file)
-	return decoder.Decode(object)
 }
 
 func (c *client) UnmarshalJSON(data []byte) error {
@@ -338,12 +325,6 @@ func (c *client) UnmarshalJSON(data []byte) error {
 	if rawReceivingTopic, ok := m["ReceivingTopic"]; ok {
 		if err := json.Unmarshal(rawReceivingTopic, &c.ReceivingTopic); err != nil {
 			return fmt.Errorf("failed to unmarshal client receiving topic: %v", err)
-		}
-	}
-
-	if rawFilePath, ok := m["FilePath"]; ok {
-		if err := json.Unmarshal(rawFilePath, &c.FilePath); err != nil {
-			return fmt.Errorf("failed to unmarshal client filepath: %v", err)
 		}
 	}
 
