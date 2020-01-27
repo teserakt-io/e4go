@@ -27,7 +27,6 @@ principal client3[
     knows private clkey3
 ]
 
-client3 -> eve: clkey3
 
 principal C2 [
     knows private clkey1
@@ -60,6 +59,12 @@ principal client1 [
     emsg1 = AEAD_ENC(cl1topickey1, msg1, nil)
 ]
 
+client1 -> client2: emsg1
+
+principal client2 [
+    dmsg1 = AEAD_DEC(cl2topickey1, emsg1, nil)?
+]
+
 // new topic key, this time authorizing client3
 principal C2 [
     generates topickey1a
@@ -72,14 +77,25 @@ C2 -> client1: e1topickey1a
 C2 -> client2: e2topickey1a
 C2 -> client3: e3topickey1a
 
+
 principal client1 [
     cl1topickey1a = AEAD_DEC(clkey1, e1topickey1a, nil)?
     generates msg2
     emsg2 = AEAD_ENC(cl1topickey1a, msg2, nil)
 ]
 
+
+client3 -> eve: clkey3
+client1 -> client2: emsg2
+
+principal client2 [
+    cl2topickey1a = AEAD_DEC(clkey2, e2topickey1a, nil)?
+    dmsg2 = AEAD_DEC(cl2topickey1a, emsg2, nil)?
+]
+
+
 queries [
     confidentiality? msg1
-    confidentiality? msg2
+    authentication? client1 -> client2: emsg2
     authentication? C2 -> client1: e1topickey1
 ]
