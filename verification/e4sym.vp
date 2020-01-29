@@ -12,22 +12,16 @@ principal client1[]
 principal client2[]
 principal client3[]
 
-// dummy principal to better model the attacker
-principal eve[]
-
 // client keys pre-provisioned to devices:
 
-// honest
 principal client1[
     knows private clkey1
 ]
 
-// honest
 principal client2[
     knows private clkey2
 ]
 
-// malicious
 principal client3[
     knows private clkey3
 ]
@@ -90,23 +84,25 @@ principal client1 [
 ]
 
 client1 -> client2: emsg2
+client1 -> client3: emsg2
 
 principal client2 [
     cl2topickey1a = AEAD_DEC(clkey2, e2topickey1a, nil)?
     dmsg2 = AEAD_DEC(cl2topickey1a, emsg2, nil)?
 ]
 
-// if client3 is compromised afterwards, then:
-// - msg1 still protected, since it was using another key (forward secrecy)
-// - msg2 confidentiality compromised, and authentication/integrity guaranteed
-//   only if emsg2 was delivered (i.e., attacker only active after compromising client3)
-// (Verifpal reports authentication failure)
-
-client3 -> eve: clkey3
+principal client3 [
+    cl3topickey1a = AEAD_DEC(clkey3, e3topickey1a, nil)?
+    dmsg3 = AEAD_DEC(cl3topickey1a, emsg2, nil)?
+]
 
 queries [
     confidentiality? msg1
+    confidentiality? msg2
+    authentication? client1 -> client2: emsg1
     authentication? client1 -> client2: emsg2
+    authentication? client1 -> client3: emsg2
+
 
     authentication? C2 -> client1: e1topickey1
     authentication? C2 -> client2: e2topickey1

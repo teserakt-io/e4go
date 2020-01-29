@@ -1,0 +1,103 @@
+// E4 public-key mode basic usage formal model for Verifpal
+//
+// Download Verifpal by following instructions at https://verifpal.com/
+// Run verification as `verifpal verify e4pub.vp`
+//
+// Copyright (c) Teserakt AG, 2020
+
+attacker[active]
+
+principal C2[]
+principal client1[]
+principal client2[]
+principal client3[]
+
+// client keys pre-provisioned to devices:
+
+principal client1[
+    knows private clkey1
+    clpk1 = G^clkey1
+]
+
+principal client2[
+    knows private clkey2
+    clpk2 = G^clkey2
+]
+
+principal C2 [
+    knows private c2key
+    c2pk = G^c2key
+]
+
+// identity public keys pre-provisioned 
+// set as [guarded] to ensure integrity, confidentiality not required
+client1 -> C2: [clpk1]
+client2 -> C2: [clpk2]
+C2 -> client1: [c2pk]
+C2 -> client2: [c2pk]
+
+// generate topic key and sends it to client 1 and 2
+principal C2 [
+    generates topickey1
+
+    shk1 = clpk1^c2key
+    shk2 = clpk2^c2key
+    key1 = HASH(shk1)
+    key2 = HASH(shk2)
+
+    e1topickey1 = AEAD_ENC(key1, topickey1, nil)
+    e2topickey1 = AEAD_ENC(key2, topickey1, nil)
+]
+
+// SetTopicKey commands
+C2 -> client1: e1topickey1
+C2 -> client2: e2topickey1
+
+principal client1 [
+    shkc1 = c2pk^clkey1
+    keyc1 = HASH(shkc1)
+    cl1topickey1 = AEAD_DEC(keyc1, e1topickey1, nil)?
+]
+
+principal client2 [
+    shkc2 = c2pk^clkey2
+    keyc2 = HASH(shkc2)
+    cl2topickey1 = AEAD_DEC(keyc2, e2topickey1, nil)?
+]
+
+// SetPubKey command to client2
+principal C2 [
+    epk1 = AEAD_ENC(key2, clpk1, nil)
+]
+
+C2 -> client2: epk1
+
+principal client2 [
+    dpk1 = AEAD_DEC(keyc2, epk1, nil)?
+]
+
+// client1 sends a protected message 
+principal client1 [
+    generates msg1
+    emsg1 = AEAD_ENC(cl1topickey1, msg1, nil)
+    emsg1sig = SIGN(clkey1, emsg1)
+]
+
+client1 -> client2: emsg1, emsg1sig
+
+// client2 knows the topic key and client1 pubkey
+principal client2 [
+    ver1 = SIGNVERIF(dpk1, emsg1, emsg1sig)?
+    dmsg1 = AEAD_DEC(cl2topickey1, emsg1, nil)?
+]
+
+
+queries [
+    confidentiality? msg1
+    authentication? client1 -> client2: emsg1
+
+    authentication? C2 -> client1: c2pk
+    authentication? C2 -> client2: c2pk
+    authentication? C2 -> client1: e1topickey1
+    authentication? C2 -> client2: e2topickey1
+]
