@@ -1,4 +1,4 @@
-// Copyright 2019 Teserakt AG
+// Copyright 2020 Teserakt AG
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,17 +20,26 @@ import (
 	"io"
 )
 
+// Store defines an interface for E4 storage implementation
+// it is compatible with io.ReadWriteSeeker but redefined to allow this type to be exported
+// from bindings generation
+type Store interface {
+	Write(p []byte) (n int, err error)
+	Read(b []byte) (n int, err error)
+	Seek(offset int64, whence int) (idx int64, err error)
+}
+
 type memoryStore struct {
 	buf   *bytes.Buffer
 	index int64
 }
 
-var _ io.ReadWriteSeeker = (*memoryStore)(nil)
+var _ Store = (*memoryStore)(nil)
 
-// NewMemoryStore creates a new io.ReadWriteSeeker storing data in memory
-func NewMemoryStore() io.ReadWriteSeeker {
+// NewMemoryStore creates a new Store in memory
+func NewMemoryStore(buf []byte) Store {
 	return &memoryStore{
-		buf: bytes.NewBuffer(nil),
+		buf: bytes.NewBuffer(buf),
 	}
 }
 

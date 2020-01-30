@@ -6,6 +6,7 @@
   * [Symmetric-key client](#symmetric-key-client)
   * [Public-key client](#public-key-client)
   * [From a saved state](#from-a-saved-state)
+  * [Client storage](#client-storage)
 - [Integration instructions](#integration-instructions)
   * [Receiving a message](#receiving-a-message)
   * [Transmitting a message](#transmitting-a-message)
@@ -52,26 +53,26 @@ Depending on the mode, different functions should be used to instantiate a clien
 
 ### Symmetric-key client
 
-A symmetric-key client can be created from a 16-byte identifier (type `[]byte`), a 32-byte key (type `[]byte`), and an absolute path (type `string`) to a file on the local file system, which will persistently store the client's state:
+A symmetric-key client can be created from a 16-byte identifier (type `[]byte`), a 32-byte key (type `[]byte`), and an `e4.Store` implementation, which will be used to store the client's state (see [client storage](#client-storage) section for details):
 
 ```go
-    client, err := e4.NewClient(&e4.SymIDAndKey{ID: id, Key: key}, filePath)
+    client, err := e4.NewClient(&e4.SymIDAndKey{ID: id, Key: key}, store)
 ```
 
 A symmetric-key client can also be created from a name (`string` of arbitrary length) and a password (`string` of a least 16 characters), as follows:
 
 ```go
-    client, err := e4.NewClient(&e4.SymNameAndPassword{Name: name, Password: password}, filePath)
+    client, err := e4.NewClient(&e4.SymNameAndPassword{Name: name, Password: password}, store)
 ```
 
 The latter is a wrapper over `NewSymKeyClient()` that creates the ID by hashing `name` with SHA-3-256, and deriving a key using Argon2.
 
 ### Public-key client
 
-A public-key client can be created from a 16-byte identifier (type `[]byte`), an Ed25519 private key (type `ed25519.PrivateKey`), an absolute file path (type `string`), and a Curve25519 public key (32-byte `[]byte`):
+A public-key client can be created from a 16-byte identifier (type `[]byte`), an Ed25519 private key (type `ed25519.PrivateKey`), an `e4.Store` implementation, which will be used to store the client's state (see [client storage](#client-storage) section for details), and a Curve25519 public key (32-byte `[]byte`):
 
 ```go
-client, err := e4.NewClient(&e4.PubIDAndKey{ID:id, Key: key, C2PubKey: c2PubKey}, filePath)
+client, err := e4.NewClient(&e4.PubIDAndKey{ID:id, Key: key, C2PubKey: c2PubKey}, store)
 ```
 
 Compared to the symmetric-key mode, and additional argument is `c2PubKey`, the public key of the C2 server that sends control messages.
@@ -79,7 +80,7 @@ Compared to the symmetric-key mode, and additional argument is `c2PubKey`, the p
 A public-key client can also be created from a name (`string` of arbitrary length) and a password (`string` of a least 16 characters), as follows:
 
 ```go
-client, err := e4.NewClient(&e4.PubNameAndPassword{Name:name, Password: password, C2PubKey: c2PubKey}, filePath)
+client, err := e4.NewClient(&e4.PubNameAndPassword{Name:name, Password: password, C2PubKey: c2PubKey}, store)
 ```
 
 The Ed25519 private key is then created from a seed that is derived from the password using Argon2.
@@ -92,13 +93,17 @@ pubKey, err := config.PubKey()
 
 ### From a saved state
 
-A client instance can be recovered using the `LoadClient()` helper, providing as argument the `filePath` of its persistent state copy:
+A client instance can be recovered using the `LoadClient()` helper, providing as argument an `e4.Store` implementation:
 
 ```go
-    client, err := e4.LoadClient(filePath)
+    client, err := e4.LoadClient(store)
 ```
 
-Note that a client's state is automatically saved to the provided `filePath` every time its state changes, and therefore does not need be manually saved.
+Note that a client's state is automatically saved to the provided store when the client is created, and every time its state changes, and therefore does not need be manually saved.
+
+### Client storage
+
+E4 client offer a way to persist its internal state, allowing to shut it down and reload without having to retransmit all the keys, by providing an `e4.Store` implementation to the client. This interface is compatible with any [io.ReadWriteSeeker](https://godoc.org/io#ReadWriteSeeker), such as the `os.File` type, which should be the most common option. But it also allows custom implementations for platforms where filesystem isn't available, like the `e4.NewMemoryStore([]byte)` we provide.
 
 ## Integration instructions
 
@@ -200,25 +205,26 @@ This will generate:
 - `dist/bindings/android/e4.aar`: the Android package, containing compiled Java class and native libraries for most common architectures
 - `dist/bindings/android/e4-sources.jar`: the Java source files
 
-After importing the AAR in your project, E4 client can be created and invoked 
+After importing the AAR in your project, E4 client can be created and invoked
 in a similar way than the Go version, for example using Kotlin:
 
 ```kotlin
-import io.teserakt.e4.*
-import io.teserakt.crypto.*
+import io.teserakt.e4.E4
+import io.teserakt.e4.SymNameAndPassword
+import io.teserakt.crypto.Crypto
 
 val cfg = SymNameAndPassword()
 cfg.name = "deviceXYZ"
 cfg.password = "secretForDeviceXYZ"
 
-val client = E4.newClient(cfg,  cacheDir.path + "deviceXYZ.json")
+val state = ByteArray(0)
+val client = E4.newClient(cfg, E4.newMemoryStore(state))
 
 // From here, messages can be protected / unprotected :
 val topic = "/deviceXYZ/data";
 val protectedMessage = client.protectMessage("Hello".toByteArray(Charsets.UTF_8), topic)
 val unprotectedMessage = client.unprotect(protectedMessage, topic)
 ```
-
 
 ## Contributing
 
