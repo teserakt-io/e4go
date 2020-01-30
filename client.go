@@ -249,7 +249,7 @@ func (np *PubNameAndPassword) PubKey() (e4crypto.Ed25519PublicKey, error) {
 // depending the given ClientConfig
 //
 // config is a ClientConfig, either SymIDAndKey, SymNameAndPassword, PubIDAndKey or PubNameAndPassword
-// store is a n Store
+// store is an e4.Store implementation
 func NewClient(config ClientConfig, store Store) (Client, error) {
 	return config.genNewClient(store)
 }
