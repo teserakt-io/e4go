@@ -52,6 +52,10 @@ type KeyMaterial interface {
 	SetKey(key []byte) error
 	// MarshalJSON marshal the key material into json
 	MarshalJSON() ([]byte, error)
+
+	// validate performs a keyMaterial validation,
+	// and returns an error when anything is invalid.
+	validate() error
 }
 
 // PubKeyStore interface defines methods to interact with a public key storage

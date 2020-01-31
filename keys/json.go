@@ -72,5 +72,18 @@ func FromRawJSON(raw json.RawMessage) (KeyMaterial, error) {
 		return nil, err
 	}
 
+	if err := clientKey.validate(); err != nil {
+		return nil, fmt.Errorf("invalid clientKey: %v", err)
+	}
+
+	// Recompute shared key after unmarshalling the keymaterial
+	// as this field is not exported
+	pubKey, ok := clientKey.(*pubKeyMaterial)
+	if ok {
+		if err := pubKey.updateSharedKey(); err != nil {
+			return nil, err
+		}
+	}
+
 	return clientKey, nil
 }

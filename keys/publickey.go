@@ -305,3 +305,30 @@ func (k *pubKeyMaterial) updateSharedKey() error {
 
 	return nil
 }
+
+func (k *pubKeyMaterial) validate() error {
+	if err := e4crypto.ValidateID(k.SignerID); err != nil {
+		return err
+	}
+	if err := e4crypto.ValidateEd25519PrivKey(k.PrivateKey); err != nil {
+		return err
+	}
+	if err := e4crypto.ValidateCurve25519PubKey(k.C2PubKey); err != nil {
+		return err
+	}
+	for id, pubKey := range k.PubKeys {
+		decodedID, err := hex.DecodeString(id)
+		if err != nil {
+			return err
+		}
+
+		if err := e4crypto.ValidateID(decodedID); err != nil {
+			return err
+		}
+		if err := e4crypto.ValidateEd25519PubKey(pubKey); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

@@ -399,7 +399,7 @@ func TestPubKeyMaterialMarshalJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to generate public key: %v", err)
 	}
-	if err := k.AddPubKey([]byte("id1"), pk1); err != nil {
+	if err := k.AddPubKey(e4crypto.HashIDAlias("id1"), pk1); err != nil {
 		t.Fatalf("Failed to add pubkey for id1: %v", err)
 	}
 
@@ -407,7 +407,7 @@ func TestPubKeyMaterialMarshalJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to generate public key: %v", err)
 	}
-	if err := k.AddPubKey([]byte("id2"), pk2); err != nil {
+	if err := k.AddPubKey(e4crypto.HashIDAlias("id2"), pk2); err != nil {
 		t.Fatalf("Failed to add pubkey for id2: %v", err)
 	}
 
