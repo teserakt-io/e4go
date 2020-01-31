@@ -19,6 +19,8 @@ import (
 	"errors"
 
 	"golang.org/x/crypto/ed25519"
+
+	e4crypto "github.com/teserakt-io/e4go/crypto"
 )
 
 var (
@@ -70,4 +72,6 @@ type PubKeyStore interface {
 	RemovePubKey(id []byte) error
 	// ResetPubKeys removes all public keys stored.
 	ResetPubKeys()
+	// SetC2PubKey replace the C2 public key by the given one.
+	SetC2PubKey(c2PubKey e4crypto.Curve25519PublicKey) error
 }
