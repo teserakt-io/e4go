@@ -16,6 +16,7 @@ package e4_test
 
 import (
 	"fmt"
+	"os"
 
 	e4 "github.com/teserakt-io/e4go"
 	e4crypto "github.com/teserakt-io/e4go/crypto"
@@ -24,6 +25,26 @@ import (
 
 func ExampleNewClient_symIDAndKey() {
 	client, err := e4.NewClient(&e4.SymIDAndKey{ID: []byte("clientID"), Key: e4crypto.RandomKey()}, e4.NewMemoryStore(nil))
+	if err != nil {
+		panic(err)
+	}
+
+	protectedMessage, err := client.ProtectMessage([]byte("very secret message"), "topic/name")
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("Protected message: %v", protectedMessage)
+}
+
+func ExampleNewClient_fileStorage() {
+	f, err := os.OpenFile("/storage/clientID.json", os.O_CREATE|os.O_RDWR, 0600)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	client, err := e4.NewClient(&e4.SymIDAndKey{ID: []byte("clientID"), Key: e4crypto.RandomKey()}, f)
 	if err != nil {
 		panic(err)
 	}

@@ -217,13 +217,78 @@ val cfg = SymNameAndPassword()
 cfg.name = "deviceXYZ"
 cfg.password = "secretForDeviceXYZ"
 
-val state = ByteArray(0)
-val client = E4.newClient(cfg, E4.newMemoryStore(state))
+val store = FileStore(File(filesDir.absolutePath + "/" + cfg.name + ".json"))
+val client = E4.newClient(cfg, store)
 
 // From here, messages can be protected / unprotected :
 val topic = "/deviceXYZ/data";
 val protectedMessage = client.protectMessage("Hello".toByteArray(Charsets.UTF_8), topic)
 val unprotectedMessage = client.unprotect(protectedMessage, topic)
+```
+
+Here We are using a custom file storage implemented as such:
+```java
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+
+import io.teserakt.e4.Store;
+
+public class FileStore implements Store {
+    private static final int SEEK_START = 0;
+    private static final int SEEK_CURRENT = 1;
+    private static final int SEEK_END = 2;
+
+    private File file;
+    private int index;
+
+    public FileStore(File file) {
+        this.file = file;
+        this.index = 0;
+    }
+
+    public long read(byte[] buf) throws Exception {
+        FileInputStream fis = new FileInputStream(this.file);
+        int n = fis.read(buf, this.index, buf.length);
+        fis.close();
+
+        this.index += n;
+        return n;
+    }
+
+    public long write(byte[] buf) throws Exception {
+        FileOutputStream fos = new FileOutputStream(this.file);
+        fos.write(buf, this.index, buf.length);
+        fos.flush();
+        fos.close();
+
+        this.index += buf.length;
+        return buf.length;
+    }
+
+    public long seek(long offset, long whence) throws Exception {
+        long abs;
+        switch((int)whence) {
+            case SEEK_START:
+                abs = offset;
+                break;
+            case SEEK_CURRENT:
+                abs = this.index + offset;
+                break;
+            case SEEK_END:
+                abs = this.file.length() + offset;
+                break;
+            default:
+                throw new Exception("invalid whence");
+        }
+        if (abs < 0) {
+            throw new Exception("negative position");
+        }
+
+        this.index = (int)abs;
+        return abs;
+    }
+}
 ```
 
 ## Contributing
