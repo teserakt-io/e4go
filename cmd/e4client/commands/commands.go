@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/ed25519"
+
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	tui "github.com/marcusolsson/tui-go"
 
@@ -185,7 +187,7 @@ func PrintKeyCommand(l logger.Logger, isPubKeyMode bool) *Command {
 					return
 				}
 
-				l.Printf("public key: %x", key.Public())
+				l.Printf("public key: %x", ed25519.PrivateKey(key).Public())
 			} else {
 				key, err := e4crypto.DeriveSymKey(args[0])
 				if err != nil {
