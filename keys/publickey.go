@@ -240,24 +240,18 @@ func (k *pubKeyMaterial) SetKey(key []byte) error {
 	copy(sk, key)
 
 	k.PrivateKey = sk
-	if err := k.updateSharedKey(); err != nil {
-		return err
-	}
 
-	return nil
+	return k.updateSharedKey()
 }
 
-func (k *pubKeyMaterial) SetC2PubKey(c2PubKey e4crypto.Curve25519PublicKey) error {
-	if err := e4crypto.ValidateCurve25519PubKey(c2PubKey); err != nil {
+func (k *pubKeyMaterial) SetC2PubKey(newC2PubKey e4crypto.Curve25519PublicKey) error {
+	if err := e4crypto.ValidateCurve25519PubKey(newC2PubKey); err != nil {
 		return err
 	}
 
-	k.C2PubKey = c2PubKey
-	if err := k.updateSharedKey(); err != nil {
-		return err
-	}
+	k.C2PubKey = newC2PubKey
 
-	return nil
+	return k.updateSharedKey()
 }
 
 // MarshalJSON  will infer the key type in the marshalled json data

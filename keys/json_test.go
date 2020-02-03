@@ -217,7 +217,6 @@ func TestFromRawJSON(t *testing.T) {
 		}
 
 		for _, testData := range testDatas {
-
 			c2PubKeyStr, err := json.Marshal(testData.c2PubKey)
 			if err != nil {
 				t.Fatalf("Failed to encode c2PubKey to string: %v", err)
