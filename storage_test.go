@@ -20,8 +20,8 @@ import (
 	"testing"
 )
 
-func TestMemoryStore(t *testing.T) {
-	store := NewMemoryStore(nil)
+func TestInMemoryStore(t *testing.T) {
+	store := NewInMemoryStore(nil)
 
 	expected := []byte("abcde")
 

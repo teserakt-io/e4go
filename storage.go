@@ -27,21 +27,21 @@ type ReadWriteSeeker interface {
 	io.ReadWriteSeeker
 }
 
-type memoryStore struct {
+type inMemoryStore struct {
 	buf   *bytes.Buffer
 	index int64
 }
 
-var _ ReadWriteSeeker = (*memoryStore)(nil)
+var _ ReadWriteSeeker = (*inMemoryStore)(nil)
 
-// NewMemoryStore creates a new ReadWriteSeeker in memory
-func NewMemoryStore(buf []byte) ReadWriteSeeker {
-	return &memoryStore{
+// NewInMemoryStore creates a new ReadWriteSeeker in memory
+func NewInMemoryStore(buf []byte) ReadWriteSeeker {
+	return &inMemoryStore{
 		buf: bytes.NewBuffer(buf),
 	}
 }
 
-func (s *memoryStore) Write(p []byte) (n int, err error) {
+func (s *inMemoryStore) Write(p []byte) (n int, err error) {
 	if s.index < 0 {
 		return 0, io.EOF
 	}
@@ -59,7 +59,7 @@ func (s *memoryStore) Write(p []byte) (n int, err error) {
 	return n, err
 }
 
-func (s *memoryStore) Read(b []byte) (n int, err error) {
+func (s *inMemoryStore) Read(b []byte) (n int, err error) {
 	if len(b) == 0 {
 		return 0, nil
 	}
@@ -74,7 +74,7 @@ func (s *memoryStore) Read(b []byte) (n int, err error) {
 	return n, err
 }
 
-func (s *memoryStore) Seek(offset int64, whence int) (idx int64, err error) {
+func (s *inMemoryStore) Seek(offset int64, whence int) (idx int64, err error) {
 	var abs int64
 	switch whence {
 	case io.SeekStart:

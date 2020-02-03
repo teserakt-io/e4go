@@ -41,7 +41,10 @@ func TestNewClientSymKey(t *testing.T) {
 	rand.Read(id)
 	rand.Read(k)
 
-	c, err := NewClient(&SymIDAndKey{ID: id, Key: k}, NewMemoryStore(nil))
+	c, err := NewClient(&SymIDAndKey{
+		ID:  id,
+		Key: k,
+	}, NewInMemoryStore(nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +80,9 @@ func TestNewClientSymKey(t *testing.T) {
 }
 
 func TestProtectUnprotectMessageSymKey(t *testing.T) {
-	client, err := NewClient(&SymIDAndKey{Key: e4crypto.RandomKey()}, NewMemoryStore(nil))
+	client, err := NewClient(&SymIDAndKey{
+		Key: e4crypto.RandomKey(),
+	}, NewInMemoryStore(nil))
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -98,7 +103,7 @@ func TestProtectUnprotectMessagePubKey(t *testing.T) {
 		ID:       clientID,
 		Key:      privateKey,
 		C2PubKey: generateCurve25519PubKey(t),
-	}, NewMemoryStore(nil))
+	}, NewInMemoryStore(nil))
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -200,7 +205,10 @@ func TestKeyTransition(t *testing.T) {
 	clientKey := e4crypto.RandomKey()
 	topic := "topic"
 
-	c, err := NewClient(&SymIDAndKey{ID: clientID, Key: clientKey}, NewMemoryStore(nil))
+	c, err := NewClient(&SymIDAndKey{
+		ID:  clientID,
+		Key: clientKey,
+	}, NewInMemoryStore(nil))
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -257,8 +265,10 @@ func TestKeyTransition(t *testing.T) {
 }
 
 func TestClientWriteRead(t *testing.T) {
-	store := NewMemoryStore(nil)
-	gc, err := NewClient(&SymIDAndKey{Key: e4crypto.RandomKey()}, store)
+	store := NewInMemoryStore(nil)
+	gc, err := NewClient(&SymIDAndKey{
+		Key: e4crypto.RandomKey(),
+	}, store)
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -321,7 +331,11 @@ func TestProtectUnprotectCommandsPubKey(t *testing.T) {
 	}
 
 	clientID := e4crypto.RandomID()
-	gc, err := NewClient(&PubIDAndKey{ID: clientID, Key: clientEdSk, C2PubKey: c2PublicCurveKey}, NewMemoryStore(nil))
+	gc, err := NewClient(&PubIDAndKey{
+		ID:       clientID,
+		Key:      clientEdSk,
+		C2PubKey: c2PublicCurveKey,
+	}, NewInMemoryStore(nil))
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -354,7 +368,7 @@ func TestClientPubKeys(t *testing.T) {
 			t.Fatalf("failed to get pubkey from config: %v", err)
 		}
 
-		store := NewMemoryStore(nil)
+		store := NewInMemoryStore(nil)
 		c, err := NewClient(config, store)
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
@@ -449,7 +463,7 @@ func TestClientPubKeys(t *testing.T) {
 			t.Fatalf("failed to get pubkey from config: %v", err)
 		}
 
-		c, err := NewClient(config, NewMemoryStore(nil))
+		c, err := NewClient(config, NewInMemoryStore(nil))
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
@@ -473,7 +487,10 @@ func TestClientPubKeys(t *testing.T) {
 	})
 
 	t.Run("symClient must return unsupported operations on pubKey methods", func(t *testing.T) {
-		symClient, err := NewClient(&SymNameAndPassword{Name: "testClient", Password: "passwordTestRandom"}, NewMemoryStore(nil))
+		symClient, err := NewClient(&SymNameAndPassword{
+			Name:     "testClient",
+			Password: "passwordTestRandom",
+		}, NewInMemoryStore(nil))
 		if err != nil {
 			t.Fatalf("Failed to create symClient: %v", err)
 		}
@@ -498,7 +515,10 @@ func TestClientPubKeys(t *testing.T) {
 
 func TestClientTopics(t *testing.T) {
 	t.Run("topic key operations properly update client state", func(t *testing.T) {
-		symClient, err := NewClient(&SymNameAndPassword{Name: "clientID", Password: "passwordTestRandom"}, NewMemoryStore(nil))
+		symClient, err := NewClient(&SymNameAndPassword{
+			Name:     "clientID",
+			Password: "passwordTestRandom",
+		}, NewInMemoryStore(nil))
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
@@ -550,7 +570,10 @@ func TestClientTopics(t *testing.T) {
 	})
 
 	t.Run("topic key operations returns errors when invoked with bad topic hashes", func(t *testing.T) {
-		symClient, err := NewClient(&SymNameAndPassword{Name: "clientID", Password: "passwordTestRandom"}, NewMemoryStore(nil))
+		symClient, err := NewClient(&SymNameAndPassword{
+			Name:     "clientID",
+			Password: "passwordTestRandom",
+		}, NewInMemoryStore(nil))
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
@@ -572,7 +595,10 @@ func TestClientSetIDKey(t *testing.T) {
 	validKey := e4crypto.RandomKey()
 	invalidKey := make([]byte, e4crypto.KeyLen)
 
-	c, err := NewClient(&SymIDAndKey{ID: clientID, Key: validKey}, NewMemoryStore(nil))
+	c, err := NewClient(&SymIDAndKey{
+		ID:  clientID,
+		Key: validKey,
+	}, NewInMemoryStore(nil))
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -588,7 +614,10 @@ func TestCommandsSymClient(t *testing.T) {
 	clientKey := e4crypto.RandomKey()
 	topic := "topic1"
 
-	c, err := NewClient(&SymIDAndKey{ID: clientID, Key: clientKey}, NewMemoryStore(nil))
+	c, err := NewClient(&SymIDAndKey{
+		ID:  clientID,
+		Key: clientKey,
+	}, NewInMemoryStore(nil))
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}

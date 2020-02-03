@@ -24,7 +24,10 @@ import (
 )
 
 func ExampleNewClient_symIDAndKey() {
-	client, err := e4.NewClient(&e4.SymIDAndKey{ID: []byte("clientID"), Key: e4crypto.RandomKey()}, e4.NewMemoryStore(nil))
+	client, err := e4.NewClient(&e4.SymIDAndKey{
+		ID:  []byte("clientID"),
+		Key: e4crypto.RandomKey(),
+	}, e4.NewInMemoryStore(nil))
 	if err != nil {
 		panic(err)
 	}
@@ -33,7 +36,6 @@ func ExampleNewClient_symIDAndKey() {
 	if err != nil {
 		panic(err)
 	}
-
 	fmt.Printf("Protected message: %v", protectedMessage)
 }
 
@@ -44,7 +46,10 @@ func ExampleNewClient_fileStorage() {
 	}
 	defer f.Close()
 
-	client, err := e4.NewClient(&e4.SymIDAndKey{ID: []byte("clientID"), Key: e4crypto.RandomKey()}, f)
+	client, err := e4.NewClient(&e4.SymIDAndKey{
+		ID:  []byte("clientID"),
+		Key: e4crypto.RandomKey(),
+	}, f)
 	if err != nil {
 		panic(err)
 	}
@@ -53,12 +58,14 @@ func ExampleNewClient_fileStorage() {
 	if err != nil {
 		panic(err)
 	}
-
 	fmt.Printf("Protected message: %v", protectedMessage)
 }
 
 func ExampleNewClient_symNameAndPassword() {
-	client, err := e4.NewClient(&e4.SymNameAndPassword{Name: "clientName", Password: "verySecretPassword"}, e4.NewMemoryStore(nil))
+	client, err := e4.NewClient(&e4.SymNameAndPassword{
+		Name:     "clientName",
+		Password: "verySecretPassword",
+	}, e4.NewInMemoryStore(nil))
 	if err != nil {
 		panic(err)
 	}
@@ -67,7 +74,6 @@ func ExampleNewClient_symNameAndPassword() {
 	if err != nil {
 		panic(err)
 	}
-
 	fmt.Printf("Protected message: %v", protectedMessage)
 }
 
@@ -86,7 +92,7 @@ func ExampleNewClient_pubIDAndKey() {
 		ID:       []byte("clientID"),
 		Key:      privateKey,
 		C2PubKey: c2PubKey,
-	}, e4.NewMemoryStore(nil))
+	}, e4.NewInMemoryStore(nil))
 
 	if err != nil {
 		panic(err)
@@ -96,7 +102,6 @@ func ExampleNewClient_pubIDAndKey() {
 	if err != nil {
 		panic(err)
 	}
-
 	fmt.Printf("Protected message: %v", protectedMessage)
 }
 
@@ -105,13 +110,13 @@ func ExampleNewClient_pubNameAndPassword() {
 	if err != nil {
 		panic(err)
 	}
+
 	config := &e4.PubNameAndPassword{
 		Name:     "clientName",
 		Password: "verySecretPassword",
 		C2PubKey: c2PubKey,
 	}
-
-	client, err := e4.NewClient(config, e4.NewMemoryStore(nil))
+	client, err := e4.NewClient(config, e4.NewInMemoryStore(nil))
 	if err != nil {
 		panic(err)
 	}
@@ -127,6 +132,5 @@ func ExampleNewClient_pubNameAndPassword() {
 	if err != nil {
 		panic(err)
 	}
-
 	fmt.Printf("Protected message: %v", protectedMessage)
 }
