@@ -53,7 +53,7 @@ Depending on the mode, different functions should be used to instantiate a clien
 
 ### Symmetric-key client
 
-A symmetric-key client can be created from a 16-byte identifier (type `[]byte`), a 32-byte key (type `[]byte`), and an `e4.Store` implementation, which will be used to store the client's state (see [client storage](#client-storage) section for details):
+A symmetric-key client can be created from a 16-byte identifier (type `[]byte`), a 32-byte key (type `[]byte`), and an `e4.ReadWriteSeeker` implementation, used to persist the client's state (see [client storage](#client-storage) section for details):
 
 ```go
     client, err := e4.NewClient(&e4.SymIDAndKey{ID: id, Key: key}, store)
@@ -69,7 +69,7 @@ The latter is a wrapper over `NewSymKeyClient()` that creates the ID by hashing 
 
 ### Public-key client
 
-A public-key client can be created from a 16-byte identifier (type `[]byte`), an Ed25519 private key (type `ed25519.PrivateKey`), an `e4.Store` implementation, which will be used to store the client's state (see [client storage](#client-storage) section for details), and a Curve25519 public key (32-byte `[]byte`):
+A public-key client can be created from a 16-byte identifier (type `[]byte`), an Ed25519 private key (type `ed25519.PrivateKey`), an `e4.ReadWriteSeeker` implementation, which will be used to store the client's state (see [client storage](#client-storage) section for details), and a Curve25519 public key (32-byte `[]byte`):
 
 ```go
 client, err := e4.NewClient(&e4.PubIDAndKey{ID:id, Key: key, C2PubKey: c2PubKey}, store)
@@ -93,7 +93,7 @@ pubKey, err := config.PubKey()
 
 ### From a saved state
 
-A client instance can be recovered using the `LoadClient()` helper, providing as argument an `e4.Store` implementation:
+A client instance can be recovered using the `LoadClient()` helper given an `e4.ReadWriteSeeker` implementation::
 
 ```go
     client, err := e4.LoadClient(store)
@@ -103,7 +103,7 @@ Note that a client's state is automatically saved to the provided store when the
 
 ### Client storage
 
-E4 client offer a way to persist its internal state, allowing to shut it down and reload without having to retransmit all the keys, by providing an `e4.Store` implementation to the client. This interface is compatible with any [io.ReadWriteSeeker](https://godoc.org/io#ReadWriteSeeker), such as the `os.File` type, which should be the most common option. But it also allows custom implementations for platforms where filesystem isn't available, like the `e4.NewMemoryStore([]byte)` we provide.
+E4 client offer a way to persist its internal state, allowing to shut it down and reload without having to retransmit all the keys, by providing an `e4.ReadWriteSeeker` implementation to the client. This interface is compatible with any [io.ReadWriteSeeker](https://godoc.org/io#ReadWriteSeeker), such as the `os.File` type, which should be the most common option. But it also allows custom implementations for platforms where filesystem isn't available, like the `e4.NewMemoryStore([]byte)` we provide.
 
 ## Integration instructions
 
@@ -232,9 +232,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 
-import io.teserakt.e4.Store;
+import io.teserakt.e4.ReadWriteSeeker;
 
-public class FileStore implements Store {
+public class FileStore implements ReadWriteSeeker {
     private static final int SEEK_START = 0;
     private static final int SEEK_CURRENT = 1;
     private static final int SEEK_END = 2;

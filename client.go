@@ -116,7 +116,7 @@ type client struct {
 
 	ReceivingTopic string
 
-	store Store
+	store ReadWriteSeeker
 	lock  sync.RWMutex
 }
 
@@ -124,7 +124,7 @@ var _ Client = (*client)(nil)
 
 // ClientConfig defines an interface for client configuration
 type ClientConfig interface {
-	genNewClient(store Store) (Client, error)
+	genNewClient(store ReadWriteSeeker) (Client, error)
 }
 
 // SymIDAndKey defines a configuration to create an E4 client in symmetric key mode
@@ -164,7 +164,7 @@ var _ ClientConfig = (*SymNameAndPassword)(nil)
 var _ ClientConfig = (*PubIDAndKey)(nil)
 var _ ClientConfig = (*PubNameAndPassword)(nil)
 
-func (ik *SymIDAndKey) genNewClient(store Store) (Client, error) {
+func (ik *SymIDAndKey) genNewClient(store ReadWriteSeeker) (Client, error) {
 	var newID []byte
 	if len(ik.ID) == 0 {
 		newID = e4crypto.RandomID()
@@ -181,7 +181,7 @@ func (ik *SymIDAndKey) genNewClient(store Store) (Client, error) {
 	return newClient(newID, symKeyMaterial, store)
 }
 
-func (np *SymNameAndPassword) genNewClient(store Store) (Client, error) {
+func (np *SymNameAndPassword) genNewClient(store ReadWriteSeeker) (Client, error) {
 	id := e4crypto.HashIDAlias(np.Name)
 
 	key, err := e4crypto.DeriveSymKey(np.Password)
@@ -197,7 +197,7 @@ func (np *SymNameAndPassword) genNewClient(store Store) (Client, error) {
 	return newClient(id, symKeyMaterial, store)
 }
 
-func (ik *PubIDAndKey) genNewClient(store Store) (Client, error) {
+func (ik *PubIDAndKey) genNewClient(store ReadWriteSeeker) (Client, error) {
 	var newID []byte
 	if len(ik.ID) == 0 {
 		newID = e4crypto.RandomID()
@@ -214,7 +214,7 @@ func (ik *PubIDAndKey) genNewClient(store Store) (Client, error) {
 	return newClient(newID, pubKeyMaterialKey, store)
 }
 
-func (np *PubNameAndPassword) genNewClient(store Store) (Client, error) {
+func (np *PubNameAndPassword) genNewClient(store ReadWriteSeeker) (Client, error) {
 	id := e4crypto.HashIDAlias(np.Name)
 
 	key, err := e4crypto.Ed25519PrivateKeyFromPassword(np.Password)
@@ -249,13 +249,13 @@ func (np *PubNameAndPassword) PubKey() (e4crypto.Ed25519PublicKey, error) {
 // depending the given ClientConfig
 //
 // config is a ClientConfig, either SymIDAndKey, SymNameAndPassword, PubIDAndKey or PubNameAndPassword
-// store is an e4.Store implementation
-func NewClient(config ClientConfig, store Store) (Client, error) {
+// store is an e4.ReadWriteSeeker implementation
+func NewClient(config ClientConfig, store ReadWriteSeeker) (Client, error) {
 	return config.genNewClient(store)
 }
 
 // newClient creates a new client, generating a random ID if they are empty
-func newClient(id []byte, clientKey keys.KeyMaterial, store Store) (Client, error) {
+func newClient(id []byte, clientKey keys.KeyMaterial, store ReadWriteSeeker) (Client, error) {
 	if len(id) == 0 {
 		return nil, errors.New("client id must not be empty")
 	}
@@ -281,7 +281,7 @@ func newClient(id []byte, clientKey keys.KeyMaterial, store Store) (Client, erro
 }
 
 // LoadClient loads a client state from the file system
-func LoadClient(store Store) (Client, error) {
+func LoadClient(store ReadWriteSeeker) (Client, error) {
 	c := &client{}
 
 	decoder := json.NewDecoder(store)

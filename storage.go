@@ -20,13 +20,11 @@ import (
 	"io"
 )
 
-// Store defines an interface for E4 storage implementation
-// it is compatible with io.ReadWriteSeeker but redefined to allow this type to be exported
-// from bindings generation
-type Store interface {
-	Write(p []byte) (n int, err error)
-	Read(b []byte) (n int, err error)
-	Seek(offset int64, whence int) (idx int64, err error)
+// ReadWriteSeeker is a redefinition of io.ReadWriteSeeker
+// to ensure that gomobile bindings still get generated without
+// incompatible type removals
+type ReadWriteSeeker interface {
+	io.ReadWriteSeeker
 }
 
 type memoryStore struct {
@@ -34,10 +32,10 @@ type memoryStore struct {
 	index int64
 }
 
-var _ Store = (*memoryStore)(nil)
+var _ ReadWriteSeeker = (*memoryStore)(nil)
 
-// NewMemoryStore creates a new Store in memory
-func NewMemoryStore(buf []byte) Store {
+// NewMemoryStore creates a new ReadWriteSeeker in memory
+func NewMemoryStore(buf []byte) ReadWriteSeeker {
 	return &memoryStore{
 		buf: bytes.NewBuffer(buf),
 	}
