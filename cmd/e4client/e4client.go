@@ -234,30 +234,32 @@ func loadOrCreateClient(name, password string) (e4.Client, error) {
 	var e4Client e4.Client
 
 	savedClientPath := fmt.Sprintf("./%s.json", name)
-	saveFile, err := os.OpenFile(savedClientPath, os.O_RDWR, 0600)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			fmt.Printf("Failed to load client from file %s: %v\n", savedClientPath, err)
-			os.Exit(1)
-		}
-
-		saveFile, err := os.OpenFile(savedClientPath, os.O_CREATE|os.O_RDWR, 0600)
-		if err != nil {
-			fmt.Printf("Failed to create client save file %s: %v\n", savedClientPath, err)
-			os.Exit(1)
-		}
-
-		e4Client, err = e4.NewClient(&e4.SymNameAndPassword{Name: name, Password: password}, saveFile)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create E4 client: %v", err)
-		}
-	} else {
-		e4Client, err = e4.LoadClient(saveFile)
+	dstFile, err := os.OpenFile(savedClientPath, os.O_RDWR, 0600)
+	switch {
+	case err == nil:
+		e4Client, err = e4.LoadClient(dstFile)
 		if err != nil {
 			fmt.Printf("Failed to load client from file %s: %v\n", savedClientPath, err)
 			os.Exit(1)
 		}
 		fmt.Printf("Loaded client from %s\n", savedClientPath)
+
+	default:
+		if !os.IsNotExist(err) {
+			fmt.Printf("Failed to load client from file %s: %v\n", savedClientPath, err)
+			os.Exit(1)
+		}
+
+		dstFile, err := os.OpenFile(savedClientPath, os.O_CREATE|os.O_RDWR, 0600)
+		if err != nil {
+			fmt.Printf("Failed to create client save file %s: %v\n", savedClientPath, err)
+			os.Exit(1)
+		}
+
+		e4Client, err = e4.NewClient(&e4.SymNameAndPassword{Name: name, Password: password}, dstFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create E4 client: %v", err)
+		}
 	}
 
 	return e4Client, nil
