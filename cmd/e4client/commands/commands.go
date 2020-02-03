@@ -168,7 +168,7 @@ func SendUnprotectedMessageCommand(e4Client e4.Client, mqttClient mqtt.Client, l
 }
 
 // PrintKeyCommand print out a hex string key derived from a password
-func PrintKeyCommand(l logger.Logger) *Command {
+func PrintKeyCommand(l logger.Logger, isPubKeyMode bool) *Command {
 	return &Command{
 		Name:     "print-key",
 		Help:     "helper derivating a key from a password and print it as a 32 bytes hex string",
@@ -178,14 +178,23 @@ func PrintKeyCommand(l logger.Logger) *Command {
 				l.Print("Usage: print-key <password>")
 				return
 			}
+			if isPubKeyMode {
+				key, err := e4crypto.Ed25519PrivateKeyFromPassword(args[0])
+				if err != nil {
+					l.Printf("failed to generate key from password: %v", err)
+					return
+				}
 
-			key, err := e4crypto.DeriveSymKey(args[0])
-			if err != nil {
-				l.Printf("failed to generate key: %v", err)
-				return
+				l.Printf("public key: %x", key.Public())
+			} else {
+				key, err := e4crypto.DeriveSymKey(args[0])
+				if err != nil {
+					l.Printf("failed to generate key: %v", err)
+					return
+				}
+
+				l.Printf("key: %x", key)
 			}
-
-			l.Printf("key: %x", key)
 		},
 	}
 }
