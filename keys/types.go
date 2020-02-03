@@ -76,6 +76,6 @@ type PubKeyStore interface {
 	RemovePubKey(id []byte) error
 	// ResetPubKeys removes all public keys stored.
 	ResetPubKeys()
-	// SetC2PubKey replace the C2 public key by the given one.
+	// SetC2PubKey replaces the current C2 public key with the newly transmitted one.
 	SetC2PubKey(c2PubKey e4crypto.Curve25519PublicKey) error
 }
