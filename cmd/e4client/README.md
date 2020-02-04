@@ -9,10 +9,14 @@ The program takes the following arguments (note that it does not need to know th
 Usage of ./bin/e4client:
   -broker string
         ip:port of the MQTT broker
+  -c2PubKey string
+        path to the c2 public key. Required with -pubkey
   -name string
         The client identifier
   -password string
         The client password, over 16 characters
+  -pubkey
+        Enable public key mode
 ```
 
 ## Getting started using the demo environment

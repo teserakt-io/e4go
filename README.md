@@ -1,5 +1,7 @@
 ![alt text](logo.png)
 
+[![GoDoc][godoc-image]][godoc-url]
+
 - [Introduction](#introduction)
 - [Using our client application](#using-our-client-application)
 - [Creating a client](#creating-a-client)
@@ -306,3 +308,6 @@ To request support, please contact [team@teserakt.io](mailto:team@teserakt.io).
 ## Intellectual property
 
 e4go is copyright (c) Teserakt AG 2018-2020, and released under Apache 2.0 License (see [LICENCE](./LICENSE)).
+
+[godoc-image]: https://godoc.org/github.com/teserakt-io/e4go?status.svg
+[godoc-url]: https://godoc.org/github.com/teserakt-io/e4go
