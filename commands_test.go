@@ -19,6 +19,7 @@ import (
 	"crypto/rand"
 	"testing"
 
+	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/ed25519"
 
 	e4crypto "github.com/teserakt-io/e4go/crypto"
@@ -40,6 +41,13 @@ var invalidPubKeys = []ed25519.PublicKey{
 	[]byte{},
 	make([]byte, ed25519.PublicKeySize-1),
 	make([]byte, ed25519.PublicKeySize+1),
+}
+
+var invalidCurve25519PubKeys = []e4crypto.Curve25519PublicKey{
+	nil,
+	[]byte{},
+	make([]byte, e4crypto.Curve25519PubKeyLen-1),
+	make([]byte, e4crypto.Curve25519PubKeyLen+1),
 }
 
 func TestCmdRemoveTopic(t *testing.T) {
@@ -251,10 +259,35 @@ func TestCmdSetPubKey(t *testing.T) {
 	})
 }
 
-func TestToByte(t *testing.T) {
-	t.Run("ToByte() returns 255 for out of range commands", func(t *testing.T) {
-		if UnknownCommand != 255 {
-			t.Fatalf("expected unknown command byte to be %d, got %d", 255, UnknownCommand)
+func TestCmdSetC2Key(t *testing.T) {
+	t.Run("invalid keys produce errors", func(t *testing.T) {
+		for _, k := range invalidCurve25519PubKeys {
+			_, err := CmdSetC2Key(k)
+			if err == nil {
+				t.Fatalf("got no error with key %v", k)
+			}
+		}
+	})
+
+	t.Run("expected command is created", func(t *testing.T) {
+		privKey := e4crypto.RandomKey()
+		expectedKey, err := curve25519.X25519(privKey, curve25519.Basepoint)
+		if err != nil {
+			t.Fatalf("failed to generate public key: %v", err)
+		}
+
+		cmd, err := CmdSetC2Key(expectedKey)
+		if err != nil {
+			t.Fatalf("failed to create command: %v", err)
+		}
+
+		if got, want := len(cmd), 1+e4crypto.Curve25519PubKeyLen; got != want {
+			t.Fatalf("invalid command length, got %d, wanted %d", got, want)
+		}
+
+		expectedCmd := append([]byte{SetC2Key}, expectedKey...)
+		if !bytes.Equal(cmd, expectedCmd) {
+			t.Fatalf("invalid command, got %v, wanted %v", cmd, expectedCmd)
 		}
 	})
 }
