@@ -290,7 +290,9 @@ func LoadClient(store ReadWriteSeeker) (Client, error) {
 		return nil, err
 	}
 
-	store.Seek(0, io.SeekStart)
+	if _, err := store.Seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
 
 	c.store = store
 
@@ -299,13 +301,15 @@ func LoadClient(store ReadWriteSeeker) (Client, error) {
 
 func (c *client) save() error {
 	encoder := json.NewEncoder(c.store)
-	err := encoder.Encode(c)
-	if err != nil {
+	if err := encoder.Encode(c); err != nil {
 		log.Printf("failed to save client: %v", err)
 		return err
 	}
 
-	c.store.Seek(0, io.SeekStart)
+	if _, err := c.store.Seek(0, io.SeekStart); err != nil {
+		log.Printf("failed to save client: %v", err)
+		return err
+	}
 
 	return nil
 }
