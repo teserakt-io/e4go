@@ -211,6 +211,8 @@ After importing the AAR in your project, E4 client can be created and invoked
 in a similar way than the Go version, for example using Kotlin:
 
 ```kotlin
+import java.io.RandomAccessFile
+
 import io.teserakt.e4.E4
 import io.teserakt.e4.SymNameAndPassword
 import io.teserakt.crypto.Crypto
@@ -219,7 +221,7 @@ val cfg = SymNameAndPassword()
 cfg.name = "deviceXYZ"
 cfg.password = "secretForDeviceXYZ"
 
-val store = FileStore(File(filesDir.absolutePath + "/" + cfg.name + ".json"))
+val store = FileStore(filesDir.absolutePath + "/" + cfg.name + ".json")
 val client = E4.newClient(cfg, store)
 
 // From here, messages can be protected / unprotected :
@@ -230,41 +232,29 @@ val unprotectedMessage = client.unprotect(protectedMessage, topic)
 
 Here We are using a custom file storage implemented as such:
 ```java
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 
-import io.teserakt.e4.ReadWriteSeeker;
+import io.teserakt.e4.Store;
 
-public class FileStore implements ReadWriteSeeker {
+public class FileStore implements Store {
     private static final int SEEK_START = 0;
     private static final int SEEK_CURRENT = 1;
     private static final int SEEK_END = 2;
 
-    private File file;
-    private int index;
+    private RandomAccessFile file;
 
-    public FileStore(File file) {
-        this.file = file;
-        this.index = 0;
+    public FileStore(String filepath) throws FileNotFoundException {
+        this.file = new RandomAccessFile(filepath, "rw");
     }
 
-    public long read(byte[] buf) throws Exception {
-        FileInputStream fis = new FileInputStream(this.file);
-        int n = fis.read(buf, this.index, buf.length);
-        fis.close();
-
-        this.index += n;
-        return n;
+    public long read(byte[] buf) throws IOException {
+        return this.file.read(buf);
     }
 
-    public long write(byte[] buf) throws Exception {
-        FileOutputStream fos = new FileOutputStream(this.file);
-        fos.write(buf, this.index, buf.length);
-        fos.flush();
-        fos.close();
-
-        this.index += buf.length;
+    public long write(byte[] buf) throws IOException {
+        this.file.write(buf);
         return buf.length;
     }
 
@@ -275,7 +265,7 @@ public class FileStore implements ReadWriteSeeker {
                 abs = offset;
                 break;
             case SEEK_CURRENT:
-                abs = this.index + offset;
+                abs = this.file.getChannel().position() + offset;
                 break;
             case SEEK_END:
                 abs = this.file.length() + offset;
@@ -287,7 +277,7 @@ public class FileStore implements ReadWriteSeeker {
             throw new Exception("negative position");
         }
 
-        this.index = (int)abs;
+        this.file.getChannel().position(abs);
         return abs;
     }
 }
