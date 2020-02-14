@@ -15,8 +15,8 @@
 package e4
 
 import (
-	"bytes"
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -28,33 +28,33 @@ type ReadWriteSeeker interface {
 }
 
 type inMemoryStore struct {
-	buf   *bytes.Buffer
-	index int64
+	buf   []byte
+	index int
 }
 
 var _ ReadWriteSeeker = (*inMemoryStore)(nil)
 
+// maxInt holds the maximum int value for the current architecture (32 or 64 bits)
+const maxInt = int64(^uint(0) >> 1)
+
 // NewInMemoryStore creates a new ReadWriteSeeker in memory
 func NewInMemoryStore(buf []byte) ReadWriteSeeker {
 	return &inMemoryStore{
-		buf: bytes.NewBuffer(buf),
+		buf: buf,
 	}
 }
 
 func (s *inMemoryStore) Write(p []byte) (n int, err error) {
-	if s.index < 0 {
-		return 0, io.EOF
-	}
-
 	idx := int(s.index)
-	bufLen := s.buf.Len()
+	bufLen := len(s.buf)
 	if idx != bufLen && idx <= bufLen {
-		bufSlice := s.buf.Bytes()[:s.index]
-		s.buf = bytes.NewBuffer(bufSlice)
+		bufSlice := s.buf[:s.index]
+		s.buf = bufSlice
 	}
 
-	n, err = s.buf.Write(p)
-	s.index += int64(n)
+	s.buf = append(s.buf, p...)
+	n = len(p)
+	s.index += n
 
 	return n, err
 }
@@ -63,33 +63,37 @@ func (s *inMemoryStore) Read(b []byte) (n int, err error) {
 	if len(b) == 0 {
 		return 0, nil
 	}
-	if s.index >= int64(s.buf.Len()) {
+
+	if s.index >= len(s.buf) {
 		return 0, io.EOF
 	}
 
-	bufSlice := s.buf.Bytes()[s.index:]
-	n, err = bytes.NewBuffer(bufSlice).Read(b)
-	s.index += int64(n)
+	n = copy(b, s.buf[s.index:])
+	s.index += n
 
-	return n, err
+	return n, nil
 }
 
+// Seek implements io.Seeker. Additionally, an error is returned when offset overflows
+// the integer type, according to the plateform bitsize.
 func (s *inMemoryStore) Seek(offset int64, whence int) (idx int64, err error) {
-	var abs int64
+	if offset > maxInt {
+		return 0, fmt.Errorf("offset overflow, max int: %d", maxInt)
+	}
+	intOffset := int(offset)
+
+	var abs int
 	switch whence {
 	case io.SeekStart:
-		abs = offset
+		abs = intOffset
 	case io.SeekCurrent:
-		abs = int64(s.index) + offset
+		abs = s.index + intOffset
 	case io.SeekEnd:
-		abs = int64(s.buf.Len()) + offset
+		abs = len(s.buf) + intOffset
 	default:
 		return 0, errors.New("invalid whence")
 	}
-	if abs < 0 {
-		return 0, errors.New("negative position")
-	}
 
 	s.index = abs
-	return abs, nil
+	return int64(abs), nil
 }
