@@ -17,40 +17,66 @@ package keys
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"testing"
+
+	"golang.org/x/crypto/curve25519"
+	"golang.org/x/crypto/ed25519"
+
+	e4crypto "github.com/teserakt-io/e4go/crypto"
 )
+
+var pubKeyJSONTempate = `{
+	"keyType": %d,
+	"keyData":{
+		"PrivateKey":"%s",
+		"SignerID":"%s",
+		"C2PubKey":%s,
+		"PubKeys":{
+			"%s": "%s"
+		}
+	}
+}`
+
+var symKeyJSONTemplate = `{
+	"keyType": %d,
+	"keyData":{
+		"Key":"%s"
+	}
+}`
 
 func TestFromRawJSON(t *testing.T) {
 	t.Run("FromRawJSON properly decode json ed25519 keys", func(t *testing.T) {
-		privateKey := []byte("privateKey")
-		signerID := []byte("signerID")
-		c2PubKey := []byte{}
+		_, privateKey, err := ed25519.GenerateKey(nil)
+		if err != nil {
+			t.Fatalf("Failed to generate private key: %v", err)
+		}
+
+		signerID := e4crypto.HashIDAlias("signerID")
+		c2PubKey, err := curve25519.X25519(e4crypto.RandomKey(), curve25519.Basepoint)
+		if err != nil {
+			t.Fatalf("Failed to generate c2 public key")
+		}
+
 		c2PubKeyStr, err := json.Marshal(c2PubKey)
 		if err != nil {
 			t.Fatalf("Failed to encode c2PubKey to string: %v", err)
 		}
 
-		pubKeyID := "pubKeyID1"
-		pubKeyKey := []byte("pubKeyKey1")
+		pubKeyID := e4crypto.HashIDAlias("pubKeyID1")
+		pubKeyKey, _, err := ed25519.GenerateKey(nil)
+		if err != nil {
+			t.Fatalf("Failed to generate public key: %v", err)
+		}
 
-		jsonKey := []byte(fmt.Sprintf(`{
-				"keyType": %d,
-				"keyData":{
-					"PrivateKey":"%s",
-					"SignerID":"%s",
-					"C2PubKey":%s,
-					"PubKeys":{
-						"%s": "%s"
-					}
-				}
-			}`,
+		jsonKey := []byte(fmt.Sprintf(pubKeyJSONTempate,
 			pubKeyMaterialType,
 			base64.StdEncoding.EncodeToString(privateKey),
 			base64.StdEncoding.EncodeToString(signerID),
 			c2PubKeyStr,
-			pubKeyID,
+			hex.EncodeToString(pubKeyID),
 			base64.StdEncoding.EncodeToString(pubKeyKey),
 		))
 
@@ -80,7 +106,7 @@ func TestFromRawJSON(t *testing.T) {
 			t.Fatalf("Invalid pubKey count: got %d, wanted 1", len(typedKey.PubKeys))
 		}
 
-		pk, ok := typedKey.PubKeys[pubKeyID]
+		pk, ok := typedKey.PubKeys[hex.EncodeToString(pubKeyID)]
 		if !ok {
 			t.Fatalf("Expected pubkeys to hold a key for id %s", pubKeyID)
 		}
@@ -91,14 +117,9 @@ func TestFromRawJSON(t *testing.T) {
 	})
 
 	t.Run("FromRawJSON properly decode json symmetric keys", func(t *testing.T) {
-		privateKey := []byte("privateKey")
+		privateKey := e4crypto.RandomKey()
 
-		jsonKey := []byte(fmt.Sprintf(`{
-				"keyType": %d,
-				"keyData":{
-					"Key":"%s"
-				}
-			}`,
+		jsonKey := []byte(fmt.Sprintf(symKeyJSONTemplate,
 			symKeyMaterialType,
 			base64.StdEncoding.EncodeToString(privateKey),
 		))
@@ -134,6 +155,98 @@ func TestFromRawJSON(t *testing.T) {
 			if err == nil {
 				t.Fatalf("Expected an error when unmarshalling json `%s`", invalidJSON)
 			}
+		}
+	})
+
+	t.Run("FromRawJSON properly returns error when loading invalid pubkey data", func(t *testing.T) {
+		validPrivateKey := e4crypto.RandomKey()
+		validID := e4crypto.HashIDAlias("random")
+		validCurvePubKey, err := curve25519.X25519(e4crypto.RandomKey(), curve25519.Basepoint)
+		if err != nil {
+			t.Fatalf("Failed to generate c2 pubkey: %v", err)
+		}
+		validEdPubKey, _, err := ed25519.GenerateKey(nil)
+		if err != nil {
+			t.Fatalf("Failed to generate public key: %v", err)
+		}
+
+		type testData struct {
+			privateKey []byte
+			signerID   []byte
+			c2PubKey   []byte
+			pubKeyID   []byte
+			pubKeyKey  []byte
+		}
+
+		testDatas := []testData{
+			{
+				privateKey: validPrivateKey[1:],
+				signerID:   validID,
+				c2PubKey:   validCurvePubKey,
+				pubKeyID:   validID,
+				pubKeyKey:  validEdPubKey,
+			},
+			{
+				privateKey: validPrivateKey,
+				signerID:   validID[1:],
+				c2PubKey:   validCurvePubKey,
+				pubKeyID:   validID,
+				pubKeyKey:  validEdPubKey,
+			},
+			{
+				privateKey: validPrivateKey,
+				signerID:   validID,
+				c2PubKey:   validCurvePubKey[1:],
+				pubKeyID:   validID,
+				pubKeyKey:  validEdPubKey,
+			},
+			{
+				privateKey: validPrivateKey,
+				signerID:   validID,
+				c2PubKey:   validCurvePubKey,
+				pubKeyID:   validID[1:],
+				pubKeyKey:  validEdPubKey,
+			},
+			{
+				privateKey: validPrivateKey,
+				signerID:   validID,
+				c2PubKey:   validCurvePubKey,
+				pubKeyID:   validID,
+				pubKeyKey:  validEdPubKey[1:],
+			},
+		}
+
+		for _, testData := range testDatas {
+			c2PubKeyStr, err := json.Marshal(testData.c2PubKey)
+			if err != nil {
+				t.Fatalf("Failed to encode c2PubKey to string: %v", err)
+			}
+
+			jsonKey := []byte(fmt.Sprintf(pubKeyJSONTempate,
+				pubKeyMaterialType,
+				base64.StdEncoding.EncodeToString(testData.privateKey),
+				base64.StdEncoding.EncodeToString(testData.signerID),
+				c2PubKeyStr,
+				hex.EncodeToString(testData.pubKeyID),
+				base64.StdEncoding.EncodeToString(testData.pubKeyKey),
+			))
+
+			_, err = FromRawJSON(jsonKey)
+			if err == nil {
+				t.Fatalf("An error was expected while unmarshalling invalid pubkey data %#v", testData)
+			}
+		}
+	})
+
+	t.Run("FromRawJSON properly returns error when loading invalid symkey data", func(t *testing.T) {
+		jsonKey := []byte(fmt.Sprintf(symKeyJSONTemplate,
+			symKeyMaterialType,
+			base64.StdEncoding.EncodeToString(e4crypto.RandomKey()[1:]),
+		))
+
+		_, err := FromRawJSON(jsonKey)
+		if err == nil {
+			t.Fatal("An error was expected while unmarshalling symkey")
 		}
 	})
 }

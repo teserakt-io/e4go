@@ -104,3 +104,7 @@ func (k *symKeyMaterial) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal(jsonKey)
 }
+
+func (k *symKeyMaterial) validate() error {
+	return e4crypto.ValidateSymKey(k.Key)
+}

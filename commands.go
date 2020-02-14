@@ -46,6 +46,8 @@ const (
 	// SetPubKey allows to set a public key on the client.
 	// It takes a public key, followed by an ID as arguments.
 	SetPubKey
+	// SetC2PubKey replaces the current C2 public key with the newly transmitted one.
+	SetC2Key
 
 	// UnknownCommand must stay the last element. It's used to
 	// know if a Command is out of range
@@ -104,6 +106,11 @@ func processCommand(client Client, payload []byte) error {
 			return errors.New("invalid SetPubKey length")
 		}
 		return client.setPubKey(blob[:ed25519.PublicKeySize], blob[ed25519.PublicKeySize:])
+	case SetC2Key:
+		if len(blob) != e4crypto.Curve25519PubKeyLen {
+			return errors.New("invalid SetC2Key length")
+		}
+		return client.setC2Key(blob[:e4crypto.Curve25519PubKeyLen])
 
 	default:
 		return ErrInvalidCommand
@@ -184,6 +191,17 @@ func CmdSetPubKey(pubKey e4crypto.Ed25519PublicKey, name string) ([]byte, error)
 
 	cmd := append([]byte{SetPubKey}, pubKey...)
 	cmd = append(cmd, e4crypto.HashIDAlias(name)...)
+
+	return cmd, nil
+}
+
+// CmdSetC2Key creates a command to replace the c2 public key by the given one.
+func CmdSetC2Key(c2PubKey e4crypto.Curve25519PublicKey) ([]byte, error) {
+	if err := e4crypto.ValidateCurve25519PubKey(c2PubKey); err != nil {
+		return nil, fmt.Errorf("invalid c2 public key: %v", err)
+	}
+
+	cmd := append([]byte{SetC2Key}, c2PubKey...)
 
 	return cmd, nil
 }

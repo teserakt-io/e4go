@@ -19,6 +19,8 @@ import (
 	"errors"
 
 	"golang.org/x/crypto/ed25519"
+
+	e4crypto "github.com/teserakt-io/e4go/crypto"
 )
 
 var (
@@ -50,6 +52,10 @@ type KeyMaterial interface {
 	SetKey(key []byte) error
 	// MarshalJSON marshal the key material into json
 	MarshalJSON() ([]byte, error)
+
+	// validate performs a keyMaterial validation,
+	// and returns an error when anything is invalid.
+	validate() error
 }
 
 // PubKeyStore interface defines methods to interact with a public key storage
@@ -70,4 +76,6 @@ type PubKeyStore interface {
 	RemovePubKey(id []byte) error
 	// ResetPubKeys removes all public keys stored.
 	ResetPubKeys()
+	// SetC2PubKey replaces the current C2 public key with the newly transmitted one.
+	SetC2PubKey(c2PubKey e4crypto.Curve25519PublicKey) error
 }

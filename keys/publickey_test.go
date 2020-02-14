@@ -399,7 +399,7 @@ func TestPubKeyMaterialMarshalJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to generate public key: %v", err)
 	}
-	if err := k.AddPubKey([]byte("id1"), pk1); err != nil {
+	if err := k.AddPubKey(e4crypto.HashIDAlias("id1"), pk1); err != nil {
 		t.Fatalf("Failed to add pubkey for id1: %v", err)
 	}
 
@@ -407,7 +407,7 @@ func TestPubKeyMaterialMarshalJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to generate public key: %v", err)
 	}
-	if err := k.AddPubKey([]byte("id2"), pk2); err != nil {
+	if err := k.AddPubKey(e4crypto.HashIDAlias("id2"), pk2); err != nil {
 		t.Fatalf("Failed to add pubkey for id2: %v", err)
 	}
 
@@ -423,5 +423,67 @@ func TestPubKeyMaterialMarshalJSON(t *testing.T) {
 
 	if !reflect.DeepEqual(unmarshalledKey, k) {
 		t.Fatalf("Invalid unmarshalled key: got %v, wanted %v", unmarshalledKey, k)
+	}
+}
+
+func TestPrecomputeSharedKey(t *testing.T) {
+	_, privateKey, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate key: %v", err)
+	}
+
+	clientID := e4crypto.HashIDAlias("test")
+	c2Pk := getTestC2PubKey(t)
+
+	k, err := NewPubKeyMaterial(clientID, privateKey, c2Pk)
+	if err != nil {
+		t.Fatalf("Failed to create pubKeyMaterial: %v", err)
+	}
+
+	typedKey, ok := k.(*pubKeyMaterial)
+	if !ok {
+		t.Fatalf("failed to cast key to pubKeyMaterial")
+	}
+
+	if len(typedKey.sharedKey) == 0 {
+		t.Fatalf("Expected sharedKey to have length > 0")
+	}
+
+	if !bytes.Equal(typedKey.C2PubKey, c2Pk) {
+		t.Fatalf("Expected C2 pubkey to be %v, got %v", c2Pk, typedKey.C2PubKey)
+	}
+
+	originalSharedKey := make([]byte, len(typedKey.sharedKey))
+	copy(originalSharedKey, typedKey.sharedKey)
+
+	newC2Pk := getTestC2PubKey(t)
+	if err := typedKey.SetC2PubKey(newC2Pk); err != nil {
+		t.Fatalf("failed to set key: %v", err)
+	}
+
+	if !bytes.Equal(typedKey.C2PubKey, newC2Pk) {
+		t.Fatalf("Expected new C2 pubkey to be %v, got %v", newC2Pk, typedKey.C2PubKey)
+	}
+
+	if bytes.Equal(typedKey.sharedKey, originalSharedKey) {
+		t.Fatal("Expected shared key to change when c2 key is changed")
+	}
+
+	copy(originalSharedKey, typedKey.sharedKey)
+
+	_, newPrivateKey, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate key: %v", err)
+	}
+
+	if err := typedKey.SetKey(newPrivateKey); err != nil {
+		t.Fatalf("failed to set key: %v", err)
+	}
+
+	if !bytes.Equal(typedKey.PrivateKey, newPrivateKey) {
+		t.Fatalf("Expected new private key to be %v, got %v", newPrivateKey, typedKey.PrivateKey)
+	}
+	if bytes.Equal(typedKey.sharedKey, originalSharedKey) {
+		t.Fatal("Expected shared key to change when private key is changed")
 	}
 }

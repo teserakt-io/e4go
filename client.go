@@ -103,6 +103,8 @@ type Client interface {
 	removeTopic(topicHash []byte) error
 	// resetTopics will remove all previously set topics from the client.
 	resetTopics() error
+	// setC2Key instructs the device to replace the current C2 public key with the newly transmitted one.
+	setC2Key(newC2PubKey e4crypto.Curve25519PublicKey) error
 }
 
 // client implements Client interface
@@ -572,6 +574,23 @@ func (c *client) setIDKey(key []byte) error {
 	defer c.lock.Unlock()
 
 	if err := c.Key.SetKey(key); err != nil {
+		return err
+	}
+
+	return c.save()
+}
+
+func (c *client) setC2Key(newC2PubKey e4crypto.Curve25519PublicKey) error {
+	pkStore, ok := c.Key.(keys.PubKeyStore)
+	if !ok {
+		return ErrUnsupportedOperation
+	}
+
+	if err := e4crypto.ValidateCurve25519PubKey(newC2PubKey); err != nil {
+		return fmt.Errorf("invalid c2 public key: %v", err)
+	}
+
+	if err := pkStore.SetC2PubKey(newC2PubKey); err != nil {
 		return err
 	}
 

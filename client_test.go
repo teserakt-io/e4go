@@ -609,6 +609,51 @@ func TestClientSetIDKey(t *testing.T) {
 
 }
 
+func TestClientSetC2Key(t *testing.T) {
+	c2PubKey, err := curve25519.X25519(e4crypto.RandomKey(), curve25519.Basepoint)
+	if err != nil {
+		t.Fatalf("failed to generate public curve25519 key: %v", err)
+	}
+
+	c, err := NewClient(&SymIDAndKey{
+		ID:  e4crypto.HashIDAlias("client1"),
+		Key: e4crypto.RandomKey(),
+	}, NewInMemoryStore(nil))
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	if err := c.setC2Key(c2PubKey); err != ErrUnsupportedOperation {
+		t.Fatalf("Got error %v, wanted %v", err, ErrUnsupportedOperation)
+	}
+
+	_, edSk, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate ed25519 private key: %v", err)
+	}
+
+	c, err = NewClient(&PubIDAndKey{
+		ID:       e4crypto.HashIDAlias("client1"),
+		Key:      edSk,
+		C2PubKey: c2PubKey,
+	}, NewInMemoryStore(nil))
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	newC2PubKey, err := curve25519.X25519(e4crypto.RandomKey(), curve25519.Basepoint)
+	if err != nil {
+		t.Fatalf("failed to generate public curve25519 key: %v", err)
+	}
+	if err := c.setC2Key(newC2PubKey[1:]); err == nil {
+		t.Fatalf("Got no error while setting an invald c2 public key")
+	}
+
+	if err := c.setC2Key(newC2PubKey); err != nil {
+		t.Fatalf("Failed to set c2 public key: %v", err)
+	}
+}
+
 func TestCommandsSymClient(t *testing.T) {
 	clientID := e4crypto.HashIDAlias("client1")
 	clientKey := e4crypto.RandomKey()
@@ -807,7 +852,7 @@ func TestCommandsSymClient(t *testing.T) {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
 	if _, err := c.Unprotect(badProtectedSetPubKeyCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad setIDKey Command length")
+		t.Fatal("Expected an error with a bad setPubKey Command length")
 	}
 
 	_, err = c.Unprotect(protectedSetPubKeyCmd, receivingTopic)
@@ -829,7 +874,7 @@ func TestCommandsSymClient(t *testing.T) {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
 	if _, err := c.Unprotect(badProtectedRemovePubKeyCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad setIDKey Command length")
+		t.Fatal("Expected an error with a bad removePubKey Command length")
 	}
 
 	_, err = c.Unprotect(protectedRemovePubKeyCmd, receivingTopic)
@@ -850,10 +895,33 @@ func TestCommandsSymClient(t *testing.T) {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
 	if _, err := c.Unprotect(badProtectedResetPubKeyCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad setIDKey Command length")
+		t.Fatal("Expected an error with a bad resetPubKey Command length")
 	}
 
 	_, err = c.Unprotect(protectedResetPubKeyCmd, receivingTopic)
+	if err != ErrUnsupportedOperation {
+		t.Fatalf("Invalid error when unprotecting command: got %v, wanted %v", err, ErrUnsupportedOperation)
+	}
+
+	setC2KeyCmd := []byte{SetC2Key}
+	badProtectedSetC2KeyCmd, err := e4crypto.ProtectSymKey(append(setC2KeyCmd, 0x01), newClientKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+	if _, err := c.Unprotect(badProtectedSetC2KeyCmd, receivingTopic); err == nil {
+		t.Fatal("Expected an error with a bad setC2Key Command length")
+	}
+
+	pubkey, err := curve25519.X25519(e4crypto.RandomKey(), curve25519.Basepoint)
+	if err != nil {
+		t.Fatalf("failed to generate pubkey: %v", err)
+	}
+	protectedSetC2KeyCmd, err := e4crypto.ProtectSymKey(append(setC2KeyCmd, pubkey...), newClientKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+
+	_, err = c.Unprotect(protectedSetC2KeyCmd, receivingTopic)
 	if err != ErrUnsupportedOperation {
 		t.Fatalf("Invalid error when unprotecting command: got %v, wanted %v", err, ErrUnsupportedOperation)
 	}
