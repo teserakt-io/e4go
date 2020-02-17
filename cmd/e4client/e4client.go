@@ -246,30 +246,38 @@ func loadOrCreateClient(name, password string, pubKeyMode bool, c2PubKey e4crypt
 	var e4Client e4.Client
 
 	savedClientPath := fmt.Sprintf("./%s.json", name)
-	if _, err := os.Stat(savedClientPath); err == nil {
-		e4Client, err = e4.LoadClient(savedClientPath)
+	dstFile, err := os.OpenFile(savedClientPath, os.O_RDWR, 0600)
+	switch {
+	case err == nil:
+		e4Client, err = e4.LoadClient(dstFile)
 		if err != nil {
 			return nil, err
 		}
 		fmt.Printf("Loaded client from %s\n", savedClientPath)
 
-		return e4Client, nil
-	}
+	default:
+		if !os.IsNotExist(err) {
+			fmt.Printf("Failed to load client from file %s: %v\n", savedClientPath, err)
+			os.Exit(1)
+		}
 
-	if len(password) == 0 {
-		return nil, errors.New("password is required")
-	}
+		dstFile, err := os.OpenFile(savedClientPath, os.O_CREATE|os.O_RDWR, 0600)
+		if err != nil {
+			fmt.Printf("Failed to create client save file %s: %v\n", savedClientPath, err)
+			os.Exit(1)
+		}
 
-	var config e4.ClientConfig
-	if pubKeyMode {
-		config = &e4.PubNameAndPassword{Name: name, Password: password, C2PubKey: c2PubKey}
-	} else {
-		config = &e4.SymNameAndPassword{Name: name, Password: password}
-	}
+		var config e4.ClientConfig
+		if pubKeyMode {
+			config = &e4.PubNameAndPassword{Name: name, Password: password, C2PubKey: c2PubKey}
+		} else {
+			config = &e4.SymNameAndPassword{Name: name, Password: password}
+		}
 
-	e4Client, err := e4.NewClient(config, savedClientPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create E4 client: %v", err)
+		e4Client, err = e4.NewClient(config, dstFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create E4 client: %v", err)
+		}
 	}
 
 	return e4Client, nil
