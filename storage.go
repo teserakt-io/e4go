@@ -45,10 +45,8 @@ func NewInMemoryStore(buf []byte) ReadWriteSeeker {
 }
 
 func (s *inMemoryStore) Write(p []byte) (n int, err error) {
-	bufLen := len(s.buf)
-	if s.index < bufLen {
-		bufSlice := s.buf[:s.index]
-		s.buf = bufSlice
+	if s.index < len(s.buf) {
+		s.buf = s.buf[:s.index]
 	}
 
 	s.buf = append(s.buf, p...)
