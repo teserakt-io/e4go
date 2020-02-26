@@ -1,6 +1,6 @@
 ![alt text](logo.png)
 
-[![GoDoc][godoc-image]][godoc-url]
+[![GoDoc][godoc-image]][godoc-url] ![Go](https://github.com/teserakt-io/e4go/workflows/Go/badge.svg?branch=develop)
 
 - [Introduction](#introduction)
 - [Using our client application](#using-our-client-application)
