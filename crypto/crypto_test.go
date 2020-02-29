@@ -239,8 +239,8 @@ func TestProtectUnprotectSymKey(t *testing.T) {
 	// Too short cipher are not allowed
 	tooShortProtected := make([]byte, TimestampLen)
 	_, err = UnprotectSymKey(tooShortProtected, key)
-	if err != ErrTooShortCipher {
-		t.Fatalf("Invalid error, got: %v, wanted: %v", err, ErrTooShortCipher)
+	if err != ErrTooShortCiphertext {
+		t.Fatalf("Invalid error, got: %v, wanted: %v", err, ErrTooShortCiphertext)
 	}
 
 	if _, err := UnprotectSymKey(protected, []byte("not a key")); err == nil {
