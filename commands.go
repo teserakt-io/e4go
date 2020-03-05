@@ -78,7 +78,7 @@ func processCommand(client Client, payload []byte) error {
 		return client.resetTopics()
 
 	case SetIDKey:
-		if len(blob) != e4crypto.KeyLen {
+		if len(blob) != e4crypto.KeyLen && len(blob) != ed25519.PrivateKeySize {
 			return errors.New("invalid SetIDKey length")
 		}
 		return client.setIDKey(blob)
@@ -136,8 +136,9 @@ func CmdResetTopics() ([]byte, error) {
 
 // CmdSetIDKey creates a command to set the client private key to the given key
 func CmdSetIDKey(key []byte) ([]byte, error) {
-	if keyLen := len(key); keyLen != e4crypto.KeyLen {
-		return nil, fmt.Errorf("invalid key length, got %d, wanted %d", keyLen, e4crypto.KeyLen)
+	keyLen := len(key)
+	if keyLen != e4crypto.KeyLen && keyLen != ed25519.PrivateKeySize {
+		return nil, fmt.Errorf("invalid key length, got %d, wanted %d or %d", keyLen, e4crypto.KeyLen, ed25519.PrivateKeySize)
 	}
 
 	cmd := append([]byte{SetIDKey}, key...)
