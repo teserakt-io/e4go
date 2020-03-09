@@ -320,12 +320,12 @@ func TestProtectUnprotectCommandsPubKey(t *testing.T) {
 	}
 
 	command := []byte{0x05}
-	sharedKeyKey, err := curve25519.X25519(c2PrivateCurveKey, e4crypto.PublicEd25519KeyToCurve25519(clientEdPk))
+	sharedPoint, err := curve25519.X25519(c2PrivateCurveKey, e4crypto.PublicEd25519KeyToCurve25519(clientEdPk))
 	if err != nil {
 		t.Fatalf("curve25519 X25519 failed: %v", err)
 	}
 
-	protected, err := e4crypto.ProtectSymKey(command, e4crypto.Sha3Sum256(sharedKeyKey))
+	protected, err := e4crypto.ProtectSymKey(command, e4crypto.Sha3Sum256(sharedPoint))
 	if err != nil {
 		t.Fatalf("ProtectSymKey failed: %v", err)
 	}
