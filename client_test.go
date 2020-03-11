@@ -352,242 +352,285 @@ func TestProtectUnprotectCommandsPubKey(t *testing.T) {
 	}
 }
 
-func TestClientPubKeys(t *testing.T) {
-	t.Run("pubKey client properly add / remove / reset pubKeys", func(t *testing.T) {
-		config := &PubNameAndPassword{
-			Name:     "testClient",
-			Password: "passwordTestRandom",
-			C2PubKey: generateCurve25519PubKey(t),
-		}
+func TestClientPubKeys_addRemoveResetPubKeys(t *testing.T) {
+	config := &PubNameAndPassword{
+		Name:     "testClient",
+		Password: "passwordTestRandom",
+		C2PubKey: generateCurve25519PubKey(t),
+	}
 
-		pubKey, err := config.PubKey()
-		if err != nil {
-			t.Fatalf("failed to get pubkey from config: %v", err)
-		}
+	pubKey, err := config.PubKey()
+	if err != nil {
+		t.Fatalf("failed to get pubkey from config: %v", err)
+	}
 
-		store := NewInMemoryStore(nil)
-		e4Client, err := NewClient(config, store)
-		if err != nil {
-			t.Fatalf("Failed to create client: %v", err)
-		}
+	store := NewInMemoryStore(nil)
+	e4Client, err := NewClient(config, store)
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
 
-		if len(pubKey) == 0 {
-			t.Fatal("Empty public key")
-		}
+	if len(pubKey) == 0 {
+		t.Fatal("Empty public key")
+	}
 
-		pks, err := e4Client.getPubKeys()
-		if err != nil {
-			t.Fatalf("Failed to retrieve pubkeys: %v", err)
-		}
+	pks, err := e4Client.getPubKeys()
+	if err != nil {
+		t.Fatalf("Failed to retrieve pubkeys: %v", err)
+	}
 
-		if len(pks) != 0 {
-			t.Fatalf("Invalid pubkey count, got %d, wanted 0", len(pks))
-		}
+	if len(pks) != 0 {
+		t.Fatalf("Invalid pubkey count, got %d, wanted 0", len(pks))
+	}
 
-		id1 := e4crypto.RandomID()
-		pubKey1, _, err := ed25519.GenerateKey(nil)
-		if err != nil {
-			t.Fatalf("Failed to generate pubKey: %v", err)
-		}
+	name1 := "client1"
+	id1 := e4crypto.HashIDAlias(name1)
+	pubKey1, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate pubKey: %v", err)
+	}
 
-		if err := e4Client.setPubKey(pubKey1, id1); err != nil {
-			t.Fatalf("Failed to set pubkey: %v", err)
-		}
+	if err := e4Client.setPubKey(pubKey1, id1); err != nil {
+		t.Fatalf("Failed to set pubkey: %v", err)
+	}
 
-		assertClientPubKey(t, true, e4Client, id1, pubKey1)
-		assertSavedClientPubKeysEquals(t, store, e4Client)
+	assertClientPubKey(t, true, e4Client, name1, pubKey1)
+	assertSavedClientPubKeysEquals(t, store, e4Client)
 
-		id2 := e4crypto.RandomID()
-		pubKey2, _, err := ed25519.GenerateKey(nil)
-		if err != nil {
-			t.Fatalf("Failed to generate pubKey: %v", err)
-		}
+	name2 := "client2"
+	id2 := e4crypto.HashIDAlias(name2)
+	pubKey2, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate pubKey: %v", err)
+	}
 
-		if err := e4Client.setPubKey(pubKey2, id2); err != nil {
-			t.Fatalf("Failed to set pubkey: %v", err)
-		}
+	if err := e4Client.setPubKey(pubKey2, id2); err != nil {
+		t.Fatalf("Failed to set pubkey: %v", err)
+	}
 
-		assertClientPubKey(t, true, e4Client, id1, pubKey1)
-		assertClientPubKey(t, true, e4Client, id2, pubKey2)
-		assertSavedClientPubKeysEquals(t, store, e4Client)
+	assertClientPubKey(t, true, e4Client, name1, pubKey1)
+	assertClientPubKey(t, true, e4Client, name2, pubKey2)
+	assertSavedClientPubKeysEquals(t, store, e4Client)
 
-		id3 := e4crypto.RandomID()
-		if err := e4Client.removePubKey(id3); err == nil {
-			t.Fatal("Expected removal of pubKey with unknown ID to produce an error")
-		}
+	name3 := "client3"
+	id3 := e4crypto.HashIDAlias(name3)
+	if err := e4Client.removePubKey(id3); err == nil {
+		t.Fatal("Expected removal of pubKey with unknown ID to produce an error")
+	}
 
-		if err := e4Client.removePubKey(id1); err != nil {
-			t.Fatalf("Failed to remove a known pubKey: %v", err)
-		}
+	if err := e4Client.removePubKey(id1); err != nil {
+		t.Fatalf("Failed to remove a known pubKey: %v", err)
+	}
 
-		assertClientPubKey(t, true, e4Client, id2, pubKey2)
-		assertSavedClientPubKeysEquals(t, store, e4Client)
+	assertClientPubKey(t, true, e4Client, name2, pubKey2)
+	assertSavedClientPubKeysEquals(t, store, e4Client)
 
-		pks, err = e4Client.getPubKeys()
-		if err != nil {
-			t.Fatalf("Failed to retrieve pubkeys: %v", err)
-		}
+	pks, err = e4Client.getPubKeys()
+	if err != nil {
+		t.Fatalf("Failed to retrieve pubkeys: %v", err)
+	}
 
-		if _, ok := pks[string(id1)]; ok {
-			t.Fatal("Expected pubKey for id1 to have been removed")
-		}
+	if _, ok := pks[string(id1)]; ok {
+		t.Fatal("Expected pubKey for id1 to have been removed")
+	}
 
-		if err := e4Client.resetPubKeys(); err != nil {
-			t.Fatalf("Failed to reset pubKeys: %v", err)
-		}
+	if err := e4Client.resetPubKeys(); err != nil {
+		t.Fatalf("Failed to reset pubKeys: %v", err)
+	}
 
-		pks, err = e4Client.getPubKeys()
-		if err != nil {
-			t.Fatalf("Failed to retrieve pubkeys: %v", err)
-		}
+	pks, err = e4Client.getPubKeys()
+	if err != nil {
+		t.Fatalf("Failed to retrieve pubkeys: %v", err)
+	}
 
-		if len(pks) != 0 {
-			t.Fatalf("Invalid public key count, got %d, wanted 0", len(pks))
-		}
+	if len(pks) != 0 {
+		t.Fatalf("Invalid public key count, got %d, wanted 0", len(pks))
+	}
 
-		assertSavedClientPubKeysEquals(t, store, e4Client)
-	})
-
-	t.Run("pubKey client return errors on pubKey operations with invalid ids", func(t *testing.T) {
-		config := &PubNameAndPassword{
-			Name:     "testClient",
-			Password: "passwordTestRandom",
-			C2PubKey: generateCurve25519PubKey(t),
-		}
-
-		pubKey, err := config.PubKey()
-		if err != nil {
-			t.Fatalf("failed to get pubkey from config: %v", err)
-		}
-
-		pubClient, err := NewClient(config, NewInMemoryStore(nil))
-		if err != nil {
-			t.Fatalf("Failed to create client: %v", err)
-		}
-
-		if len(pubKey) == 0 {
-			t.Fatal("Empty public key")
-		}
-
-		pk, _, err := ed25519.GenerateKey(nil)
-		if err != nil {
-			t.Fatalf("Failed to generate publicKey: %v", err)
-		}
-
-		if err := pubClient.setPubKey(pk, []byte("bad id")); err == nil {
-			t.Fatal("Expected an error when setting a pubkey with an invalid id")
-		}
-
-		if err := pubClient.removePubKey([]byte("bad id")); err == nil {
-			t.Fatal("Expected an error when setting a pubkey with an invalid id")
-		}
-	})
-
-	t.Run("symClient must return unsupported operations on pubKey methods", func(t *testing.T) {
-		symClient, err := NewClient(&SymNameAndPassword{
-			Name:     "testClient",
-			Password: "passwordTestRandom",
-		}, NewInMemoryStore(nil))
-		if err != nil {
-			t.Fatalf("Failed to create symClient: %v", err)
-		}
-
-		if _, err := symClient.getPubKeys(); err != ErrUnsupportedOperation {
-			t.Fatalf("Invalid error: got %v, wanted %v", err, ErrUnsupportedOperation)
-		}
-
-		if err := symClient.setPubKey([]byte{}, []byte{}); err != ErrUnsupportedOperation {
-			t.Fatalf("Invalid error: got %v, wanted %v", err, ErrUnsupportedOperation)
-		}
-
-		if err := symClient.removePubKey([]byte{}); err != ErrUnsupportedOperation {
-			t.Fatalf("Invalid error: got %v, wanted %v", err, ErrUnsupportedOperation)
-		}
-
-		if err := symClient.resetPubKeys(); err != ErrUnsupportedOperation {
-			t.Fatalf("Invalid error: got %v, wanted %v", err, ErrUnsupportedOperation)
-		}
-	})
+	assertSavedClientPubKeysEquals(t, store, e4Client)
 }
 
-func TestClientTopics(t *testing.T) {
-	t.Run("topic key operations properly update client state", func(t *testing.T) {
-		symClient, err := NewClient(&SymNameAndPassword{
-			Name:     "clientID",
-			Password: "passwordTestRandom",
-		}, NewInMemoryStore(nil))
-		if err != nil {
-			t.Fatalf("Failed to create client: %v", err)
-		}
+func TestClientPubKeys_addRemoveWithInvalidIDs(t *testing.T) {
+	config := &PubNameAndPassword{
+		Name:     "testClient",
+		Password: "passwordTestRandom",
+		C2PubKey: generateCurve25519PubKey(t),
+	}
 
-		tSymClient, ok := symClient.(*client)
-		if !ok {
-			t.Fatalf("Unexpected type: got %T, wanted client", symClient)
-		}
+	pubKey, err := config.PubKey()
+	if err != nil {
+		t.Fatalf("failed to get pubkey from config: %v", err)
+	}
 
-		if c := len(tSymClient.TopicKeys); c != 0 {
-			t.Fatalf("Invalid count of topic keys, got %d, wanted 0", c)
-		}
+	pubClient, err := NewClient(config, NewInMemoryStore(nil))
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
 
-		topicKey1 := e4crypto.RandomKey()
-		topicHash1 := e4crypto.HashTopic("topic1")
+	if len(pubKey) == 0 {
+		t.Fatal("Empty public key")
+	}
 
-		if err := tSymClient.setTopicKey(topicKey1, topicHash1); err != nil {
-			t.Fatalf("Failed to set topic key: %v", err)
-		}
-		assertClientTopicKey(t, true, tSymClient, topicHash1, topicKey1)
+	pk, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate publicKey: %v", err)
+	}
 
-		topicKey2 := e4crypto.RandomKey()
-		topicHash2 := e4crypto.HashTopic("topic2")
+	if err := pubClient.setPubKey(pk, []byte("bad id")); err == nil {
+		t.Fatal("Expected an error when setting a pubkey with an invalid id")
+	}
 
-		if err := tSymClient.setTopicKey(topicKey2, topicHash2); err != nil {
-			t.Fatalf("Failed to set topic key: %v", err)
-		}
-
-		assertClientTopicKey(t, true, tSymClient, topicHash1, topicKey1)
-		assertClientTopicKey(t, true, tSymClient, topicHash2, topicKey2)
-
-		if err := tSymClient.removeTopic(topicHash1); err != nil {
-			t.Fatalf("Failed to remove topic key: %v", err)
-		}
-
-		if c := len(tSymClient.TopicKeys); c != 1 {
-			t.Fatalf("Invalid topic key count, got %d, wanted 1", c)
-		}
-
-		assertClientTopicKey(t, false, tSymClient, topicHash1, nil)
-		assertClientTopicKey(t, true, tSymClient, topicHash2, topicKey2)
-
-		if err := tSymClient.resetTopics(); err != nil {
-			t.Fatalf("Failed to reset topics: %v", err)
-		}
-		if c := len(tSymClient.TopicKeys); c != 0 {
-			t.Fatalf("Invalid topic key count, got %d, wanted 0", c)
-		}
-	})
-
-	t.Run("topic key operations returns errors when invoked with bad topic hashes", func(t *testing.T) {
-		symClient, err := NewClient(&SymNameAndPassword{
-			Name:     "clientID",
-			Password: "passwordTestRandom",
-		}, NewInMemoryStore(nil))
-		if err != nil {
-			t.Fatalf("Failed to create client: %v", err)
-		}
-
-		topicKey := e4crypto.RandomKey()
-
-		if err := symClient.setTopicKey(topicKey, []byte("bad hash")); err == nil {
-			t.Fatal("Expected setTopicKey to fail with a bad topic hash")
-		}
-
-		if err := symClient.removeTopic([]byte("bad hash")); err == nil {
-			t.Fatal("Expected RemoveTopic to fail with a bad topic hash")
-		}
-	})
+	if err := pubClient.removePubKey([]byte("bad id")); err == nil {
+		t.Fatal("Expected an error when setting a pubkey with an invalid id")
+	}
 }
 
-func TestClientSetIDKey(t *testing.T) {
+func TestSymClient_pubKeyMethods(t *testing.T) {
+	symClient, err := NewClient(&SymNameAndPassword{
+		Name:     "testClient",
+		Password: "passwordTestRandom",
+	}, NewInMemoryStore(nil))
+	if err != nil {
+		t.Fatalf("Failed to create symClient: %v", err)
+	}
+
+	if _, err := symClient.getPubKeys(); err != ErrUnsupportedOperation {
+		t.Fatalf("Invalid error: got %v, wanted %v", err, ErrUnsupportedOperation)
+	}
+
+	if err := symClient.setPubKey([]byte{}, []byte{}); err != ErrUnsupportedOperation {
+		t.Fatalf("Invalid error: got %v, wanted %v", err, ErrUnsupportedOperation)
+	}
+
+	if err := symClient.removePubKey([]byte{}); err != ErrUnsupportedOperation {
+		t.Fatalf("Invalid error: got %v, wanted %v", err, ErrUnsupportedOperation)
+	}
+
+	if err := symClient.resetPubKeys(); err != ErrUnsupportedOperation {
+		t.Fatalf("Invalid error: got %v, wanted %v", err, ErrUnsupportedOperation)
+	}
+}
+
+func TestClientTopics_setRemoveResetTopicKeys(t *testing.T) {
+	symClient, err := NewClient(&SymNameAndPassword{
+		Name:     "clientID",
+		Password: "passwordTestRandom",
+	}, NewInMemoryStore(nil))
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	tSymClient, ok := symClient.(*client)
+	if !ok {
+		t.Fatalf("Unexpected type: got %T, wanted client", symClient)
+	}
+
+	if c := len(tSymClient.TopicKeys); c != 0 {
+		t.Fatalf("Invalid count of topic keys, got %d, wanted 0", c)
+	}
+
+	topicKey1 := e4crypto.RandomKey()
+	topic1 := "topic1"
+	topicHash1 := e4crypto.HashTopic(topic1)
+
+	if err := tSymClient.setTopicKey(topicKey1, topicHash1); err != nil {
+		t.Fatalf("Failed to set topic key: %v", err)
+	}
+	assertClientTopicKey(t, true, tSymClient, topic1, topicKey1)
+
+	topicKey2 := e4crypto.RandomKey()
+	topic2 := "topic2"
+	topicHash2 := e4crypto.HashTopic(topic2)
+
+	if err := tSymClient.setTopicKey(topicKey2, topicHash2); err != nil {
+		t.Fatalf("Failed to set topic key: %v", err)
+	}
+
+	assertClientTopicKey(t, true, tSymClient, topic1, topicKey1)
+	assertClientTopicKey(t, true, tSymClient, topic2, topicKey2)
+
+	if err := tSymClient.removeTopic(topicHash1); err != nil {
+		t.Fatalf("Failed to remove topic key: %v", err)
+	}
+
+	if c := len(tSymClient.TopicKeys); c != 1 {
+		t.Fatalf("Invalid topic key count, got %d, wanted 1", c)
+	}
+
+	assertClientTopicKey(t, false, tSymClient, topic1, topicKey1)
+	assertClientTopicKey(t, true, tSymClient, topic2, topicKey2)
+
+	if err := tSymClient.resetTopics(); err != nil {
+		t.Fatalf("Failed to reset topics: %v", err)
+	}
+	if c := len(tSymClient.TopicKeys); c != 0 {
+		t.Fatalf("Invalid topic key count, got %d, wanted 0", c)
+	}
+}
+
+func TestClientTopics_setRemoveInvalidTopics(t *testing.T) {
+	symClient, err := NewClient(&SymNameAndPassword{
+		Name:     "clientID",
+		Password: "passwordTestRandom",
+	}, NewInMemoryStore(nil))
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	topicKey := e4crypto.RandomKey()
+
+	if err := symClient.setTopicKey(topicKey, []byte("bad hash")); err == nil {
+		t.Fatal("Expected setTopicKey to fail with a bad topic hash")
+	}
+
+	if err := symClient.removeTopic([]byte("bad hash")); err == nil {
+		t.Fatal("Expected RemoveTopic to fail with a bad topic hash")
+	}
+}
+
+func TestSymClient_setIDKey(t *testing.T) {
+	symClient, err := NewClient(&SymIDAndKey{
+		ID:  e4crypto.HashIDAlias("client1"),
+		Key: e4crypto.RandomKey(),
+	}, NewInMemoryStore(nil))
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	validSymKey := e4crypto.RandomKey()
+	if err := symClient.setIDKey(validSymKey); err != nil {
+		t.Fatalf("failed to set valid symkey: %v", err)
+	}
+}
+
+func TestSymClient_invalidSetIDKey(t *testing.T) {
+	_, edSk, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("failed to generate ed25519 key")
+	}
+
+	invalidKeys := [][]byte{
+		make([]byte, e4crypto.KeyLen),
+		e4crypto.RandomKey()[:e4crypto.KeyLen-1],
+		edSk,
+	}
+
+	symClient, err := NewClient(&SymIDAndKey{
+		ID:  e4crypto.HashIDAlias("client1"),
+		Key: e4crypto.RandomKey(),
+	}, NewInMemoryStore(nil))
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	for _, key := range invalidKeys {
+		if err := symClient.setIDKey(key); err == nil {
+			t.Fatal("an error was expected when setting an invalid symkey")
+		}
+	}
+}
+
+func TestPubClient_setIDKey(t *testing.T) {
 	_, edSk, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		t.Fatalf("failed to generate ed25519 key")
@@ -598,90 +641,64 @@ func TestClientSetIDKey(t *testing.T) {
 		t.Fatalf("failed to generate c2 pubkey: %v", err)
 	}
 
-	symConfig := &SymIDAndKey{
-		ID:  e4crypto.HashIDAlias("client1"),
-		Key: e4crypto.RandomKey(),
-	}
-
-	pubConfig := &PubIDAndKey{
+	pubClient, err := NewClient(&PubIDAndKey{
 		ID:       e4crypto.HashIDAlias("client1"),
 		Key:      edSk,
 		C2PubKey: c2PubKey,
+	}, NewInMemoryStore(nil))
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
 	}
 
-	t.Run("Setting a valid symkey to a symkey client", func(t *testing.T) {
-		symClient, err := NewClient(symConfig, NewInMemoryStore(nil))
-		if err != nil {
-			t.Fatalf("Failed to create client: %v", err)
-		}
+	_, validEdSk, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("failed to generate ed25519 key: %v", err)
+	}
 
-		validSymKey := e4crypto.RandomKey()
-		if err := symClient.setIDKey(validSymKey); err != nil {
-			t.Fatalf("failed to set valid symkey: %v", err)
-		}
-	})
-
-	t.Run("Setting a invalid symkey to a symkey client", func(t *testing.T) {
-		invalidKeys := [][]byte{
-			make([]byte, e4crypto.KeyLen),
-			e4crypto.RandomKey()[:e4crypto.KeyLen-1],
-			edSk,
-		}
-
-		symClient, err := NewClient(symConfig, NewInMemoryStore(nil))
-		if err != nil {
-			t.Fatalf("Failed to create client: %v", err)
-		}
-
-		for _, key := range invalidKeys {
-			if err := symClient.setIDKey(key); err == nil {
-				t.Fatal("an error was expected when setting an invalid symkey")
-			}
-		}
-	})
-
-	t.Run("Setting a valid ed25519 key to a pubkey client", func(t *testing.T) {
-		pubClient, err := NewClient(pubConfig, NewInMemoryStore(nil))
-		if err != nil {
-			t.Fatalf("Failed to create client: %v", err)
-		}
-
-		_, validEdSk, err := ed25519.GenerateKey(nil)
-		if err != nil {
-			t.Fatalf("failed to generate ed25519 key: %v", err)
-		}
-
-		if err := pubClient.setIDKey(validEdSk); err != nil {
-			t.Fatalf("failed to set valid ed25519 key: %v", err)
-		}
-	})
-
-	t.Run("Setting an invalid ed25519 key to a pubkey client", func(t *testing.T) {
-		_, validEdSk, err := ed25519.GenerateKey(nil)
-		if err != nil {
-			t.Fatalf("failed to generate ed25519 key: %v", err)
-		}
-
-		invalidKeys := [][]byte{
-			make([]byte, ed25519.PrivateKeySize),
-			validEdSk[:ed25519.PrivateKeySize-1],
-			e4crypto.RandomKey(),
-		}
-
-		pubClient, err := NewClient(pubConfig, NewInMemoryStore(nil))
-		if err != nil {
-			t.Fatalf("Failed to create client: %v", err)
-		}
-
-		for _, key := range invalidKeys {
-			if err := pubClient.setIDKey(key); err == nil {
-				t.Fatal("an error was expected when setting an invalid ed25519 private key")
-			}
-		}
-	})
+	if err := pubClient.setIDKey(validEdSk); err != nil {
+		t.Fatalf("failed to set valid ed25519 key: %v", err)
+	}
 }
 
-func TestClientSetC2Key(t *testing.T) {
+func TestPubClient_invalidSetIDKey(t *testing.T) {
+	_, validEdSk, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("failed to generate ed25519 key: %v", err)
+	}
+
+	c2PubKey := make([]byte, e4crypto.Curve25519PubKeyLen)
+	if _, err = rand.Read(c2PubKey); err != nil {
+		t.Fatalf("failed to generate c2 pubkey: %v", err)
+	}
+
+	testCases := []struct {
+		name string
+		key  []byte
+	}{
+		{"all zeros", make([]byte, ed25519.PrivateKeySize)},
+		{"ed25519.PrivateKeySize-1", validEdSk[:ed25519.PrivateKeySize-1]},
+		{"32 bits key", e4crypto.RandomKey()},
+	}
+
+	pubClient, err := NewClient(&PubIDAndKey{
+		ID:       e4crypto.HashIDAlias("client1"),
+		Key:      validEdSk,
+		C2PubKey: c2PubKey,
+	}, NewInMemoryStore(nil))
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			if err := pubClient.setIDKey(testCase.key); err == nil {
+				t.Fatal("an error was expected when setting an invalid ed25519 private key")
+			}
+		})
+	}
+}
+
+func TestClient_setC2Key(t *testing.T) {
 	c2PubKey, err := curve25519.X25519(e4crypto.RandomKey(), curve25519.Basepoint)
 	if err != nil {
 		t.Fatalf("failed to generate public curve25519 key: %v", err)
@@ -726,14 +743,9 @@ func TestClientSetC2Key(t *testing.T) {
 	}
 }
 
-func TestCommandsSymClient(t *testing.T) {
+func setupForSymClientUnprotectTests(t *testing.T) (Client, []byte) {
 	clientID := e4crypto.HashIDAlias("client1")
 	clientKey := e4crypto.RandomKey()
-
-	topic := "topic1"
-	topicHash := e4crypto.HashTopic(topic)
-
-	receivingTopic := TopicForID(clientID)
 
 	symClient, err := NewClient(&SymIDAndKey{
 		ID:  clientID,
@@ -743,293 +755,10 @@ func TestCommandsSymClient(t *testing.T) {
 		t.Fatalf("Failed to create client: %v", err)
 	}
 
-	topicKey := e4crypto.RandomKey()
-	setTopicCmd, err := CmdSetTopicKey(topicKey, topic)
-	if err != nil {
-		t.Fatalf("CmdSetTopicKey failed: %v", err)
-	}
-
-	protectedSetTopicCmd, err := e4crypto.ProtectSymKey(setTopicCmd, clientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-
-	badProtectedSetTopicCmd, err := e4crypto.ProtectSymKey(append(setTopicCmd, 0x01), clientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-	if _, err := symClient.Unprotect(badProtectedSetTopicCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad setTopic Command length")
-	}
-
-	// Add the topic key
-	d, err := symClient.Unprotect(protectedSetTopicCmd, receivingTopic)
-	if err != nil {
-		t.Fatalf("Failed to unprotect command: %v", err)
-	}
-	if d != nil {
-		t.Fatalf("Expected no returned data, got %v", d)
-	}
-
-	assertClientTopicKey(t, true, symClient, topicHash, topicKey)
-
-	removeTopicCmd, err := CmdRemoveTopic(topic)
-	if err != nil {
-		t.Fatalf("failed to create RemoveTopic command: %v", err)
-	}
-
-	protectedRemoveTopicCmd, err := e4crypto.ProtectSymKey(removeTopicCmd, clientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-
-	badProtectedRemoveTopicCmd, err := e4crypto.ProtectSymKey(append(removeTopicCmd, 0x01), clientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-	if _, err := symClient.Unprotect(badProtectedRemoveTopicCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad removeTopic Command length")
-	}
-
-	// Remove the topic key
-	d, err = symClient.Unprotect(protectedRemoveTopicCmd, receivingTopic)
-	if err != nil {
-		t.Fatalf("Failed to unprotect command: %v", err)
-	}
-	if d != nil {
-		t.Fatalf("Invalid unprotect command response, got %v, wanted nil", d)
-	}
-
-	assertClientTopicKey(t, false, symClient, topicHash, nil)
-
-	// Add back the topic key
-	d, err = symClient.Unprotect(protectedSetTopicCmd, receivingTopic)
-	if err != nil {
-		t.Fatalf("Failed to unprotect command: %v", err)
-	}
-	if d != nil {
-		t.Fatalf("Invalid unprotect command response, got %v, wanted nil", d)
-	}
-
-	assertClientTopicKey(t, true, symClient, topicHash, topicKey)
-
-	// Add a new topic key for the same topic, old one should still be available
-	newTopicKey := e4crypto.RandomKey()
-	setTopicCmd, err = CmdSetTopicKey(newTopicKey, topic)
-	if err != nil {
-		t.Fatalf("CmdSetTopicKey failed: %v", err)
-	}
-
-	protectedSetTopicCmd, err = e4crypto.ProtectSymKey(setTopicCmd, clientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-
-	d, err = symClient.Unprotect(protectedSetTopicCmd, receivingTopic)
-	if err != nil {
-		t.Fatalf("Failed to unprotect command: %v", err)
-	}
-	if d != nil {
-		t.Fatalf("Invalid unprotect command response, got %v, wanted nil", d)
-	}
-
-	hashHash := e4crypto.HashTopic(string(topicHash))
-
-	typedSymClient, ok := symClient.(*client)
-	if !ok {
-		t.Fatalf("Unexpected type: got %T, wanted client", symClient)
-	}
-
-	k, ok := typedSymClient.TopicKeys[hex.EncodeToString(hashHash)]
-	if !ok {
-		t.Fatal("Previous key not found")
-	}
-	if g, w := len(k), e4crypto.KeyLen+e4crypto.TimestampLen; g != w {
-		t.Fatalf("Invalid transition topic key lengths: got %d, wanted %d", g, w)
-	}
-	if !bytes.Equal(k[:e4crypto.KeyLen], topicKey) {
-		t.Fatalf("Invalid topic key: got %v, wanted %v", k, topicKey)
-	}
-
-	// Reset topics
-	resetTopicCmd, err := CmdResetTopics()
-	if err != nil {
-		t.Fatalf("failed to create ResetTopics command: %v", err)
-	}
-
-	protectedResetCmd, err := e4crypto.ProtectSymKey(resetTopicCmd, clientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-
-	badProtectedResetCmd, err := e4crypto.ProtectSymKey(append(resetTopicCmd, 0x01), clientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-	if _, err := symClient.Unprotect(badProtectedResetCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad reset Command length")
-	}
-
-	d, err = symClient.Unprotect(protectedResetCmd, receivingTopic)
-	if err != nil {
-		t.Fatalf("Failed to unprotect command: %v", err)
-	}
-	if d != nil {
-		t.Fatalf("Invalid unprotect command response, got %v, wanted nil", d)
-	}
-
-	assertClientTopicKey(t, false, symClient, topicHash, topicKey)
-
-	// SetIDKey
-	newClientKey := e4crypto.RandomKey()
-	setIDKeyCmd, err := CmdSetIDKey(newClientKey)
-	if err != nil {
-		t.Fatalf("failed to create SetIDKey command: %v", err)
-	}
-
-	protectedSetIDKeyCmd, err := e4crypto.ProtectSymKey(setIDKeyCmd, clientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-
-	badProtectedSetIDKeyCmd, err := e4crypto.ProtectSymKey(append(setIDKeyCmd, 0x01), clientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-	if _, err := symClient.Unprotect(badProtectedSetIDKeyCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad setIDKey Command length")
-	}
-
-	d, err = symClient.Unprotect(protectedSetIDKeyCmd, receivingTopic)
-	if err != nil {
-		t.Fatalf("Failed to unprotect command: %v", err)
-	}
-	if d != nil {
-		t.Fatalf("Expected no returned data, got %v", d)
-	}
-
-	// Unprotecting again the same command must fail since the key have changed
-	if _, err := symClient.Unprotect(protectedSetIDKeyCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a command protected with old key")
-	}
-
-	client2Name := "client2"
-	pubKey, _, err := ed25519.GenerateKey(nil)
-	if err != nil {
-		t.Fatalf("Failed to generate pubkey: %v", err)
-	}
-	setPubKeyCmd, err := CmdSetPubKey(pubKey, client2Name)
-	if err != nil {
-		t.Fatalf("failed to create SetPubKey command: %v", err)
-	}
-
-	protectedSetPubKeyCmd, err := e4crypto.ProtectSymKey(setPubKeyCmd, newClientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-
-	badProtectedSetPubKeyCmd, err := e4crypto.ProtectSymKey(append(setPubKeyCmd, 0x01), newClientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-	if _, err := symClient.Unprotect(badProtectedSetPubKeyCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad setPubKey Command length")
-	}
-
-	_, err = symClient.Unprotect(protectedSetPubKeyCmd, receivingTopic)
-	if err != ErrUnsupportedOperation {
-		t.Fatalf("Invalid error when unprotecting command: got %v, wanted %v", err, ErrUnsupportedOperation)
-	}
-
-	// RemovePubKey
-	removePubKeyCmd, err := CmdRemovePubKey(client2Name)
-	if err != nil {
-		t.Fatalf("failed to create RemovePubKey command: %v", err)
-	}
-
-	protectedRemovePubKeyCmd, err := e4crypto.ProtectSymKey(removePubKeyCmd, newClientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-
-	badProtectedRemovePubKeyCmd, err := e4crypto.ProtectSymKey(append(removePubKeyCmd, 0x01), newClientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-	if _, err := symClient.Unprotect(badProtectedRemovePubKeyCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad removePubKey Command length")
-	}
-
-	_, err = symClient.Unprotect(protectedRemovePubKeyCmd, receivingTopic)
-	if err != ErrUnsupportedOperation {
-		t.Fatalf("Invalid error when unprotecting command: got %v, wanted %v", err, ErrUnsupportedOperation)
-	}
-
-	// ResetPubKeys
-	resetPubKeyCmd, err := CmdResetPubKeys()
-	if err != nil {
-		t.Fatalf("failed to create ResetPubKeys command: %v", err)
-	}
-
-	protectedResetPubKeyCmd, err := e4crypto.ProtectSymKey(resetPubKeyCmd, newClientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-
-	badProtectedResetPubKeyCmd, err := e4crypto.ProtectSymKey(append(resetPubKeyCmd, 0x01), newClientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-	if _, err := symClient.Unprotect(badProtectedResetPubKeyCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad resetPubKey Command length")
-	}
-
-	_, err = symClient.Unprotect(protectedResetPubKeyCmd, receivingTopic)
-	if err != ErrUnsupportedOperation {
-		t.Fatalf("Invalid error when unprotecting command: got %v, wanted %v", err, ErrUnsupportedOperation)
-	}
-
-	// SetC2Key
-	c2PubKey, err := curve25519.X25519(e4crypto.RandomKey(), curve25519.Basepoint)
-	if err != nil {
-		t.Fatalf("failed to generate pubkey: %v", err)
-	}
-	setC2KeyCmd, err := CmdSetC2Key(c2PubKey)
-	if err != nil {
-		t.Fatalf("failed to create SetC2Key command: %v", err)
-	}
-	badProtectedSetC2KeyCmd, err := e4crypto.ProtectSymKey(append(setC2KeyCmd, 0x01), newClientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-	if _, err := symClient.Unprotect(badProtectedSetC2KeyCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad setC2Key Command length")
-	}
-
-	protectedSetC2KeyCmd, err := e4crypto.ProtectSymKey(setC2KeyCmd, newClientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-
-	_, err = symClient.Unprotect(protectedSetC2KeyCmd, receivingTopic)
-	if err != ErrUnsupportedOperation {
-		t.Fatalf("Invalid error when unprotecting command: got %v, wanted %v", err, ErrUnsupportedOperation)
-	}
-
-	// Unknown command
-	unknownCmd := []byte{0xFF}
-	protectedUnknownCmd, err := e4crypto.ProtectSymKey(unknownCmd, newClientKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-
-	_, err = symClient.Unprotect(protectedUnknownCmd, receivingTopic)
-	if err != ErrInvalidCommand {
-		t.Fatalf("Invalid error when unprotecting command: got %v, wanted %v", err, ErrInvalidCommand)
-	}
+	return symClient, clientKey
 }
 
-func TestCommandsPubClient(t *testing.T) {
+func setupForPubClientUnprotectTests(t *testing.T) (Client, []byte, []byte, []byte) {
 	clientID := e4crypto.HashIDAlias("client1")
 	clientPubKey, clientSKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
@@ -1041,11 +770,6 @@ func TestCommandsPubClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to generate curve public key: %v", err)
 	}
-
-	topic := "topic1"
-	topicHash := e4crypto.HashTopic(topic)
-
-	receivingTopic := TopicForID(clientID)
 
 	sharedKey, err := curve25519.X25519(c2PrivKey, e4crypto.PublicEd25519KeyToCurve25519(clientPubKey))
 	if err != nil {
@@ -1062,134 +786,196 @@ func TestCommandsPubClient(t *testing.T) {
 		t.Fatalf("Failed to create client: %v", err)
 	}
 
-	topicKey := e4crypto.RandomKey()
+	return pubClient, sharedKey, c2PrivKey, clientPubKey
+}
+
+func setTopicKey(t *testing.T, client Client, protectCommandKey []byte, topic string, topicKey []byte) {
 	setTopicCmd, err := CmdSetTopicKey(topicKey, topic)
 	if err != nil {
 		t.Fatalf("CmdSetTopicKey failed: %v", err)
 	}
 
-	protectedSetTopicCmd, err := e4crypto.ProtectSymKey(setTopicCmd, sharedKey)
+	protectedSetTopicCmd, err := e4crypto.ProtectSymKey(setTopicCmd, protectCommandKey)
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
 
-	badProtectedSetTopicCmd, err := e4crypto.ProtectSymKey(append(setTopicCmd, 0x01), sharedKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-	if _, err := pubClient.Unprotect(badProtectedSetTopicCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad setTopic Command length")
-	}
-
-	// Add the topic key
-	d, err := pubClient.Unprotect(protectedSetTopicCmd, receivingTopic)
+	d, err := client.Unprotect(protectedSetTopicCmd, client.GetReceivingTopic())
 	if err != nil {
 		t.Fatalf("Failed to unprotect command: %v", err)
 	}
 	if d != nil {
 		t.Fatalf("Expected no returned data, got %v", d)
 	}
+}
 
-	assertClientTopicKey(t, true, pubClient, topicHash, topicKey)
+func setPubKey(t *testing.T, client Client, protectCommandKey []byte, pubKeyName string, pubKey []byte) {
+	setPubKeyCmd, err := CmdSetPubKey(pubKey, pubKeyName)
+	if err != nil {
+		t.Fatalf("failed to create SetPubKey command: %v", err)
+	}
+	protectedSetPubKeyCmd, err := e4crypto.ProtectSymKey(setPubKeyCmd, protectCommandKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+	_, err = client.Unprotect(protectedSetPubKeyCmd, client.GetReceivingTopic())
+	if err != nil {
+		t.Fatalf("Failed to unprotect SetPubKeyCmd: %v", err)
+	}
+
+	assertClientPubKey(t, true, client, pubKeyName, pubKey)
+}
+
+func testClientSetTopicKey(t *testing.T, client Client, protectCommandKey []byte) {
+	topic := "topic1"
+	topicKey := e4crypto.RandomKey()
+
+	setTopicKey(t, client, protectCommandKey, topic, topicKey)
+
+	assertClientTopicKey(t, true, client, topic, topicKey)
+}
+
+func testClientRemoveTopicKey(t *testing.T, client Client, protectCommandKey []byte) {
+	topic1 := "topic1"
+	topic1Key1 := e4crypto.RandomKey()
+	topic1Key2 := e4crypto.RandomKey()
+	topic2 := "topic2"
+	topic2Key := e4crypto.RandomKey()
+
+	setTopicKey(t, client, protectCommandKey, topic1, topic1Key1)
+	setTopicKey(t, client, protectCommandKey, topic1, topic1Key2) // set topic1Key1 in transitionned state
+	setTopicKey(t, client, protectCommandKey, topic2, topic2Key)
+
+	assertClientTopicKey(t, true, client, topic1, topic1Key2)
+	assertClientTransitionTopicKey(t, true, client, topic1, topic1Key1)
+	assertClientTopicKey(t, true, client, topic2, topic2Key)
+
+	removeTopicCmd, err := CmdRemoveTopic(topic1)
+	if err != nil {
+		t.Fatalf("failed to create RemoveTopic command: %v", err)
+	}
+	protectedRemoveTopicCmd, err := e4crypto.ProtectSymKey(removeTopicCmd, protectCommandKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+
+	// Remove the topic key
+	d, err := client.Unprotect(protectedRemoveTopicCmd, client.GetReceivingTopic())
+	if err != nil {
+		t.Fatalf("Failed to unprotect command: %v", err)
+	}
+	if d != nil {
+		t.Fatalf("Invalid unprotect command response, got %v, wanted nil", d)
+	}
+
+	assertClientTopicKey(t, false, client, topic1, topic1Key2)
+	assertClientTransitionTopicKey(t, false, client, topic1, topic1Key1)
+	assertClientTopicKey(t, true, client, topic2, topic2Key)
+}
+
+func testClientInvalidSetTopicKey(t *testing.T, client Client, protectCommandKey []byte) {
+	topic := "topic1"
+	topicKey := e4crypto.RandomKey()
+	setTopicCmd, err := CmdSetTopicKey(topicKey, topic)
+	if err != nil {
+		t.Fatalf("CmdSetTopicKey failed: %v", err)
+	}
+
+	badProtectedSetTopicCmd, err := e4crypto.ProtectSymKey(append(setTopicCmd, 0x01), protectCommandKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+	if _, err := client.Unprotect(badProtectedSetTopicCmd, client.GetReceivingTopic()); err == nil {
+		t.Fatal("Expected an error with a bad setTopic Command length")
+	}
+
+	assertClientTopicKey(t, false, client, topic, topicKey)
+}
+
+func testClientInvalidRemoveTopicKey(t *testing.T, client Client, protectCommandKey []byte) {
+	// Set a topic key first
+	topic := "topic1"
+	topicKey := e4crypto.RandomKey()
+
+	setTopicCmd, err := CmdSetTopicKey(topicKey, topic)
+	if err != nil {
+		t.Fatalf("CmdSetTopicKey failed: %v", err)
+	}
+	protectedSetTopicCmd, err := e4crypto.ProtectSymKey(setTopicCmd, protectCommandKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+	if _, err := client.Unprotect(protectedSetTopicCmd, client.GetReceivingTopic()); err != nil {
+		t.Fatalf("Failed to unprotect command: %v", err)
+	}
+
+	assertClientTopicKey(t, true, client, topic, topicKey)
 
 	removeTopicCmd, err := CmdRemoveTopic(topic)
 	if err != nil {
 		t.Fatalf("failed to create RemoveTopic command: %v", err)
 	}
-
-	protectedRemoveTopicCmd, err := e4crypto.ProtectSymKey(removeTopicCmd, sharedKey)
+	badProtectedRemoveTopicCmd, err := e4crypto.ProtectSymKey(append(removeTopicCmd, 0x01), protectCommandKey)
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
-
-	badProtectedRemoveTopicCmd, err := e4crypto.ProtectSymKey(append(removeTopicCmd, 0x01), sharedKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-	if _, err := pubClient.Unprotect(badProtectedRemoveTopicCmd, receivingTopic); err == nil {
+	if _, err := client.Unprotect(badProtectedRemoveTopicCmd, client.GetReceivingTopic()); err == nil {
 		t.Fatal("Expected an error with a bad removeTopic Command length")
 	}
 
-	// Remove the topic key
-	d, err = pubClient.Unprotect(protectedRemoveTopicCmd, receivingTopic)
-	if err != nil {
-		t.Fatalf("Failed to unprotect command: %v", err)
-	}
-	if d != nil {
-		t.Fatalf("Invalid unprotect command response, got %v, wanted nil", d)
-	}
+	assertClientTopicKey(t, true, client, topic, topicKey)
+}
 
-	assertClientTopicKey(t, false, pubClient, topicHash, nil)
+func testClientTopicKeyTransition(t *testing.T, e4client Client, protectCommandKey []byte) {
+	topic := "topic1"
+	topicKey := e4crypto.RandomKey()
 
-	// Add back the topic key
-	d, err = pubClient.Unprotect(protectedSetTopicCmd, receivingTopic)
-	if err != nil {
-		t.Fatalf("Failed to unprotect command: %v", err)
-	}
-	if d != nil {
-		t.Fatalf("Invalid unprotect command response, got %v, wanted nil", d)
-	}
-
-	assertClientTopicKey(t, true, pubClient, topicHash, topicKey)
+	setTopicKey(t, e4client, protectCommandKey, topic, topicKey)
+	assertClientTopicKey(t, true, e4client, topic, topicKey)
 
 	// Add a new topic key for the same topic, old one should still be available
 	newTopicKey := e4crypto.RandomKey()
-	setTopicCmd, err = CmdSetTopicKey(newTopicKey, topic)
+	newSetTopicCmd, err := CmdSetTopicKey(newTopicKey, topic)
 	if err != nil {
 		t.Fatalf("CmdSetTopicKey failed: %v", err)
 	}
 
-	protectedSetTopicCmd, err = e4crypto.ProtectSymKey(setTopicCmd, sharedKey)
+	newProtectedSetTopicCmd, err := e4crypto.ProtectSymKey(newSetTopicCmd, protectCommandKey)
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
-
-	d, err = pubClient.Unprotect(protectedSetTopicCmd, receivingTopic)
-	if err != nil {
+	if _, err = e4client.Unprotect(newProtectedSetTopicCmd, e4client.GetReceivingTopic()); err != nil {
 		t.Fatalf("Failed to unprotect command: %v", err)
 	}
-	if d != nil {
-		t.Fatalf("Invalid unprotect command response, got %v, wanted nil", d)
-	}
 
-	hashHash := e4crypto.HashTopic(string(topicHash))
+	// Ensure new key is set
+	assertClientTopicKey(t, true, e4client, topic, newTopicKey)
 
-	typedPubClient, ok := pubClient.(*client)
-	if !ok {
-		t.Fatalf("Unexpected type: got %T, wanted client", pubClient)
-	}
+	// Ensure old key still present
+	assertClientTransitionTopicKey(t, true, e4client, topic, topicKey)
+}
 
-	k, ok := typedPubClient.TopicKeys[hex.EncodeToString(hashHash)]
-	if !ok {
-		t.Fatal("Previous key not found")
-	}
-	if g, w := len(k), e4crypto.KeyLen+e4crypto.TimestampLen; g != w {
-		t.Fatalf("Invalid transition topic key lengths: got %d, wanted %d", g, w)
-	}
-	if !bytes.Equal(k[:e4crypto.KeyLen], topicKey) {
-		t.Fatalf("Invalid topic key: got %v, wanted %v", k, topicKey)
-	}
+func testClientResetTopicKeys(t *testing.T, client Client, protectCommandKey []byte) {
+	topic1 := "topic1"
+	topic2 := "topic2"
+	topic1Key1 := e4crypto.RandomKey()
+	topic1Key2 := e4crypto.RandomKey()
+	topic2Key := e4crypto.RandomKey()
 
-	// Reset topics
+	setTopicKey(t, client, protectCommandKey, topic1, topic1Key1)
+	setTopicKey(t, client, protectCommandKey, topic1, topic1Key2) // set topic1Key1 in transition state
+	setTopicKey(t, client, protectCommandKey, topic2, topic2Key)
+
 	resetTopicCmd, err := CmdResetTopics()
 	if err != nil {
 		t.Fatalf("failed to create ResetTopics command: %v", err)
 	}
-
-	protectedResetCmd, err := e4crypto.ProtectSymKey(resetTopicCmd, sharedKey)
+	protectedResetCmd, err := e4crypto.ProtectSymKey(resetTopicCmd, protectCommandKey)
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
 
-	badProtectedResetCmd, err := e4crypto.ProtectSymKey(append(resetTopicCmd, 0x01), sharedKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-	if _, err := pubClient.Unprotect(badProtectedResetCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad reset Command length")
-	}
-
-	d, err = pubClient.Unprotect(protectedResetCmd, receivingTopic)
+	d, err := client.Unprotect(protectedResetCmd, client.GetReceivingTopic())
 	if err != nil {
 		t.Fatalf("Failed to unprotect command: %v", err)
 	}
@@ -1197,32 +983,113 @@ func TestCommandsPubClient(t *testing.T) {
 		t.Fatalf("Invalid unprotect command response, got %v, wanted nil", d)
 	}
 
-	assertClientTopicKey(t, false, pubClient, topicHash, topicKey)
+	assertClientTopicKey(t, false, client, topic1, topic1Key1)
+	assertClientTransitionTopicKey(t, false, client, topic1, topic1Key2)
+	assertClientTopicKey(t, false, client, topic2, topic2Key)
+}
+func testClientInvalidResetTopicKeys(t *testing.T, client Client, protectCommandKey []byte) {
+	topic := "topic1"
+	topicKey := e4crypto.RandomKey()
 
-	// SetIDKey
-	newClientPubKey, newClientKey, err := ed25519.GenerateKey(nil)
+	setTopicKey(t, client, protectCommandKey, topic, topicKey)
+
+	resetTopicCmd, err := CmdResetTopics()
 	if err != nil {
-		t.Fatalf("failed to generate ed25519 keys: %v", err)
+		t.Fatalf("failed to create ResetTopics command: %v", err)
 	}
+	badProtectedResetCmd, err := e4crypto.ProtectSymKey(append(resetTopicCmd, 0x01), protectCommandKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+	if _, err := client.Unprotect(badProtectedResetCmd, client.GetReceivingTopic()); err == nil {
+		t.Fatal("Expected an error with a bad reset Command length")
+	}
+
+	assertClientTopicKey(t, true, client, topic, topicKey)
+}
+
+func testClientInvalidSetPubKey(t *testing.T, client Client, protectCommandKey []byte) {
+	pubKey, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate pubkey: %v", err)
+	}
+	pubKeyName := "anotherClient"
+	setPubKeyCmd, err := CmdSetPubKey(pubKey, pubKeyName)
+	if err != nil {
+		t.Fatalf("failed to create SetPubKey command: %v", err)
+	}
+
+	badProtectedSetPubKeyCmd, err := e4crypto.ProtectSymKey(append(setPubKeyCmd, 0x01), protectCommandKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+	if _, err := client.Unprotect(badProtectedSetPubKeyCmd, client.GetReceivingTopic()); err == nil {
+		t.Fatal("Expected an error with a bad setPubKey Command length")
+	}
+
+	assertClientPubKey(t, false, client, pubKeyName, pubKey)
+}
+
+func testClientUnknownCommand(t *testing.T, client Client, protectCommandKey []byte) {
+	unknownCmd := []byte{0xFF}
+	protectedUnknownCmd, err := e4crypto.ProtectSymKey(unknownCmd, protectCommandKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+
+	_, err = client.Unprotect(protectedUnknownCmd, client.GetReceivingTopic())
+	if err != ErrInvalidCommand {
+		t.Fatalf("Invalid error when unprotecting command: got %v, wanted %v", err, ErrInvalidCommand)
+	}
+}
+
+func TestSymClientUnprotect_setTopicKey(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
+	testClientSetTopicKey(t, symClient, clientKey)
+}
+func TestSymClientUnprotect_invalidSetTopicKey(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
+	testClientInvalidSetTopicKey(t, symClient, clientKey)
+}
+
+func TestSymClientUnprotect_removeTopicKey(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
+	testClientRemoveTopicKey(t, symClient, clientKey)
+}
+func TestSymClientUnprotect_invalidRemoveTopicKey(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
+	testClientInvalidRemoveTopicKey(t, symClient, clientKey)
+}
+
+func TestSymClientUnprotect_topicKeyTransition(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
+	testClientTopicKeyTransition(t, symClient, clientKey)
+}
+
+func TestSymClientUnprotect_resetTopicKeys(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
+	testClientResetTopicKeys(t, symClient, clientKey)
+}
+func TestSymClientUnprotect_invalidResetTopicKeys(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
+	testClientInvalidResetTopicKeys(t, symClient, clientKey)
+}
+
+func TestSymClientUnprotect_setIDKey(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
+
+	newClientKey := e4crypto.RandomKey()
 	setIDKeyCmd, err := CmdSetIDKey(newClientKey)
 	if err != nil {
 		t.Fatalf("failed to create SetIDKey command: %v", err)
 	}
 
-	protectedSetIDKeyCmd, err := e4crypto.ProtectSymKey(setIDKeyCmd, sharedKey)
+	protectedSetIDKeyCmd, err := e4crypto.ProtectSymKey(setIDKeyCmd, clientKey)
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
 
-	badProtectedSetIDKeyCmd, err := e4crypto.ProtectSymKey(append(setIDKeyCmd, 0x01), sharedKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
-	}
-	if _, err := pubClient.Unprotect(badProtectedSetIDKeyCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad setIDKey Command length")
-	}
-
-	d, err = pubClient.Unprotect(protectedSetIDKeyCmd, receivingTopic)
+	d, err := symClient.Unprotect(protectedSetIDKeyCmd, symClient.GetReceivingTopic())
 	if err != nil {
 		t.Fatalf("Failed to unprotect command: %v", err)
 	}
@@ -1231,106 +1098,136 @@ func TestCommandsPubClient(t *testing.T) {
 	}
 
 	// Unprotecting again the same command must fail since the key have changed
-	if _, err := pubClient.Unprotect(protectedSetIDKeyCmd, receivingTopic); err == nil {
+	if _, err := symClient.Unprotect(protectedSetIDKeyCmd, symClient.GetReceivingTopic()); err == nil {
 		t.Fatal("Expected an error with a command protected with old key")
 	}
 
-	newSharedKey, err := curve25519.X25519(c2PrivKey, e4crypto.PublicEd25519KeyToCurve25519(newClientPubKey))
+	// But using the new key must work
+	testClientSetTopicKey(t, symClient, newClientKey)
+}
+func TestSymClientUnprotect_invalidSetIDKey(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
+
+	newClientKey := e4crypto.RandomKey()
+	setIDKeyCmd, err := CmdSetIDKey(newClientKey)
 	if err != nil {
-		t.Fatalf("curve25519 X25519 failed: %v", err)
+		t.Fatalf("failed to create SetIDKey command: %v", err)
 	}
-	newSharedKey = e4crypto.Sha3Sum256(newSharedKey)
+	badProtectedSetIDKeyCmd, err := e4crypto.ProtectSymKey(append(setIDKeyCmd, 0x01), clientKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+	if _, err := symClient.Unprotect(badProtectedSetIDKeyCmd, symClient.GetReceivingTopic()); err == nil {
+		t.Fatal("Expected an error with a bad setIDKey Command length")
+	}
+
+	// Ensure the original key is still in use
+	testClientSetTopicKey(t, symClient, clientKey)
+}
+
+func TestSymClientUnprotect_setPubKey(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
 
 	pubKey, _, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		t.Fatalf("Failed to generate pubkey: %v", err)
 	}
 	pubKeyName := "anotherClient"
-	pubKeyID := e4crypto.HashIDAlias(pubKeyName)
+
 	setPubKeyCmd, err := CmdSetPubKey(pubKey, pubKeyName)
 	if err != nil {
 		t.Fatalf("failed to create SetPubKey command: %v", err)
 	}
-
-	protectedSetPubKeyCmd, err := e4crypto.ProtectSymKey(setPubKeyCmd, newSharedKey)
+	protectedSetPubKeyCmd, err := e4crypto.ProtectSymKey(setPubKeyCmd, clientKey)
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
-
-	badProtectedSetPubKeyCmd, err := e4crypto.ProtectSymKey(append(setPubKeyCmd, 0x01), newSharedKey)
-	if err != nil {
-		t.Fatalf("Failed to protect command: %v", err)
+	_, err = symClient.Unprotect(protectedSetPubKeyCmd, symClient.GetReceivingTopic())
+	if err != ErrUnsupportedOperation {
+		t.Fatalf("Invalid error when unprotecting command: got %v, wanted %v", err, ErrUnsupportedOperation)
 	}
-	if _, err := pubClient.Unprotect(badProtectedSetPubKeyCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad setPubKey Command length")
-	}
+}
+func TestSymClientUnprotect_invalidSetPubKey(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
+	testClientInvalidSetPubKey(t, symClient, clientKey)
+}
 
-	_, err = pubClient.Unprotect(protectedSetPubKeyCmd, receivingTopic)
-	if err != nil {
-		t.Fatalf("Failed to unprotect SetPubKeyCmd: %v", err)
-	}
-	assertClientPubKey(t, true, pubClient, pubKeyID, pubKey)
+func TestSymClientUnprotect_removePubKey(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
+	pubKeyName := "anotherClient"
 
-	// RemovePubKey
 	removePubKeyCmd, err := CmdRemovePubKey(pubKeyName)
 	if err != nil {
-		t.Fatalf("Failed to create RemovePubKey command: %v", err)
+		t.Fatalf("failed to create RemovePubKey command: %v", err)
 	}
-
-	protectedRemovePubKeyCmd, err := e4crypto.ProtectSymKey(removePubKeyCmd, newSharedKey)
+	protectedRemovePubKeyCmd, err := e4crypto.ProtectSymKey(removePubKeyCmd, clientKey)
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
+	_, err = symClient.Unprotect(protectedRemovePubKeyCmd, symClient.GetReceivingTopic())
+	if err != ErrUnsupportedOperation {
+		t.Fatalf("Invalid error when unprotecting command: got %v, wanted %v", err, ErrUnsupportedOperation)
+	}
+}
+func TestSymClientUnprotect_invalidRemovePubKey(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
+	pubKeyName := "anotherClient"
 
-	badProtectedRemovePubKeyCmd, err := e4crypto.ProtectSymKey(append(removePubKeyCmd, 0x01), newSharedKey)
+	removePubKeyCmd, err := CmdRemovePubKey(pubKeyName)
+	if err != nil {
+		t.Fatalf("failed to create RemovePubKey command: %v", err)
+	}
+	protectedRemovePubKeyCmd, err := e4crypto.ProtectSymKey(append(removePubKeyCmd, 0x01), clientKey)
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
-	if _, err := pubClient.Unprotect(badProtectedRemovePubKeyCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad removePubKey Command length")
+	_, err = symClient.Unprotect(protectedRemovePubKeyCmd, symClient.GetReceivingTopic())
+	if err == nil {
+		t.Fatal("Expected an error with a bad RemovePubKey command length")
 	}
+	if err == ErrUnsupportedOperation {
+		t.Fatal("Unexpected ErrUnsupportedOperation' error when  unprotecting command")
+	}
+}
 
-	_, err = pubClient.Unprotect(protectedRemovePubKeyCmd, receivingTopic)
+func TestSymClientUnprotect_resetPubKeys(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
+
+	resetPubKeysCmd, err := CmdResetPubKeys()
 	if err != nil {
-		t.Fatalf("Failed to unprotect RemovePubKey command: %v", err)
+		t.Fatalf("failed to create ResetPubKeys command: %v", err)
 	}
-
-	assertClientPubKey(t, false, pubClient, pubKeyID, pubKey)
-
-	// ResetPubKeys
-	// Add back previous pubkey
-	_, err = pubClient.Unprotect(protectedSetPubKeyCmd, receivingTopic)
-	if err != nil {
-		t.Fatalf("Failed to unprotect SetPubKeyCmd: %v", err)
-	}
-	assertClientPubKey(t, true, pubClient, pubKeyID, pubKey)
-
-	resetPubKeyCmd, err := CmdResetPubKeys()
-	if err != nil {
-		t.Fatalf("failed to create resetPubKey command: %v", err)
-	}
-
-	protectedResetPubKeyCmd, err := e4crypto.ProtectSymKey(resetPubKeyCmd, newSharedKey)
+	protectedResetPubKeysCmd, err := e4crypto.ProtectSymKey(resetPubKeysCmd, clientKey)
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
+	_, err = symClient.Unprotect(protectedResetPubKeysCmd, symClient.GetReceivingTopic())
+	if err != ErrUnsupportedOperation {
+		t.Fatalf("Invalid error when unprotecting command: got %v, wanted %v", err, ErrUnsupportedOperation)
+	}
+}
+func TestSymClientUnprotect_invalidResetPubKeys(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
 
-	badProtectedResetPubKeyCmd, err := e4crypto.ProtectSymKey(append(resetPubKeyCmd, 0x01), newSharedKey)
+	resetPubKeysCmd, err := CmdResetPubKeys()
+	if err != nil {
+		t.Fatalf("failed to create ResetPubKeys command: %v", err)
+	}
+	protectedResetPubKeysCmd, err := e4crypto.ProtectSymKey(append(resetPubKeysCmd, 0x01), clientKey)
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
-	if _, err := pubClient.Unprotect(badProtectedResetPubKeyCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad ResetPubKey Command length")
+	_, err = symClient.Unprotect(protectedResetPubKeysCmd, symClient.GetReceivingTopic())
+	if err == nil {
+		t.Fatal("Expected an error with a bad ResetPubKeys command length")
 	}
-
-	_, err = pubClient.Unprotect(protectedResetPubKeyCmd, receivingTopic)
-	if err != nil {
-		t.Fatalf("Failed to unprotect ResetPubKey command: %v", err)
+	if err == ErrUnsupportedOperation {
+		t.Fatal("Unexpected ErrUnsupportedOperation' error when  unprotecting command")
 	}
+}
+func TestSymClientUnprotect_setC2Key(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
 
-	assertClientPubKey(t, false, pubClient, pubKeyID, pubKey)
-
-	// SetC2Key
 	newC2PrivKey := e4crypto.RandomKey()
 	newC2PubKey, err := curve25519.X25519(newC2PrivKey, curve25519.Basepoint)
 	if err != nil {
@@ -1341,83 +1238,405 @@ func TestCommandsPubClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create SetC2Key command: %v", err)
 	}
-
-	badProtectedSetC2KeyCmd, err := e4crypto.ProtectSymKey(append(setC2KeyCmd, 0x01), newSharedKey)
+	protectSetC2KeyCmd, err := e4crypto.ProtectSymKey(setC2KeyCmd, clientKey)
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
-	if _, err := pubClient.Unprotect(badProtectedSetC2KeyCmd, receivingTopic); err == nil {
-		t.Fatal("Expected an error with a bad setC2Key Command length")
+	_, err = symClient.Unprotect(protectSetC2KeyCmd, symClient.GetReceivingTopic())
+	if err != ErrUnsupportedOperation {
+		t.Fatalf("Invalid error when unprotecting command: got %v, wanted %v", err, ErrUnsupportedOperation)
+	}
+}
+func TestSymClientUnprotect_invalidSetC2Key(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
+
+	newC2PrivKey := e4crypto.RandomKey()
+	newC2PubKey, err := curve25519.X25519(newC2PrivKey, curve25519.Basepoint)
+	if err != nil {
+		t.Fatalf("failed to generate pubkey: %v", err)
 	}
 
-	protectedSetC2KeyCmd, err := e4crypto.ProtectSymKey(setC2KeyCmd, newSharedKey)
+	setC2KeyCmd, err := CmdSetC2Key(newC2PubKey)
+	if err != nil {
+		t.Fatalf("failed to create SetC2Key command: %v", err)
+	}
+	protectSetC2KeyCmd, err := e4crypto.ProtectSymKey(setC2KeyCmd, clientKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+	_, err = symClient.Unprotect(append(protectSetC2KeyCmd, 0x01), symClient.GetReceivingTopic())
+	if err == nil {
+		t.Fatal("Expected an error with a bad SetC2Key command length")
+	}
+	if err == ErrUnsupportedOperation {
+		t.Fatal("Unexpected ErrUnsupportedOperation' error when  unprotecting command")
+	}
+}
+
+func TestSymClientUnprotect_unknownCommand(t *testing.T) {
+	symClient, clientKey := setupForSymClientUnprotectTests(t)
+	testClientUnknownCommand(t, symClient, clientKey)
+}
+
+func TestPubClientUnprotect_setTopicKey(t *testing.T) {
+	pubClient, sharedKey, _, _ := setupForPubClientUnprotectTests(t)
+	testClientSetTopicKey(t, pubClient, sharedKey)
+}
+func TestPubClientUnprotect_invalidSetTopicKey(t *testing.T) {
+	pubClient, sharedKey, _, _ := setupForPubClientUnprotectTests(t)
+	testClientInvalidSetTopicKey(t, pubClient, sharedKey)
+}
+
+func TestPubClientUnprotect_removeTopicKey(t *testing.T) {
+	pubClient, sharedKey, _, _ := setupForPubClientUnprotectTests(t)
+	testClientRemoveTopicKey(t, pubClient, sharedKey)
+}
+func TestPubClientUnprotect_invalidRemoveTopicKey(t *testing.T) {
+	pubClient, sharedKey, _, _ := setupForPubClientUnprotectTests(t)
+	testClientInvalidRemoveTopicKey(t, pubClient, sharedKey)
+}
+
+func TestPubClientUnprotect_topicKeyTransition(t *testing.T) {
+	pubClient, sharedKey, _, _ := setupForPubClientUnprotectTests(t)
+	testClientTopicKeyTransition(t, pubClient, sharedKey)
+}
+
+func TestPubClientUnprotect_resetTopicKeys(t *testing.T) {
+	pubClient, sharedKey, _, _ := setupForPubClientUnprotectTests(t)
+	testClientResetTopicKeys(t, pubClient, sharedKey)
+}
+func TestPubClientUnprotect_invalidResetTopicKeys(t *testing.T) {
+	pubClient, sharedKey, _, _ := setupForPubClientUnprotectTests(t)
+	testClientInvalidResetTopicKeys(t, pubClient, sharedKey)
+}
+
+func TestPubClientUnprotect_setIDKey(t *testing.T) {
+	pubClient, sharedKey, c2PrivKey, _ := setupForPubClientUnprotectTests(t)
+
+	newClientPubKey, newClientKey, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("failed to generate ed25519 keys: %v", err)
+	}
+	setIDKeyCmd, err := CmdSetIDKey(newClientKey)
+	if err != nil {
+		t.Fatalf("failed to create SetIDKey command: %v", err)
+	}
+	protectedSetIDKeyCmd, err := e4crypto.ProtectSymKey(setIDKeyCmd, sharedKey)
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
 
-	_, err = pubClient.Unprotect(protectedSetC2KeyCmd, receivingTopic)
+	d, err := pubClient.Unprotect(protectedSetIDKeyCmd, pubClient.GetReceivingTopic())
+	if err != nil {
+		t.Fatalf("Failed to unprotect command: %v", err)
+	}
+	if d != nil {
+		t.Fatalf("Expected no returned data, got %v", d)
+	}
+
+	// Unprotecting again the same command must fail since the key have changed
+	if _, err := pubClient.Unprotect(protectedSetIDKeyCmd, pubClient.GetReceivingTopic()); err == nil {
+		t.Fatal("Expected an error with a command protected with old key")
+	}
+
+	// But using the new key must work
+	newSharedPoint, err := curve25519.X25519(c2PrivKey, e4crypto.PublicEd25519KeyToCurve25519(newClientPubKey))
+	if err != nil {
+		t.Fatalf("curve25519 X25519 failed: %v", err)
+	}
+	newSharedKey := e4crypto.Sha3Sum256(newSharedPoint)
+	testClientSetTopicKey(t, pubClient, newSharedKey)
+}
+func TestPubClientUnprotect_invalidSetIDKey(t *testing.T) {
+	pubClient, sharedKey, _, _ := setupForPubClientUnprotectTests(t)
+
+	_, newClientKey, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("failed to generate ed25519 keys: %v", err)
+	}
+	setIDKeyCmd, err := CmdSetIDKey(newClientKey)
+	if err != nil {
+		t.Fatalf("failed to create SetIDKey command: %v", err)
+	}
+	badProtectedSetIDKeyCmd, err := e4crypto.ProtectSymKey(append(setIDKeyCmd, 0x01), sharedKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+	if _, err := pubClient.Unprotect(badProtectedSetIDKeyCmd, pubClient.GetReceivingTopic()); err == nil {
+		t.Fatal("Expected an error with a bad setIDKey Command length")
+	}
+
+	// Ensure the original key is still in use
+	testClientSetTopicKey(t, pubClient, sharedKey)
+}
+
+func TestPubClientUnprotect_setPubKey(t *testing.T) {
+	pubClient, sharedKey, _, _ := setupForPubClientUnprotectTests(t)
+
+	pubKeyName := "anotherClient"
+	pubKey, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate pubkey: %v", err)
+	}
+
+	setPubKey(t, pubClient, sharedKey, pubKeyName, pubKey)
+}
+func TestPubClientUnprotect_invalidSetPubKey(t *testing.T) {
+	pubClient, sharedKey, _, _ := setupForPubClientUnprotectTests(t)
+	testClientInvalidSetPubKey(t, pubClient, sharedKey)
+}
+
+func TestPubClientUnprotect_removePubKey(t *testing.T) {
+	pubClient, sharedKey, _, _ := setupForPubClientUnprotectTests(t)
+
+	pubKey1Name := "anotherClient1"
+	pubKey1, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate pubkey: %v", err)
+	}
+
+	pubKey2Name := "anotherClient2"
+	pubKey2, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate pubkey: %v", err)
+	}
+
+	setPubKey(t, pubClient, sharedKey, pubKey1Name, pubKey1)
+	setPubKey(t, pubClient, sharedKey, pubKey2Name, pubKey2)
+
+	assertClientPubKey(t, true, pubClient, pubKey1Name, pubKey1)
+	assertClientPubKey(t, true, pubClient, pubKey2Name, pubKey2)
+
+	removePubKeyCmd, err := CmdRemovePubKey(pubKey1Name)
+	if err != nil {
+		t.Fatalf("Failed to create RemovePubKey command: %v", err)
+	}
+	protectedRemovePubKeyCmd, err := e4crypto.ProtectSymKey(removePubKeyCmd, sharedKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+	_, err = pubClient.Unprotect(protectedRemovePubKeyCmd, pubClient.GetReceivingTopic())
+	if err != nil {
+		t.Fatalf("Failed to unprotect RemovePubKey command: %v", err)
+	}
+
+	assertClientPubKey(t, false, pubClient, pubKey1Name, pubKey1)
+	assertClientPubKey(t, true, pubClient, pubKey2Name, pubKey2)
+}
+func TestPubClientUnprotect_invalidRemovePubKey(t *testing.T) {
+	pubClient, sharedKey, _, _ := setupForPubClientUnprotectTests(t)
+
+	pubKeyName := "anotherClient1"
+	pubKey, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate pubkey: %v", err)
+	}
+	setPubKey(t, pubClient, sharedKey, pubKeyName, pubKey)
+	assertClientPubKey(t, true, pubClient, pubKeyName, pubKey)
+
+	removePubKeyCmd, err := CmdRemovePubKey(pubKeyName)
+	if err != nil {
+		t.Fatalf("Failed to create RemovePubKey command: %v", err)
+	}
+	badProtectedRemovePubKeyCmd, err := e4crypto.ProtectSymKey(append(removePubKeyCmd, 0x01), sharedKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+	if _, err := pubClient.Unprotect(badProtectedRemovePubKeyCmd, pubClient.GetReceivingTopic()); err == nil {
+		t.Fatal("Expected an error with a bad removePubKey Command length")
+	}
+
+	assertClientPubKey(t, true, pubClient, pubKeyName, pubKey)
+}
+
+func TestPubClientUnprotect_resetPubKeys(t *testing.T) {
+	pubClient, sharedKey, _, _ := setupForPubClientUnprotectTests(t)
+
+	pubKey1Name := "anotherClient1"
+	pubKey1, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate pubkey: %v", err)
+	}
+
+	pubKey2Name := "anotherClient2"
+	pubKey2, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate pubkey: %v", err)
+	}
+
+	setPubKey(t, pubClient, sharedKey, pubKey1Name, pubKey1)
+	setPubKey(t, pubClient, sharedKey, pubKey2Name, pubKey2)
+
+	assertClientPubKey(t, true, pubClient, pubKey1Name, pubKey1)
+	assertClientPubKey(t, true, pubClient, pubKey2Name, pubKey2)
+
+	resetPubKeyCmd, err := CmdResetPubKeys()
+	if err != nil {
+		t.Fatalf("failed to create ResetPubKeys command: %v", err)
+	}
+	protectedResetPubKeyCmd, err := e4crypto.ProtectSymKey(resetPubKeyCmd, sharedKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+	_, err = pubClient.Unprotect(protectedResetPubKeyCmd, pubClient.GetReceivingTopic())
+	if err != nil {
+		t.Fatalf("Failed to unprotect ResetPubKeys command: %v", err)
+	}
+
+	assertClientPubKey(t, false, pubClient, pubKey1Name, pubKey1)
+	assertClientPubKey(t, false, pubClient, pubKey2Name, pubKey2)
+}
+func TestPubClientUnprotect_invalidResetPubKeys(t *testing.T) {
+	pubClient, sharedKey, _, _ := setupForPubClientUnprotectTests(t)
+
+	pubKeyName := "anotherClient1"
+	pubKey, _, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate pubkey: %v", err)
+	}
+	setPubKey(t, pubClient, sharedKey, pubKeyName, pubKey)
+	assertClientPubKey(t, true, pubClient, pubKeyName, pubKey)
+
+	resetPubKeyCmd, err := CmdResetPubKeys()
+	if err != nil {
+		t.Fatalf("failed to create ResetPubKeys command: %v", err)
+	}
+	badResetPubKeyCmd, err := e4crypto.ProtectSymKey(append(resetPubKeyCmd, 0x01), sharedKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+	if _, err := pubClient.Unprotect(badResetPubKeyCmd, pubClient.GetReceivingTopic()); err == nil {
+		t.Fatal("Expected an error with a bad ResetPubKeys Command length")
+	}
+
+	assertClientPubKey(t, true, pubClient, pubKeyName, pubKey)
+}
+
+func TestPubClientUnprotect_setC2Key(t *testing.T) {
+	pubClient, sharedKey, _, clientPubKey := setupForPubClientUnprotectTests(t)
+
+	newC2PrivKey := e4crypto.RandomKey()
+	newC2PubKey, err := curve25519.X25519(newC2PrivKey, curve25519.Basepoint)
+	if err != nil {
+		t.Fatalf("failed to generate pubkey: %v", err)
+	}
+	setC2KeyCmd, err := CmdSetC2Key(newC2PubKey)
+	if err != nil {
+		t.Fatalf("failed to create SetC2Key command: %v", err)
+	}
+	protectedSetC2KeyCmd, err := e4crypto.ProtectSymKey(setC2KeyCmd, sharedKey)
+	if err != nil {
+		t.Fatalf("Failed to protect command: %v", err)
+	}
+
+	_, err = pubClient.Unprotect(protectedSetC2KeyCmd, pubClient.GetReceivingTopic())
 	if err != nil {
 		t.Fatalf("Failed to unprotect SetC2Key command: %v", err)
 	}
 
-	// Unprotecting should now fail since C2 pub key has changed
-	_, err = pubClient.Unprotect(protectedSetC2KeyCmd, receivingTopic)
+	// Unprotect should now fail since C2 pub key has changed
+	_, err = pubClient.Unprotect(protectedSetC2KeyCmd, pubClient.GetReceivingTopic())
 	if err == nil {
 		t.Fatal("Expected unprotect to fail with a new C2 key")
 	}
 
-	newSharedKey, err = curve25519.X25519(newC2PrivKey, e4crypto.PublicEd25519KeyToCurve25519(newClientPubKey))
+	newSharedKey, err := curve25519.X25519(newC2PrivKey, e4crypto.PublicEd25519KeyToCurve25519(clientPubKey))
 	if err != nil {
 		t.Fatalf("curve25519 X25519 failed: %v", err)
 	}
 	newSharedKey = e4crypto.Sha3Sum256(newSharedKey)
 
-	// Unknown command
-	unknownCmd := []byte{0xFF}
-	protectedUnknownCmd, err := e4crypto.ProtectSymKey(unknownCmd, newSharedKey)
+	// Using the new C2 key must work
+	testClientSetTopicKey(t, pubClient, newSharedKey)
+
+}
+func TestPubClientUnprotect_invalidSetC2Key(t *testing.T) {
+	pubClient, sharedKey, _, _ := setupForPubClientUnprotectTests(t)
+
+	newC2PrivKey := e4crypto.RandomKey()
+	newC2PubKey, err := curve25519.X25519(newC2PrivKey, curve25519.Basepoint)
+	if err != nil {
+		t.Fatalf("failed to generate pubkey: %v", err)
+	}
+	setC2KeyCmd, err := CmdSetC2Key(newC2PubKey)
+	if err != nil {
+		t.Fatalf("failed to create SetC2Key command: %v", err)
+	}
+	badProtectedSetC2KeyCmd, err := e4crypto.ProtectSymKey(append(setC2KeyCmd, 0x01), sharedKey)
 	if err != nil {
 		t.Fatalf("Failed to protect command: %v", err)
 	}
-
-	_, err = pubClient.Unprotect(protectedUnknownCmd, receivingTopic)
-	if err != ErrInvalidCommand {
-		t.Fatalf("Invalid error when unprotecting command: got %v, wanted %v", err, ErrInvalidCommand)
+	if _, err := pubClient.Unprotect(badProtectedSetC2KeyCmd, pubClient.GetReceivingTopic()); err == nil {
+		t.Fatal("Expected an error with a bad setC2Key Command length")
 	}
+
+	// Using the original C2 key must work
+	testClientSetTopicKey(t, pubClient, sharedKey)
+}
+func TestPubClientUnprotect_unknownCommand(t *testing.T) {
+	pubClient, sharedKey, _, _ := setupForPubClientUnprotectTests(t)
+	testClientUnknownCommand(t, pubClient, sharedKey)
 }
 
-func assertClientTopicKey(t *testing.T, exists bool, c Client, topicHash []byte, topicKey []byte) {
-	tc, ok := c.(*client)
+func assertClientTopicKey(t *testing.T, exists bool, e4Client Client, topic string, topicKey []byte) {
+	typedClient, ok := e4Client.(*client)
 	if !ok {
-		t.Fatalf("Unexpected type: got %T, wanted client", c)
+		t.Fatalf("Unexpected type: got %T, wanted client", e4Client)
 	}
 
-	k, ok := tc.TopicKeys[hex.EncodeToString(topicHash)]
+	k, ok := typedClient.TopicKeys[hex.EncodeToString(e4crypto.HashTopic(topic))]
 	if exists {
 		if !ok {
-			t.Fatalf("Expected client to have topic %s key", hex.EncodeToString(topicHash))
+			t.Fatalf("Expected client to have topic %s key", topic)
 		} else if !bytes.Equal(k, topicKey) {
-			t.Fatalf("Invalid topic key: got %v, wanted %v", k, topicKey)
+			t.Fatalf("Invalid topic %s key: got %v, wanted %v", topic, k, topicKey)
 		}
 	} else if ok {
-		t.Fatalf("Expected client to not have topic %s key", hex.EncodeToString(topicHash))
+		t.Fatalf("Expected client to not have topic %s key", topic)
 	}
 }
 
-func assertClientPubKey(t *testing.T, exists bool, c Client, id []byte, key []byte) {
-	pks, err := c.getPubKeys()
-	if err != nil {
-		t.Fatalf("Failed to retrieve pubkeys: %v", err)
+func assertClientTransitionTopicKey(t *testing.T, exists bool, e4Client Client, topic string, topicKey []byte) {
+	typedClient, ok := e4Client.(*client)
+	if !ok {
+		t.Fatalf("Unexpected type: got %T, wanted client", e4Client)
 	}
 
-	pk, ok := pks[hex.EncodeToString(id)]
+	hashHash := e4crypto.HashTopic(string(e4crypto.HashTopic(topic)))
+	k, ok := typedClient.TopicKeys[hex.EncodeToString(hashHash)]
 	if exists {
 		if !ok {
-			t.Fatalf("Expected pubkey for id %v to be set on client", id)
-		} else if !bytes.Equal(pk, key) {
-			t.Fatalf("Invalid pubKey: got %v, wanted %v", pk, key)
+			t.Fatalf("Expected client to have topic %s key", topic)
+		} else if g, w := len(k), e4crypto.KeyLen+e4crypto.TimestampLen; g != w {
+			t.Fatalf("Invalid transition topic key length: got %d, want %d", g, w)
+		} else if !bytes.Equal(k[:e4crypto.KeyLen], topicKey) {
+			t.Fatalf("Invalid transition topic %s key: got %v, want %v", topic, k, topicKey)
 		}
 	} else if ok {
-		t.Fatalf("Expected client not having pubkey for id %s", id)
+		t.Fatalf("Expected client to not have topic %s key", topic)
+	}
+}
+
+func assertClientPubKey(t *testing.T, exists bool, e4Client Client, keyName string, key []byte) {
+	pks, err := e4Client.getPubKeys()
+	if err != nil {
+		// Make the assert compatible with symClients
+		if err != ErrUnsupportedOperation {
+			t.Fatalf("Failed to retrieve pubkeys: %v", err)
+
+		}
+		pks = make(map[string]ed25519.PublicKey)
+	}
+
+	pk, ok := pks[hex.EncodeToString(e4crypto.HashIDAlias(keyName))]
+	if exists {
+		if !ok {
+			t.Fatalf("Expected pubkey for id %s to be set on client", keyName)
+		} else if !bytes.Equal(pk, key) {
+			t.Fatalf("Invalid pubKey for id %s: got %v, wanted %v", keyName, pk, key)
+		}
+	} else if ok {
+		t.Fatalf("Expected client not having pubkey for id %s", keyName)
 	}
 }
 
