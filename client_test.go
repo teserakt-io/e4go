@@ -26,8 +26,8 @@ import (
 
 	"golang.org/x/crypto/curve25519"
 
-	"github.com/agl/ed25519/extra25519"
 	miscreant "github.com/miscreant/miscreant.go"
+	"github.com/teserakt-io/golang-ed25519/extra25519"
 	"golang.org/x/crypto/ed25519"
 
 	e4crypto "github.com/teserakt-io/e4go/crypto"

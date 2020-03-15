@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agl/ed25519/extra25519"
+	"github.com/teserakt-io/golang-ed25519/extra25519"
 	"golang.org/x/crypto/ed25519"
 )
 
