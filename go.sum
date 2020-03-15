@@ -28,6 +28,8 @@ github.com/smartystreets/goconvey v0.0.0-20181108003508-044398e4856c h1:Ho+uVpke
 github.com/smartystreets/goconvey v0.0.0-20181108003508-044398e4856c/go.mod h1:XDJAKZRPZ1CvBcN2aX5YOUTYGHki24fSF0Iv48Ibg0s=
 github.com/teserakt-io/golang-ed25519 v0.0.0-20200315185127-2a9081b43b02 h1:/uGQBFHEdWOWooylgn4GqNfwPxnNhxSK0zQRgmjN21o=
 github.com/teserakt-io/golang-ed25519 v0.0.0-20200315185127-2a9081b43b02/go.mod h1:9PdLyPiZIiW3UopXyRnPYyjUXSpiQNHRLu8fOsR3o8M=
+github.com/teserakt-io/golang-ed25519 v0.0.0-20200315192543-8255be791ce4 h1:Sq/68UWgBzKT+pLTUTkSf0jS2IUwwXLFlZmeh+nAzQM=
+github.com/teserakt-io/golang-ed25519 v0.0.0-20200315192543-8255be791ce4/go.mod h1:9PdLyPiZIiW3UopXyRnPYyjUXSpiQNHRLu8fOsR3o8M=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413 h1:ULYEB3JvPRE/IfO+9uO7vKV/xzVTO7XPAwm8xbf4w2g=
 golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
