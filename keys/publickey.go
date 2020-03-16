@@ -43,7 +43,8 @@ type pubKeyMaterial struct {
 	C2PubKey   e4crypto.Curve25519PublicKey `json:"c2PubKey,omitempty"`
 	PubKeys    map[string]ed25519.PublicKey `json:"pubKeys,omitempty"`
 
-	mutex sync.RWMutex
+	mutex     sync.RWMutex
+	sharedKey []byte
 }
 
 var _ PubKeyMaterial = (*pubKeyMaterial)(nil)
@@ -63,20 +64,24 @@ func NewPubKeyMaterial(signerID []byte, privateKey ed25519.PrivateKey, c2PubKey 
 		return nil, fmt.Errorf("invalid c2 public key: %v", err)
 	}
 
-	e := &pubKeyMaterial{
+	k := &pubKeyMaterial{
 		PubKeys: make(map[string]ed25519.PublicKey),
 	}
 
-	e.C2PubKey = make([]byte, len(c2PubKey))
-	copy(e.C2PubKey, c2PubKey)
+	k.C2PubKey = make([]byte, len(c2PubKey))
+	copy(k.C2PubKey, c2PubKey)
 
-	e.PrivateKey = make([]byte, len(privateKey))
-	copy(e.PrivateKey, privateKey)
+	k.PrivateKey = make([]byte, len(privateKey))
+	copy(k.PrivateKey, privateKey)
 
-	e.SignerID = make([]byte, len(signerID))
-	copy(e.SignerID, signerID)
+	if err := k.updateSharedKey(); err != nil {
+		return nil, err
+	}
 
-	return e, nil
+	k.SignerID = make([]byte, len(signerID))
+	copy(k.SignerID, signerID)
+
+	return k, nil
 }
 
 // NewRandomPubKeyMaterial creates a new PubKeyMaterial key from a random ed25519 key
@@ -152,16 +157,11 @@ func (k *pubKeyMaterial) UnprotectMessage(protected []byte, topicKey TopicKey) (
 // UnprotectCommand attempt to decrypt a client command from the given protected cipher.
 // It will use the material's private key and the c2 public key to create the required symmetric key
 func (k *pubKeyMaterial) UnprotectCommand(protected []byte) ([]byte, error) {
-	// convert ed key to curve key
-	curvePrivateKey := e4crypto.PrivateEd25519KeyToCurve25519(k.PrivateKey)
-	shared, err := curve25519.X25519(curvePrivateKey, k.C2PubKey)
-	if err != nil {
-		return nil, fmt.Errorf("curve25519 X25519 failed: %v", err)
+	if err := e4crypto.ValidateSymKey(k.sharedKey); err != nil {
+		return nil, fmt.Errorf("invalid shared key: %v", err)
 	}
 
-	key := e4crypto.Sha3Sum256(shared[:])[:e4crypto.KeyLen]
-
-	return e4crypto.UnprotectSymKey(protected, key)
+	return e4crypto.UnprotectSymKey(protected, k.sharedKey)
 }
 
 // AddPubKey store the given id and key in internal storage
@@ -241,7 +241,17 @@ func (k *pubKeyMaterial) SetKey(key []byte) error {
 
 	k.PrivateKey = sk
 
-	return nil
+	return k.updateSharedKey()
+}
+
+func (k *pubKeyMaterial) SetC2PubKey(newC2PubKey e4crypto.Curve25519PublicKey) error {
+	if err := e4crypto.ValidateCurve25519PubKey(newC2PubKey); err != nil {
+		return err
+	}
+
+	k.C2PubKey = newC2PubKey
+
+	return k.updateSharedKey()
 }
 
 // MarshalJSON  will infer the key type in the marshalled json data
@@ -276,4 +286,43 @@ func (k *pubKeyMaterial) PublicKey() ed25519.PublicKey {
 	}
 
 	return publicKey
+}
+
+func (k *pubKeyMaterial) updateSharedKey() error {
+	curvePrivateKey := e4crypto.PrivateEd25519KeyToCurve25519(k.PrivateKey)
+	sharedKey, err := curve25519.X25519(curvePrivateKey, k.C2PubKey)
+	if err != nil {
+		return fmt.Errorf("curve25519 X25519 failed: %v", err)
+	}
+
+	k.sharedKey = e4crypto.Sha3Sum256(sharedKey)[:e4crypto.KeyLen]
+
+	return nil
+}
+
+func (k *pubKeyMaterial) validate() error {
+	if err := e4crypto.ValidateID(k.SignerID); err != nil {
+		return err
+	}
+	if err := e4crypto.ValidateEd25519PrivKey(k.PrivateKey); err != nil {
+		return err
+	}
+	if err := e4crypto.ValidateCurve25519PubKey(k.C2PubKey); err != nil {
+		return err
+	}
+	for id, pubKey := range k.PubKeys {
+		decodedID, err := hex.DecodeString(id)
+		if err != nil {
+			return err
+		}
+
+		if err := e4crypto.ValidateID(decodedID); err != nil {
+			return err
+		}
+		if err := e4crypto.ValidateEd25519PubKey(pubKey); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

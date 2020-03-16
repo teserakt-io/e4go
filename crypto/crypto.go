@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/agl/ed25519/extra25519"
 	miscreant "github.com/miscreant/miscreant.go"
+	"github.com/teserakt-io/golang-ed25519/extra25519"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/ed25519"
 )
@@ -31,8 +31,8 @@ import (
 var (
 	// ErrInvalidProtectedLen occurs when the protected message is  not of the expected length
 	ErrInvalidProtectedLen = errors.New("invalid length of protected message")
-	// ErrTooShortCipher occurs when trying to unprotect a cipher shorter than TimestampLen
-	ErrTooShortCipher = errors.New("ciphertext too short")
+	// ErrTooShortCiphertext occurs when trying to unprotect a ciphertext shorter than TimestampLen
+	ErrTooShortCiphertext = errors.New("ciphertext too short")
 	// ErrTimestampInFuture occurs when the cipher timestamp is in the future
 	ErrTimestampInFuture = errors.New("timestamp received is in the future")
 	// ErrTimestampTooOld occurs when the cipher timestamp is older than MaxDelayDuration from now
@@ -151,7 +151,7 @@ func ProtectSymKey(payload, key []byte) ([]byte, error) {
 // UnprotectSymKey attempt to decrypt protected bytes, using given symmetric key
 func UnprotectSymKey(protected, key []byte) ([]byte, error) {
 	if len(protected) <= TimestampLen+TagLen {
-		return nil, ErrTooShortCipher
+		return nil, ErrTooShortCiphertext
 	}
 
 	ct := protected[TimestampLen:]

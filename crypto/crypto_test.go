@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agl/ed25519/extra25519"
+	"github.com/teserakt-io/golang-ed25519/extra25519"
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -239,8 +239,8 @@ func TestProtectUnprotectSymKey(t *testing.T) {
 	// Too short cipher are not allowed
 	tooShortProtected := make([]byte, TimestampLen)
 	_, err = UnprotectSymKey(tooShortProtected, key)
-	if err != ErrTooShortCipher {
-		t.Fatalf("Invalid error, got: %v, wanted: %v", err, ErrTooShortCipher)
+	if err != ErrTooShortCiphertext {
+		t.Fatalf("Invalid error, got: %v, wanted: %v", err, ErrTooShortCiphertext)
 	}
 
 	if _, err := UnprotectSymKey(protected, []byte("not a key")); err == nil {
