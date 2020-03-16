@@ -105,7 +105,7 @@ Note that a client's state is automatically saved to the provided store when the
 
 ### Client storage
 
-E4 client offer a way to persist its internal state, allowing to shut it down and reload without having to retransmit all the keys, by providing an `e4.ReadWriteSeeker` implementation to the client. This interface is compatible with any [io.ReadWriteSeeker](https://godoc.org/io#ReadWriteSeeker), such as the `os.File` type, which should be the most common option. But it also allows custom implementations for platforms where filesystem isn't available, like the `e4.NewMemoryStore([]byte)` we provide.
+E4 client offer a way to persist its internal state, allowing to shut it down and reload without having to retransmit all the keys, by providing an `e4.ReadWriteSeeker` implementation to the client. This interface is compatible with any [io.ReadWriteSeeker](https://godoc.org/io#ReadWriteSeeker), such as the `os.File` type, which should be the most common option. But it also allows custom implementations for platforms where filesystem isn't available, see the `e4.NewInMemoryStore([]byte)` we provide as an example of custom storage implementation.
 
 ## Integration instructions
 
