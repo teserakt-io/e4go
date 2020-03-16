@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/agl/ed25519/extra25519"
 	miscreant "github.com/miscreant/miscreant.go"
+	"github.com/teserakt-io/golang-ed25519/extra25519"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/ed25519"
 )
