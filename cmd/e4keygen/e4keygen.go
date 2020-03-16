@@ -98,7 +98,7 @@ func writeKey(privateBytes []byte, publicBytes []byte, filepath string, force bo
 }
 
 func write(keyBytes []byte, filepath string, perm os.FileMode, force bool) error {
-	openFlags := os.O_CREATE | os.O_WRONLY
+	openFlags := os.O_CREATE | os.O_WRONLY | os.O_TRUNC
 	if !force {
 		openFlags = openFlags | os.O_EXCL
 	}
