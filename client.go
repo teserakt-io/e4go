@@ -126,7 +126,7 @@ var _ Client = (*client)(nil)
 
 // ClientConfig defines an interface for client configuration
 type ClientConfig interface {
-	genNewClient(store ReadWriteSeeker) (Client, error)
+	genNewClient(store ReadWriteSeeker) (*client, error)
 }
 
 // SymIDAndKey defines a configuration to create an E4 client in symmetric key mode
@@ -166,7 +166,7 @@ var _ ClientConfig = (*SymNameAndPassword)(nil)
 var _ ClientConfig = (*PubIDAndKey)(nil)
 var _ ClientConfig = (*PubNameAndPassword)(nil)
 
-func (ik *SymIDAndKey) genNewClient(store ReadWriteSeeker) (Client, error) {
+func (ik *SymIDAndKey) genNewClient(store ReadWriteSeeker) (*client, error) {
 	var newID []byte
 	if len(ik.ID) == 0 {
 		newID = e4crypto.RandomID()
@@ -183,7 +183,7 @@ func (ik *SymIDAndKey) genNewClient(store ReadWriteSeeker) (Client, error) {
 	return newClient(newID, symKeyMaterial, store)
 }
 
-func (np *SymNameAndPassword) genNewClient(store ReadWriteSeeker) (Client, error) {
+func (np *SymNameAndPassword) genNewClient(store ReadWriteSeeker) (*client, error) {
 	id := e4crypto.HashIDAlias(np.Name)
 
 	key, err := e4crypto.DeriveSymKey(np.Password)
@@ -199,7 +199,7 @@ func (np *SymNameAndPassword) genNewClient(store ReadWriteSeeker) (Client, error
 	return newClient(id, symKeyMaterial, store)
 }
 
-func (ik *PubIDAndKey) genNewClient(store ReadWriteSeeker) (Client, error) {
+func (ik *PubIDAndKey) genNewClient(store ReadWriteSeeker) (*client, error) {
 	var newID []byte
 	if len(ik.ID) == 0 {
 		newID = e4crypto.RandomID()
@@ -216,7 +216,7 @@ func (ik *PubIDAndKey) genNewClient(store ReadWriteSeeker) (Client, error) {
 	return newClient(newID, pubKeyMaterialKey, store)
 }
 
-func (np *PubNameAndPassword) genNewClient(store ReadWriteSeeker) (Client, error) {
+func (np *PubNameAndPassword) genNewClient(store ReadWriteSeeker) (*client, error) {
 	id := e4crypto.HashIDAlias(np.Name)
 
 	key, err := e4crypto.Ed25519PrivateKeyFromPassword(np.Password)
@@ -247,17 +247,43 @@ func (np *PubNameAndPassword) PubKey() (e4crypto.Ed25519PublicKey, error) {
 	return edKey, nil
 }
 
+// ClientOption is an option for an E4 client
+type ClientOption interface {
+	apply(c *client)
+}
+
+type withReceivingTopic string
+
+func (w withReceivingTopic) apply(c *client) {
+	c.ReceivingTopic = string(w)
+}
+
+// WithReceivingTopic returns a ClientOption that override the default receiving topic of the client
+func WithReceivingTopic(topic string) ClientOption {
+	return withReceivingTopic(topic)
+}
+
 // NewClient creates a new E4 client, working either in symmetric key mode, or public key mode
 // depending the given ClientConfig
 //
 // config is a ClientConfig, either SymIDAndKey, SymNameAndPassword, PubIDAndKey or PubNameAndPassword
 // store is an e4.ReadWriteSeeker implementation
-func NewClient(config ClientConfig, store ReadWriteSeeker) (Client, error) {
-	return config.genNewClient(store)
+// opts is an optional list of ClientOption allowing to change E4 client defaults
+func NewClient(config ClientConfig, store ReadWriteSeeker, opts ...ClientOption) (Client, error) {
+	c, err := config.genNewClient(store)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, opt := range opts {
+		opt.apply(c)
+	}
+
+	return c, nil
 }
 
 // newClient creates a new client, generating a random ID if they are empty
-func newClient(id []byte, clientKey keys.KeyMaterial, store ReadWriteSeeker) (Client, error) {
+func newClient(id []byte, clientKey keys.KeyMaterial, store ReadWriteSeeker) (*client, error) {
 	if len(id) == 0 {
 		return nil, errors.New("client id must not be empty")
 	}

@@ -1578,6 +1578,30 @@ func TestPubClientUnprotect_unknownCommand(t *testing.T) {
 	testClientUnknownCommand(t, pubClient, sharedKey)
 }
 
+func TestWithReceivingTopic(t *testing.T) {
+	cfg := &SymNameAndPassword{
+		Name:     "foo",
+		Password: "superSecretPassword",
+	}
+
+	store := NewInMemoryStore(nil)
+
+	expectedTopic := "not-the-default-topic"
+	e4Client, err := NewClient(cfg, store, WithReceivingTopic(expectedTopic))
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	typedClient, ok := e4Client.(*client)
+	if !ok {
+		t.Fatalf("Unexpected type: got %T, wanted client", e4Client)
+	}
+
+	if typedClient.ReceivingTopic != expectedTopic {
+		t.Fatalf("invalid receiving topic, got %s, want %s", typedClient.ReceivingTopic, expectedTopic)
+	}
+}
+
 func assertClientTopicKey(t *testing.T, exists bool, e4Client Client, topic string, topicKey []byte) {
 	typedClient, ok := e4Client.(*client)
 	if !ok {
