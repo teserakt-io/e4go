@@ -46,4 +46,4 @@ All third-party contributions will be recognized in the list of contributors.
 
 ## House rules
 
-When posting on discussion threads, please be respectful and civil, avoid (passive-)agressive tone, and try to communicate clearly and succinctly. This is usually better for everyone :-)
+When posting on discussion threads, please be respectful and civil, avoid (passive-)aggressive tone, and try to communicate clearly and succinctly. This is usually better for everyone :-)
